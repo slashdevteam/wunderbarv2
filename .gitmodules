@@ -1,3 +1,6 @@
 [submodule "mbed-os"]
 	path = mbed-os
 	url = https://github.com/slashdevteam/mbed-os.git
+[submodule "gs1500m-driver"]
+	path = gs1500m-driver
+	url = https://github.com/slashdevteam/gs1500m-driver.git

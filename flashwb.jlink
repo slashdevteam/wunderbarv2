@@ -1,0 +1,8 @@
+si 1
+speed 4000
+device MK24FN1M0xxx12
+halt
+loadfile BUILD/WUNDERBAR/GCC_ARM/wunderbarv2.hex
+r
+g
+q

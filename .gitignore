@@ -1,0 +1,9 @@
+debug
+BUILD
+*.pyc
+*.lib
+*.DS_Store
+.tags*
+.directory
+.ninja_deps
+.ninja_log

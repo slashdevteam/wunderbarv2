@@ -1,0 +1,30 @@
+#include "cdc.h"
+
+const uint8_t CONTROLLER_ID = 0; //kUSB_ControllerKhci0
+
+namespace wunderbar
+{
+    extern device_specific_descriptors cdcDescriptors;
+}
+
+namespace usb
+{
+CDC::CDC()
+    : cdcDevice(CONTROLLER_ID, wunderbar::cdcDescriptors)
+{
+    cdcDevice.run();
+}
+
+int CDC::_putc(int c)
+{
+    cdcDevice.send((uint8_t*)&c, 1);
+    return 1;
+}
+
+int CDC::_getc()
+{
+    assert(false); // NOT IMPLEMENTED YET!
+    return 0;
+}
+
+}

@@ -1,0 +1,11 @@
+{
+    "config":
+    {
+        "USB_STACK":
+        {
+             "help": "Define for USB stack",
+             "macro_name": "USB_STACK_BM",
+             "value": 1
+        }
+    }
+}

@@ -4,3 +4,6 @@
 [submodule "gs1500m-driver"]
 	path = drivers/gs1500m-driver
        url = https://github.com/slashdevteam/gs1500m-driver.git
+[submodule "drivers/usb-cdc"]
+	path = drivers/usb-cdc
+	url = https://github.com/slashdevteam/usb-cdc.git

@@ -7,3 +7,6 @@
 [submodule "drivers/usb-cdc"]
 	path = drivers/usb-cdc
 	url = https://github.com/slashdevteam/usb-cdc.git
+[submodule "jsmn"]
+	path = jsmn
+	url = https://github.com/zserge/jsmn.git

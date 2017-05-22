@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     {
         led1 = !led1;
         wait(2);
-        cdc.printf("Led state: %d\n", !led1.read());
+        cdc.printf("Led state: %d\r\n", !led1.read());
     }
 }
 

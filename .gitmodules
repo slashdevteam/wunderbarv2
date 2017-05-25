@@ -10,3 +10,6 @@
 [submodule "jsmn"]
 	path = jsmn
 	url = https://github.com/zserge/jsmn.git
+[submodule "mqttlib"]
+	path = mqttlib
+	url = https://github.com/eclipse/paho.mqtt.embedded-c.git

@@ -1,2 +1,8 @@
 jsmn/example/*
 jsmn/test/*
+mqttlib/MQTTClient/samples/*
+mqttlib/MQTTClient/src/linux/*
+mqttlib/MQTTClient/src/arduino/*
+mqttlib/MQTTClient-C/*
+mqttlib/MQTTPacket/samples/*
+mqttlib/MQTTPacket/test/*

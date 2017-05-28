@@ -4,23 +4,24 @@
 #include "flash.h"
 #include "GS1500MInterface.h"
 
+// Putting most object in global scope to save thread_stack_main, which is to small!
+const Flash flash;
+const Configuration& config = flash.getConfig();
 DigitalOut led1(LED1);
 using usb::CDC;
 using wunderbar::Configuration;
+CDC cdc;
+GS1500MInterface wifiConnection(WIFI_TX, WIFI_RX, 115200, false);
+Protocol protocol(&wifiConnection, config.proto, &cdc);
 
 int main(int argc, char **argv)
 {
-    CDC cdc;
+    cdc.run();
 
     cdc.printf(" Welcome to WunderBar v2 mbed OS firmware\n");
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
-    Flash flash;
-    const Configuration& config = flash.getConfig();
-
     cdc.printf("Connecting to %s network\r\n", config.wifi.ssid);
-
-    GS1500MInterface wifiConnection(WIFI_TX, WIFI_RX, 115200, false);
 
     wifiConnection.connect(config.wifi.ssid,
                            config.wifi.pass,
@@ -28,13 +29,12 @@ int main(int argc, char **argv)
                            config.wifi.channel);
 
     cdc.printf("Connected to %s network\r\n", config.wifi.ssid);
-
-    Protocol protocol(&wifiConnection, config.proto, &cdc);
     cdc.printf("Creating connection over %s to %s:%d\r\n", protocol.name, config.proto.server, config.proto.port);
+
 
     if(protocol.connect())
     {
-        cdc.printf("%s connected to %s to %s:%d\r\n", protocol.name, config.proto.server, config.proto.port);
+        cdc.printf("%s connected to %s:%d\r\n", protocol.name, config.proto.server, config.proto.port);
     }
     else
     {

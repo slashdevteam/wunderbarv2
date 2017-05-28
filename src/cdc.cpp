@@ -12,6 +12,11 @@ namespace usb
 CDC::CDC()
     : cdcDevice(CONTROLLER_ID, wunderbar::cdcDescriptors)
 {
+
+}
+
+void CDC::run()
+{
     cdcDevice.run();
 }
 
@@ -25,6 +30,14 @@ int CDC::_getc()
 {
     assert(false); // NOT IMPLEMENTED YET!
     return 0;
+}
+
+void CDC::lock() {
+    _mutex.lock();
+}
+
+void CDC::unlock() {
+    _mutex.unlock();
 }
 
 }

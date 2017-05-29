@@ -3,7 +3,6 @@
 #include "mbedtls/entropy_poll.h"
 #include "MQTTPacket.h" // cause MQTTConnect does not include MQTTString!
 #include "Timer.h"
-#include "Thread.h"
 #include <cstring> // strlen
 #include "error.h"
 
@@ -110,10 +109,52 @@ Protocol::~Protocol()
 bool Protocol::connect()
 {
     // Connection uses _a lot_ of stack for AES/CRT and so on
-    Thread connector(osPriorityNormal, 2*8196);
+    Thread connector(osPriorityNormal, 3*8196);
     connector.start(mbed::callback(this, &Protocol::connectThread));
     connector.join();
     return (0 == error);
+}
+
+bool Protocol::disconnect()
+{
+    pinger.terminate();
+    tcpSocket.close();
+    int32_t ret = mbedtls_ssl_session_reset(&ssl);
+    return (0 == ret);
+}
+
+void Protocol::keepAlive(size_t everyMs)
+{
+    keepAliveHeartbeat = everyMs;
+    if(rtos::Thread::State::Running != pinger.get_state())
+    {
+        pinger.start(mbed::callback(this, &Protocol::keepAliveThread));
+    }
+}
+
+void Protocol::keepAliveThread()
+{
+    while(1)
+    {
+        rtos::Thread::wait(keepAliveHeartbeat);
+        lock();
+        size_t len = MQTTSerialize_pingreq(sendbuf, MAX_MQTT_PACKET_SIZE);
+        if (len > 0 && (sendPacket(len) == 0))
+        {
+            log->printf("Ping OK\r\n");
+        }
+        unlock();
+    }
+}
+
+void Protocol::lock()
+{
+    mutex.lock();
+}
+
+void Protocol::unlock()
+{
+    mutex.unlock();
 }
 
 void Protocol::connectThread()
@@ -149,6 +190,7 @@ void Protocol::connectThread()
     if(error)
     {
         log->printf("TCP connect fail - %d\r\n", error);
+        tcpSocket.close();
         return;
     }
 
@@ -156,163 +198,204 @@ void Protocol::connectThread()
     if(error)
     {
         log->printf("SSL handshake fail - %d\r\n", error);
+        tcpSocket.close();
         return;
     }
 
-//     error = mqttConnect();
-//     if(error)
-//     {
-//         // log->printf("MQTT Connect fail - %d\r\n", error);
-//         return error;
-//     }
+    error = mqttConnect();
+    if(error)
+    {
+        log->printf("MQTT Connect fail - %d\r\n", error);
+        tcpSocket.close();
+        return;
+    }
 }
 
-// const int32_t COMMAND_TIMEOUT = 5000;
-// int32_t Protocol::mqttConnect()
-// {
-//     MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
-//     // need to copy client credentials because Paho is _not_ const correct
-//     char* clientId = new char[std::strlen(config.clientId)];
-//     std::memcpy(clientId, config.clientId, std::strlen(config.clientId));
-//     char* username = new char[std::strlen(config.userId)];
-//     std::memcpy(username, config.userId, std::strlen(config.userId));
-//     char* password = new char[std::strlen(config.password)];
-//     std::memcpy(password, config.password, std::strlen(config.password));
-//     connectData.MQTTVersion = 3;
-//     connectData.clientID.cstring = clientId;
-//     connectData.username.cstring = username;
-//     connectData.password.cstring = password;
+const int32_t COMMAND_TIMEOUT = 5000;
+int32_t Protocol::mqttConnect()
+{
+    MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
+    // need to copy client credentials because Paho is _not_ const correct
+    char* clientId = new char[std::strlen(config.clientId)];
+    std::memcpy(clientId, config.clientId, std::strlen(config.clientId));
+    char* username = new char[std::strlen(config.userId)];
+    std::memcpy(username, config.userId, std::strlen(config.userId));
+    char* password = new char[std::strlen(config.password)];
+    std::memcpy(password, config.password, std::strlen(config.password));
+    connectData.MQTTVersion = 3;
+    connectData.clientID.cstring = clientId;
+    connectData.username.cstring = username;
+    connectData.password.cstring = password;
 
-//     size_t sentLen = MQTTSerialize_connect(sendbuf, MAX_MQTT_PACKET_SIZE, &connectData);
-//     int32_t error = (sentLen <= 0);
-//     if(error)
-//     {
-//         // log->printf("MQTT connect msg sent fail - %d\r\n", error);
-//         return error;
-//     }
+    size_t sentLen = MQTTSerialize_connect(sendbuf, MAX_MQTT_PACKET_SIZE, &connectData);
+    int32_t error = (sentLen <= 0);
+    if(error)
+    {
+        log->printf("MQTT connect msg sent fail - %d\r\n", error);
+        return error;
+    }
 
-//     msgTypes msg = static_cast<msgTypes>(readUntil(CONNACK, COMMAND_TIMEOUT));
+    error = sendPacket((size_t)sentLen);
+    if(error)  // send the connect packet
+    {
+        log->printf("Error sending the connect request packet %d\r\n", error);
+        return error;
+    }
 
-//     if(CONNACK != msg)
-//     {
-//         // log->printf("MQTT CONNACK fail - %d\r\n", error);
-//         return -4;
-//     }
+    msgTypes msg = static_cast<msgTypes>(readUntil(CONNACK, COMMAND_TIMEOUT));
 
-//     delete clientId;
-//     delete username;
-//     delete password;
+    if(CONNACK != msg)
+    {
+        log->printf("MQTT CONNACK fail - %d\r\n", error);
+        return -4;
+    }
 
-//     return 0;
-// }
+    delete clientId;
+    delete username;
+    delete password;
 
-// int32_t Protocol::readBytesToBuffer(char * buffer, size_t size, int32_t timeout)
-// {
-//     int rc;
+    return 0;
+}
 
-//     // Do SSL/TLS read
-//     rc = mbedtls_ssl_read(&ssl, (uint8_t*)buffer, size);
-//     if (MBEDTLS_ERR_SSL_WANT_READ == rc)
-//         return -2;
-//     else
-//         return rc;
-// }
+int32_t Protocol::readBytesToBuffer(char * buffer, size_t size, int32_t timeout)
+{
+    int rc;
 
-// int32_t Protocol::readPacketLength(int32_t* value)
-// {
-//     int rc = MQTTPACKET_READ_ERROR;
-//     unsigned char c;
-//     int multiplier = 1;
-//     int len = 0;
-//     const int MAX_NO_OF_REMAINING_LENGTH_BYTES = 4;
+    rc = mbedtls_ssl_read(&ssl, (uint8_t*)buffer, size);
+    if (MBEDTLS_ERR_SSL_WANT_READ == rc)
+        return -2;
+    else
+        return rc;
+}
 
-//     *value = 0;
-//     do
-//     {
-//         if (++len > MAX_NO_OF_REMAINING_LENGTH_BYTES)
-//         {
-//             rc = MQTTPACKET_READ_ERROR; /* bad data */
-//             goto exit;
-//         }
+int32_t Protocol::readPacketLength(int32_t* value)
+{
+    int rc = MQTTPACKET_READ_ERROR;
+    unsigned char c;
+    int multiplier = 1;
+    int len = 0;
+    const int MAX_NO_OF_REMAINING_LENGTH_BYTES = 4;
 
-//         rc = readBytesToBuffer((char *) &c, 1, DEFAULT_SOCKET_TIMEOUT);
-//         if (rc != 1)
-//         {
-//             rc = MQTTPACKET_READ_ERROR;
-//             goto exit;
-//         }
+    *value = 0;
+    do
+    {
+        if (++len > MAX_NO_OF_REMAINING_LENGTH_BYTES)
+        {
+            rc = MQTTPACKET_READ_ERROR; /* bad data */
+            goto exit;
+        }
 
-//         *value += (c & 127) * multiplier;
-//         multiplier *= 128;
-//     } while ((c & 128) != 0);
+        rc = readBytesToBuffer((char *) &c, 1, DEFAULT_SOCKET_TIMEOUT);
+        if (rc != 1)
+        {
+            rc = MQTTPACKET_READ_ERROR;
+            goto exit;
+        }
 
-//     rc = MQTTPACKET_READ_COMPLETE;
+        *value += (c & 127) * multiplier;
+        multiplier *= 128;
+    } while ((c & 128) != 0);
 
-// exit:
-//     if (rc == MQTTPACKET_READ_ERROR )
-//         len = -1;
+    rc = MQTTPACKET_READ_COMPLETE;
 
-//     return len;
-// }
+exit:
+    if (rc == MQTTPACKET_READ_ERROR )
+        len = -1;
 
-// int32_t Protocol::readPacket()
-// {
-//     int32_t rc = -1;
-//     MQTTHeader header = {0};
-//     int32_t len = 0;
-//     int32_t rem_len = 0;
+    return len;
+}
 
-//     /* 1. read the header byte.  This has the packet type in it */
-//     if ( (rc = readBytesToBuffer((char*)&readbuf[0], 1, DEFAULT_SOCKET_TIMEOUT)) != 1)
-//         goto exit;
+int32_t Protocol::readPacket()
+{
+    int32_t rc = -1;
+    MQTTHeader header = {0};
+    int32_t len = 0;
+    int32_t rem_len = 0;
 
-//     len = 1;
-//     /* 2. read the remaining length.  This is variable in itself */
-//     if (readPacketLength(&rem_len) < 0 )
-//         goto exit;
+    /* 1. read the header byte.  This has the packet type in it */
+    if ( (rc = readBytesToBuffer((char*)&readbuf[0], 1, DEFAULT_SOCKET_TIMEOUT)) != 1)
+        goto exit;
 
-//     len += MQTTPacket_encode(readbuf + 1, rem_len); /* put the original remaining length into the buffer */
+    len = 1;
+    /* 2. read the remaining length.  This is variable in itself */
+    if (readPacketLength(&rem_len) < 0 )
+        goto exit;
 
-//     if (rem_len > (MAX_MQTT_PACKET_SIZE - len))
-//     {
-//         rc = -3;
-//         goto exit;
-//     }
+    len += MQTTPacket_encode(readbuf + 1, rem_len); /* put the original remaining length into the buffer */
 
-//     /* 3. read the rest of the buffer using a callback to supply the rest of the data */
-//     if (rem_len > 0 && (readBytesToBuffer((char *) (readbuf + len), rem_len, DEFAULT_SOCKET_TIMEOUT) != rem_len))
-//         goto exit;
+    if (rem_len > (MAX_MQTT_PACKET_SIZE - len))
+    {
+        rc = -3;
+        goto exit;
+    }
 
-//     // Convert the header to type
-//     // and update rc
-//     header.byte = readbuf[0];
-//     rc = header.bits.type;
+    /* 3. read the rest of the buffer using a callback to supply the rest of the data */
+    if (rem_len > 0 && (readBytesToBuffer((char *) (readbuf + len), rem_len, DEFAULT_SOCKET_TIMEOUT) != rem_len))
+        goto exit;
 
-// exit:
+    // Convert the header to type
+    // and update rc
+    header.byte = readbuf[0];
+    rc = header.bits.type;
 
-//     return rc;
-// }
+exit:
 
-// int32_t Protocol::readUntil(int32_t packetType, int32_t timeout)
-// {
-//     int pType = -1;
-//     Timer timer;
+    return rc;
+}
 
-//     timer.start();
-//     do {
-//         pType = readPacket();
-//         if (pType < 0)
-//             break;
+int32_t Protocol::sendPacket(size_t length)
+{
+    int rc = -1;
+    size_t sent = 0;
 
-//         if (timer.read_ms() > timeout)
-//         {
-//             pType = -1;
-//             break;
-//         }
-//     }while(pType != packetType);
+    while (sent < length)
+    {
+        rc = sendBytesFromBuffer((char *) &sendbuf[sent], length - sent, DEFAULT_SOCKET_TIMEOUT);
+        if (rc < 0)  // there was an error writing the data
+            break;
+        sent += rc;
+    }
 
-//     return pType;
-// }
+    if (sent == length)
+        rc = 0;
+    else
+        rc = -1;
+
+    return rc;
+}
+
+int32_t Protocol::sendBytesFromBuffer(char * buffer, size_t size, int timeout)
+{
+    int rc;
+
+    // Do SSL/TLS write
+    rc =  mbedtls_ssl_write(&ssl, (const unsigned char *) buffer, size);
+    if (MBEDTLS_ERR_SSL_WANT_WRITE == rc)
+        return -2;
+    else
+        return rc;
+}
+
+int32_t Protocol::readUntil(int32_t packetType, int32_t timeout)
+{
+    int pType = -1;
+    Timer timer;
+
+    timer.start();
+    do {
+        pType = readPacket();
+        if (pType < 0)
+            break;
+
+        if (timer.read_ms() > timeout)
+        {
+            pType = -1;
+            break;
+        }
+    }while(pType != packetType);
+
+    return pType;
+}
 
 int32_t Protocol::sslHandshake()
 {

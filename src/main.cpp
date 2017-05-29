@@ -39,9 +39,10 @@ int main(int argc, char **argv)
     else
     {
         cdc.printf("Connection to %s:%d over %s failed\r\n", config.proto.server, config.proto.port, protocol.name);
-        MBED_ASSERT(false);
+        protocol.disconnect();
     }
 
+    protocol.keepAlive(6000);
 
     while (true)
     {

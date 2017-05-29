@@ -6,6 +6,9 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 #include "TCPSocket.h"
+#include "Callback.h"
+#include "PlatformMutex.h"
+#include "Thread.h"
 
 class NetworkInterface;
 
@@ -33,12 +36,15 @@ struct ProtocolConfig
 class Protocol
 {
 public:
-    // Protocol();
-    // Protocol(NetworkInterface* _network, const ProtocolConfig& _config);
     Protocol(NetworkInterface* _network, const ProtocolConfig& _config, mbed::Stream* log);
     ~Protocol();
 
     bool connect();
+    bool disconnect();
+
+    bool publish(const char* _data);
+    bool subscribe(const char* _data, mbed::Callback<void()> func);
+    void keepAlive(size_t everyMs);
 
 public:
     const char name[5];
@@ -58,14 +64,20 @@ private:
     int32_t readPacket();
     int32_t readPacketLength(int32_t* value);
     int32_t readBytesToBuffer(char * buffer, size_t size, int32_t timeout);
-
+    int32_t sendPacket(size_t length);
+    int32_t sendBytesFromBuffer(char * buffer, size_t size, int timeout);
 
     void connectThread();
+    void keepAliveThread();
+
+    void lock();
+    void unlock();
 
 private:
     NetworkInterface* net;
     const ProtocolConfig& config;
     mbed::Stream* log;
+    PlatformMutex mutex;
 
     // SSL
     int32_t error;
@@ -78,8 +90,10 @@ private:
     mbedtls_pk_context pkey;
     // mbedtls_ssl_session savedSession;
 
-    // // // MQTT
+    // MQTT
     TCPSocket tcpSocket;
     uint8_t sendbuf[MAX_MQTT_PACKET_SIZE];
     uint8_t readbuf[MAX_MQTT_PACKET_SIZE];
+    rtos::Thread pinger;
+    size_t keepAliveHeartbeat;
 };

@@ -3,6 +3,7 @@
 #include "cdc.h"
 #include "flash.h"
 #include "GS1500MInterface.h"
+#include "button.h"
 
 // Putting most object in global scope to save thread_stack_main, which is to small!
 const Flash flash;
@@ -13,6 +14,7 @@ using wunderbar::Configuration;
 CDC cdc;
 GS1500MInterface wifiConnection(WIFI_TX, WIFI_RX, 115200, false);
 Protocol protocol(&wifiConnection, config.proto, &cdc);
+Button sw2(&protocol, "button1", SW2);
 
 int main(int argc, char **argv)
 {
@@ -31,7 +33,6 @@ int main(int argc, char **argv)
     cdc.printf("Connected to %s network\r\n", config.wifi.ssid);
     cdc.printf("Creating connection over %s to %s:%d\r\n", protocol.name, config.proto.server, config.proto.port);
 
-
     if(protocol.connect())
     {
         cdc.printf("%s connected to %s:%d\r\n", protocol.name, config.proto.server, config.proto.port);
@@ -44,7 +45,7 @@ int main(int argc, char **argv)
 
     protocol.keepAlive(6000);
 
-    while (true)
+    while(true)
     {
         led1 = !led1;
         wait(2);

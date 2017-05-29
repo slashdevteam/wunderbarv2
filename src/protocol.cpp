@@ -109,7 +109,7 @@ Protocol::~Protocol()
 bool Protocol::connect()
 {
     // Connection uses _a lot_ of stack for AES/CRT and so on
-    Thread connector(osPriorityNormal, 3*8196);
+    Thread connector(osPriorityNormal, 2*8196);
     connector.start(mbed::callback(this, &Protocol::connectThread));
     connector.join();
     return (0 == error);
@@ -122,6 +122,44 @@ bool Protocol::disconnect()
     int32_t ret = mbedtls_ssl_session_reset(&ssl);
     return (0 == ret);
 }
+
+bool Protocol::publish(const char* _topic, const char* _data, size_t _length, uint8_t _id)
+{
+    bool ret = true;
+    lock();
+    size_t topicLen = std::strlen(_topic);
+    char* topic = new char[topicLen + 1]; // +1 for NULL
+    std::memcpy(topic, _topic, topicLen);
+    topic[topicLen] = '\0';
+
+    MQTTString mqttTopic = MQTTString_initializer;
+    mqttTopic.cstring = topic;
+
+    size_t len = MQTTSerialize_publish(sendbuf,
+                                       MAX_MQTT_PACKET_SIZE,
+                                       0,
+                                       0, // QoS
+                                       false,
+                                       _id,
+                                       mqttTopic,
+                                       (unsigned char*) _data,
+                                       (int) _length);
+
+    if((len <= 0) || (sendPacket(len) != 0))
+    {
+        log->printf("Publish to topic: %s failed!\r\n", _topic);
+        ret = false;
+    }
+    delete topic;
+    unlock();
+    return ret;
+}
+
+bool Protocol::subscribe(const char* _data, mbed::Callback<void()> func)
+{
+    return false;
+}
+
 
 void Protocol::keepAlive(size_t everyMs)
 {

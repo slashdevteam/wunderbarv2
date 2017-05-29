@@ -42,7 +42,7 @@ public:
     bool connect();
     bool disconnect();
 
-    bool publish(const char* _data);
+    bool publish(const char* _topic, const char* _data, size_t _length, uint8_t _id);
     bool subscribe(const char* _data, mbed::Callback<void()> func);
     void keepAlive(size_t everyMs);
 

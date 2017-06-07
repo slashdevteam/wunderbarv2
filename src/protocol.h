@@ -9,11 +9,14 @@
 #include "Callback.h"
 #include "PlatformMutex.h"
 #include "Thread.h"
+#include <string>
+#include <memory>
+#include <unordered_map>
 
-class NetworkInterface;
+class NetworkStack;
 
 const int32_t MAX_MQTT_PACKET_SIZE = 200;
-
+using Subscribers = std::unordered_map<std::string, mbed::Callback<void(const char*)>>;
 namespace mbed
 {
     class Stream;
@@ -35,15 +38,17 @@ struct ProtocolConfig
 
 class Protocol
 {
+const int32_t LISTENER_PERIOD_MS = 30000;
+
 public:
-    Protocol(NetworkInterface* _network, const ProtocolConfig& _config, mbed::Stream* log);
+    Protocol(NetworkStack* _network, const ProtocolConfig& _config, mbed::Stream* log);
     ~Protocol();
 
     bool connect();
     bool disconnect();
 
-    bool publish(const char* _topic, const char* _data, size_t _length, uint8_t _id);
-    bool subscribe(const char* _data, mbed::Callback<void()> func);
+    bool publish(const std::string& _topic, const std::string& _data, uint8_t _id);
+    bool subscribe(const std::string& _topic, mbed::Callback<void(const char*)> func, uint8_t _id);
     void keepAlive(size_t everyMs);
 
 public:
@@ -69,12 +74,13 @@ private:
 
     void connectThread();
     void keepAliveThread();
+    void listenerThread();
 
     void lock();
     void unlock();
 
 private:
-    NetworkInterface* net;
+    NetworkStack* net;
     const ProtocolConfig& config;
     mbed::Stream* log;
     PlatformMutex mutex;
@@ -88,12 +94,13 @@ private:
     mbedtls_x509_crt cacert;
     mbedtls_x509_crt devicecert;
     mbedtls_pk_context pkey;
-    // mbedtls_ssl_session savedSession;
 
     // MQTT
     TCPSocket tcpSocket;
     uint8_t sendbuf[MAX_MQTT_PACKET_SIZE];
     uint8_t readbuf[MAX_MQTT_PACKET_SIZE];
     rtos::Thread pinger;
+    rtos::Thread listener;
     size_t keepAliveHeartbeat;
+    Subscribers subscribers;
 };

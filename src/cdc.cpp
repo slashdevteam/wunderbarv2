@@ -28,7 +28,7 @@ int CDC::_putc(int c)
 
 int CDC::_getc()
 {
-    assert(false); // NOT IMPLEMENTED YET!
+    assert(false); // NOT IMPLEMENTED
     return 0;
 }
 

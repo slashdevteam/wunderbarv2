@@ -9,6 +9,20 @@
 using mbed::Timer;
 using rtos::Thread;
 
+// defining new struct for MQTT message as the one from MQTTClient is _not_ comaptible with own deserialization
+// function (sic!)
+struct MqttMessage
+{
+    int qos;
+    uint8_t retained;
+    uint8_t dup;
+    uint16_t id;
+    uint8_t* payload;
+    int payloadlen;
+};
+
+const int32_t COMMAND_TIMEOUT = 5000;
+
 // free function because of C style interface
 int pollEntropy(void *,
                 unsigned char *output,
@@ -68,12 +82,13 @@ static int ssl_send(void *ctx, const unsigned char *buf, size_t len)
     }
 }
 
-Protocol::Protocol(NetworkInterface* _network, const ProtocolConfig& _config, mbed::Stream* log)
+Protocol::Protocol(NetworkStack* _network, const ProtocolConfig& _config, mbed::Stream* log)
     : name{'M', 'Q', 'T', 'T', 0},
       net(_network),
       config(_config),
       log(log),
-      tcpSocket(net)
+      tcpSocket(net),
+      listener(osPriorityNormal, 8192)
 {
     // Used to randomize source port
     unsigned int seed;
@@ -108,28 +123,30 @@ Protocol::~Protocol()
 
 bool Protocol::connect()
 {
-    // Connection uses _a lot_ of stack for AES/CRT and so on
-    Thread connector(osPriorityNormal, 2*8196);
+    // Connection uses _a lot_ of stack for AES/CRT
+    Thread connector(osPriorityNormal, 0x4000);
     connector.start(mbed::callback(this, &Protocol::connectThread));
     connector.join();
+    log->printf("Connection status %d\n", error);
     return (0 == error);
 }
 
 bool Protocol::disconnect()
 {
     pinger.terminate();
+    listener.terminate();
     tcpSocket.close();
     int32_t ret = mbedtls_ssl_session_reset(&ssl);
     return (0 == ret);
 }
 
-bool Protocol::publish(const char* _topic, const char* _data, size_t _length, uint8_t _id)
+bool Protocol::publish(const std::string& _topic, const std::string& _data, uint8_t _id)
 {
     bool ret = true;
     lock();
-    size_t topicLen = std::strlen(_topic);
+    size_t topicLen = _topic.size();
     char* topic = new char[topicLen + 1]; // +1 for NULL
-    std::memcpy(topic, _topic, topicLen);
+    std::memcpy(topic, _topic.c_str(), topicLen);
     topic[topicLen] = '\0';
 
     MQTTString mqttTopic = MQTTString_initializer;
@@ -142,8 +159,8 @@ bool Protocol::publish(const char* _topic, const char* _data, size_t _length, ui
                                        false,
                                        _id,
                                        mqttTopic,
-                                       (unsigned char*) _data,
-                                       (int) _length);
+                                       const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(_data.c_str())), // Paho is not const correct!
+                                       (int) _data.size());
 
     if((len <= 0) || (sendPacket(len) != 0))
     {
@@ -155,11 +172,65 @@ bool Protocol::publish(const char* _topic, const char* _data, size_t _length, ui
     return ret;
 }
 
-bool Protocol::subscribe(const char* _data, mbed::Callback<void()> func)
+bool Protocol::subscribe(const std::string& _topic, mbed::Callback<void(const char*)> func, uint8_t _id)
 {
+    lock();
+
+    int32_t qos = 0;
+
+    size_t topicLen = _topic.size();
+    char* topic = new char[topicLen + 1]; // +1 for NULL
+    std::memcpy(topic, _topic.c_str(), topicLen);
+    topic[topicLen] = '\0';
+
+    MQTTString mqttTopic = MQTTString_initializer;
+    mqttTopic.cstring = topic;
+
+    size_t len = MQTTSerialize_subscribe(sendbuf,
+                                  MAX_MQTT_PACKET_SIZE,
+                                  0,
+                                  _id,
+                                  1,
+                                  &mqttTopic,
+                                  (int*)&qos);
+
+    if((len <= 0) || (sendPacket(len) != 0))
+    {
+        log->printf("Subscribe packet to topic: %s failed!\r\n", _topic);
+        return false;
+    }
+
+    msgTypes msg = static_cast<msgTypes>(readUntil(SUBACK, COMMAND_TIMEOUT));
+
+    if(SUBACK != msg)
+    {
+        log->printf("MQTT SUBACK failed!\r\n");
+        return false;
+    }
+
+    uint16_t subackid;
+    int subQos = -1;
+    int count = -1;
+    int32_t ret = MQTTDeserialize_suback(&subackid, 1, &count, &subQos, readbuf, MAX_MQTT_PACKET_SIZE);
+
+    if((1 != ret) || (subQos == -1) || (subQos == 0x80))
+    {
+        log->printf("MQTT SUBACK wrong QoS = %d!\r\n", subQos);
+        return false;
+    }
+
+    // SUBACK received ok,
+    // so add callback for topic
+    subscribers.emplace(std::make_pair(_topic, func));
+    // and start listening thread on 1st subscription
+    if(rtos::Thread::State::Running != listener.get_state())
+    {
+        listener.start(mbed::callback(this, &Protocol::listenerThread));
+    }
+
+    unlock();
     return false;
 }
-
 
 void Protocol::keepAlive(size_t everyMs)
 {
@@ -172,15 +243,77 @@ void Protocol::keepAlive(size_t everyMs)
 
 void Protocol::keepAliveThread()
 {
+    log->printf("%s\r\n", __PRETTY_FUNCTION__);
     while(1)
     {
         rtos::Thread::wait(keepAliveHeartbeat);
         lock();
+        log->printf("%s lock\r\n", __PRETTY_FUNCTION__);
         size_t len = MQTTSerialize_pingreq(sendbuf, MAX_MQTT_PACKET_SIZE);
         if (len > 0 && (sendPacket(len) == 0))
         {
             log->printf("Ping OK\r\n");
         }
+
+        msgTypes msg = static_cast<msgTypes>(readUntil(PINGRESP, 5*COMMAND_TIMEOUT));
+        if(PINGRESP != msg)
+        {
+            log->printf("PINGRESP not received - %d!\r\n", msg);
+        }
+        log->printf("%s unlock\r\n", __PRETTY_FUNCTION__);
+        unlock();
+    }
+}
+
+void Protocol::listenerThread()
+{
+    log->printf("%s\r\n", __PRETTY_FUNCTION__);
+    while(1)
+    {
+        rtos::Thread::wait(LISTENER_PERIOD_MS);
+        lock();
+        log->printf("%s lock\r\n", __PRETTY_FUNCTION__);
+        // check if anyone is actually listening
+        if(!subscribers.empty())
+        {
+            log->printf("%s read\r\n", __PRETTY_FUNCTION__);
+            msgTypes msgType = static_cast<msgTypes>(readPacket());
+            log->printf("%s read = %d\r\n", __PRETTY_FUNCTION__, msgType);
+            if(PUBLISH == msgType)
+            {
+                MQTTString mqttTopic = MQTTString_initializer;
+                MqttMessage msg;
+                int32_t ret = MQTTDeserialize_publish(&msg.dup,
+                                                      &msg.qos,
+                                                      &msg.retained,
+                                                      &msg.id,
+                                                      &mqttTopic,
+                                                      &msg.payload,
+                                                      &msg.payloadlen,
+                                                      readbuf,
+                                                      MAX_MQTT_PACKET_SIZE);
+                if(1 == ret)
+                {
+                    std::string topic;
+                    // special handling needed for odd MQTTString type
+                    if(mqttTopic.lenstring.len > 0)
+                    {
+                        topic = std::string((const char*)mqttTopic.lenstring.data, (size_t)mqttTopic.lenstring.len);
+                    }
+                    else
+                    {
+                        topic = (const char*)mqttTopic.cstring;
+                    }
+
+                    auto subscriber = subscribers.find(topic);
+                    if(subscriber != subscribers.end())
+                    {
+                        subscriber->second(reinterpret_cast<char*>(msg.payload));
+                    }
+                }
+            }
+        }
+        log->printf("%s unlock\r\n", __PRETTY_FUNCTION__);
         unlock();
     }
 }
@@ -223,7 +356,7 @@ void Protocol::connectThread()
                         ssl_send,
                         ssl_recv,
                         nullptr);
-
+    // tcpSocket.set_timeout(DEFAULT_SOCKET_TIMEOUT);
     error = tcpSocket.connect(config.server, config.port);
     if(error)
     {
@@ -231,6 +364,11 @@ void Protocol::connectThread()
         tcpSocket.close();
         return;
     }
+
+    // mbed API lacks Socket event checking (callback is void() and [TCP]Socket does not expose
+    // interface for getting socket state/event), so busy polling/listening is needed for MQTT subscriptions :(
+    // socketMonitor.start(mbed::callback(this, &Protocol::socketSignalThread));
+    // tcpSocket.sigio(mbed::callback(this, &Protocol::socketSignal));
 
     error = sslHandshake();
     if(error)
@@ -249,7 +387,6 @@ void Protocol::connectThread()
     }
 }
 
-const int32_t COMMAND_TIMEOUT = 5000;
 int32_t Protocol::mqttConnect()
 {
     MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
@@ -298,12 +435,20 @@ int32_t Protocol::mqttConnect()
 int32_t Protocol::readBytesToBuffer(char * buffer, size_t size, int32_t timeout)
 {
     int rc;
-
-    rc = mbedtls_ssl_read(&ssl, (uint8_t*)buffer, size);
-    if (MBEDTLS_ERR_SSL_WANT_READ == rc)
-        return -2;
-    else
-        return rc;
+    // Timer timer;
+    // timer.start();
+    // log->printf("%d\r\n", timer.read_ms());
+    // while((timer.read_ms() < timeout) && (rc != MBEDTLS_ERR_SSL_WANT_READ))
+    // {
+        rc = mbedtls_ssl_read(&ssl, (uint8_t*)buffer, size);
+        if (MBEDTLS_ERR_SSL_WANT_READ == rc)
+            return -2;
+        else
+            return rc;
+        // log->printf("%d\r\n", timer.read_ms());
+    // }
+    // log->printf("%d\r\n", timer.read_ms());
+    return rc;
 }
 
 int32_t Protocol::readPacketLength(int32_t* value)

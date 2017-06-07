@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "Callback.h"
 
 class Protocol;
 
@@ -10,7 +11,8 @@ public:
     Resource(Protocol* _proto, const std::string& _topic);
 
     bool send(const std::string& data);
-    bool recv();
+    bool sendCommandAck(const std::string& _command, const std::string& _code);
+    bool recv(mbed::Callback<void(const char*)> callback);
 
 private:
     Protocol* proto;

@@ -3,20 +3,26 @@
 
 const std::string PubHeader =
 "{"
-"    \"data\" : {";
+"\"data\":{";
 
 const std::string PubMiddle =
-"   },"
-"    \"time\" :";
+"},"
+"\"time\":";
 
 const std::string PubTail =
 "}";
 
-const std::string CommandAckJson =
+const std::string AckHeader =
 "{"
-"   \"commandID\": \"%s\","
-"   \"code\": %d,"
-"    \"time\" : %lld"
+"\"commandID\":";
+
+const std::string AckMiddle =
+"\"code\":";
+
+const std::string AckTime =
+"\"time\":";
+
+const std::string AckTail =
 "}";
 
 Resource::Resource(Protocol* _proto, const std::string& _topic)
@@ -35,10 +41,25 @@ bool Resource::send(const std::string& data)
     publish.append(PubMiddle);
     publish.append(std::to_string(10)); // epoch
     publish.append(PubTail);
-    return proto->publish(topic.c_str(), publish.c_str(), publish.length(), packetId);
+    return proto->publish(topic, publish, packetId);
 }
 
-bool Resource::recv()
+bool Resource::sendCommandAck(const std::string& _command, const std::string& _code)
 {
-    return false;
+    packetId++;
+    publish.clear();
+    publish.append(AckHeader);
+    publish.append(_command);
+    publish.append(AckMiddle);
+    publish.append(_code);
+    publish.append(AckTime);
+    publish.append(std::to_string(13)); // epoch
+    publish.append(AckTail);
+    return proto->publish("ack", publish, packetId);
+}
+
+bool Resource::recv(mbed::Callback<void(const char*)> callback)
+{
+    packetId++;
+    return proto->subscribe(topic, callback, packetId);
 }

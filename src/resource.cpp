@@ -1,5 +1,4 @@
 #include "resource.h"
-#include "protocol.h"
 
 const std::string PubHeader =
 "{"
@@ -25,41 +24,44 @@ const std::string AckTime =
 const std::string AckTail =
 "}";
 
-Resource::Resource(Protocol* _proto, const std::string& _topic)
-    : proto(_proto),
-      topic(_topic),
-      packetId(0)
+Resource::Resource(IPubSub* _proto)
+    : proto(_proto)
 {}
 
 
-bool Resource::send(const std::string& data)
+bool Resource::publish(const std::string& topic, const std::string& data, MessageDoneCallback doneCallback)
 {
-    packetId++;
-    publish.clear();
-    publish.append(PubHeader);
-    publish.append(data);
-    publish.append(PubMiddle);
-    publish.append(std::to_string(10)); // epoch
-    publish.append(PubTail);
-    return proto->publish(topic, publish, packetId);
+    message.clear();
+    message.append(PubHeader);
+    message.append(data);
+    message.append(PubMiddle);
+    message.append(std::to_string(10)); // epoch @TODO: get from RTC/Transport layer
+    message.append(PubTail);
+    return proto->publish(reinterpret_cast<const uint8_t*>(topic.c_str()),
+                          reinterpret_cast<const uint8_t*>(message.c_str()),
+                          message.size(),
+                          doneCallback);
 }
 
-bool Resource::sendCommandAck(const std::string& _command, const std::string& _code)
+bool Resource::acknowledge(const std::string& topic, const std::string& _command, const std::string& _code, MessageDoneCallback doneCallback)
 {
-    packetId++;
-    publish.clear();
-    publish.append(AckHeader);
-    publish.append(_command);
-    publish.append(AckMiddle);
-    publish.append(_code);
-    publish.append(AckTime);
-    publish.append(std::to_string(13)); // epoch
-    publish.append(AckTail);
-    return proto->publish("ack", publish, packetId);
+    message.clear();
+    message.append(AckHeader);
+    message.append(_command);
+    message.append(AckMiddle);
+    message.append(_code);
+    message.append(AckTime);
+    message.append(std::to_string(13)); // epoch
+    message.append(AckTail);
+    return proto->publish(reinterpret_cast<const uint8_t*>(topic.c_str()),
+                              reinterpret_cast<const uint8_t*>(message.c_str()),
+                              message.size(),
+                              doneCallback);
 }
 
-bool Resource::recv(mbed::Callback<void(const char*)> callback)
+bool Resource::subscribe(const std::string& topic, MessageDoneCallback doneCallback, MessageDataCallback datacallback)
 {
-    packetId++;
-    return proto->subscribe(topic, callback, packetId);
+    return proto->subscribe(reinterpret_cast<const uint8_t*>(topic.c_str()),
+                            doneCallback,
+                            datacallback);
 }

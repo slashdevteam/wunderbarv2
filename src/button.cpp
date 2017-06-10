@@ -1,7 +1,8 @@
 #include "button.h"
 
-Button::Button(Protocol* _proto, const std::string& _topic, PinName _pin)
-    : Resource(_proto, _topic),
+Button::Button(IPubSub* _proto, const std::string& _topic, PinName _pin)
+    : Resource(_proto),
+      pubtopic(_topic),
       counter(0),
       buttonIrq(_pin),
       publisher(osPriorityNormal, 2*8196)
@@ -23,6 +24,12 @@ void Button::publishThread()
         rtos::Thread::signal_wait(BUTTON_IRQ_SIGNAL);
         std::string data = "\"counter\":";
         data.append(std::to_string(counter));
-        send(data);
+        publish(pubtopic, data, mbed::callback(this, &Button::publishDone));
+        rtos::Thread::signal_wait(PUBLISH_DONE_SIGNAL);
     }
+}
+
+void Button::publishDone(bool status)
+{
+    publisher.signal_set(PUBLISH_DONE_SIGNAL);
 }

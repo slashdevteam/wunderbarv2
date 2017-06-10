@@ -1,22 +1,29 @@
 #pragma once
 
 #include <string>
+#include <memory>
 #include "Callback.h"
+#include "ipubsub.h"
 
-class Protocol;
+class IPubSub;
 
 class Resource
 {
 public:
-    Resource(Protocol* _proto, const std::string& _topic);
+    Resource(IPubSub* _proto);
 
-    bool send(const std::string& data);
-    bool sendCommandAck(const std::string& _command, const std::string& _code);
-    bool recv(mbed::Callback<void(const char*)> callback);
+    bool publish(const std::string& topic,
+                 const std::string& data,
+                 MessageDoneCallback doneCallback);
+    bool subscribe(const std::string& topic,
+                   MessageDoneCallback doneCallback,
+                   MessageDataCallback datacallback);
+    bool acknowledge(const std::string& topic,
+                     const std::string& _command,
+                     const std::string& _code,
+                     MessageDoneCallback doneCallback);
 
 private:
-    Protocol* proto;
-    const std::string topic;
-    std::string publish;
-    uint8_t packetId;
+    IPubSub* proto;
+    std::string message;
 };

@@ -2,7 +2,8 @@
 
 #include <cstdint>
 #include "nsapi_types.h"
-#include "protocol.h"
+#include "tls.h"
+#include "mqttprotocol.h"
 
 namespace wunderbar
 {
@@ -18,7 +19,8 @@ struct WiFiConfig
 struct Configuration
 {
     WiFiConfig wifi;
-    ProtocolConfig proto;
+    TlsConfig tls;
+    MqttConfig proto;
 };
 
 }

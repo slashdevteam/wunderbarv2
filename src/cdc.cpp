@@ -32,12 +32,14 @@ int CDC::_getc()
     return 0;
 }
 
-void CDC::lock() {
-    _mutex.lock();
+void CDC::lock()
+{
+    mutex.lock();
 }
 
-void CDC::unlock() {
-    _mutex.unlock();
+void CDC::unlock()
+{
+    mutex.unlock();
 }
 
 }

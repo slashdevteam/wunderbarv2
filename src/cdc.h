@@ -22,7 +22,7 @@ protected:
 
 private:
     DeviceClass cdcDevice;
-    PlatformMutex _mutex;
+    PlatformMutex mutex;
 };
 
 }

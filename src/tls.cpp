@@ -90,8 +90,8 @@ TLS::TLS(NetworkStack* _network, const TlsConfig& _config, mbed::Stream* _log)
 
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&sslConf);
-    mbedtls_x509_crt_init(&cacert);
-    mbedtls_x509_crt_init(&devicecert);
+    mbedtls_x509_crt_init(&caCert);
+    mbedtls_x509_crt_init(&deviceCert);
     mbedtls_pk_init(&pkey);
     mbedtls_ctr_drbg_init(&ctrDrbg);
     mbedtls_entropy_init(&entropy);
@@ -109,7 +109,7 @@ TLS::~TLS()
     mbedtls_ssl_config_free(&sslConf);
     mbedtls_entropy_free(&entropy);
     mbedtls_ctr_drbg_free(&ctrDrbg);
-    mbedtls_x509_crt_free(&cacert);
+    mbedtls_x509_crt_free(&caCert);
     mbedtls_ssl_free(&ssl);
 }
 
@@ -117,7 +117,7 @@ bool TLS::connect(const char* _server, size_t _port)
 {
     // Connection uses _a lot_ of stack for AES/CRT
     rtos::Thread connector(osPriorityNormal, 0x4000);
-    // copy parameters to members as stupid mbed callbacks do not allow type erasure as std::bind
+    // copy parameters to members as mbed callbacks do not allow type erasure as std::bind
     server.reset(_server);
     port = _port;
     connector.start(mbed::callback(this, &TLS::connecting));
@@ -245,14 +245,14 @@ int32_t TLS::sslInit()
         return sslError;
     }
 
-    sslError = sslParseCrt(cacert, config.cacert, std::strlen(reinterpret_cast<const char*>(&config.cacert[0])));
+    sslError = sslParseCrt(caCert, config.caCert, std::strlen(reinterpret_cast<const char*>(&config.caCert[0])));
     if(sslError)
     {
         log->printf("SSL CA CRT fail - %d\r\n", sslError);
         return sslError;
     }
 
-    sslError = sslParseCrt(devicecert, config.devicecert, std::strlen(reinterpret_cast<const char*>(config.devicecert)));
+    sslError = sslParseCrt(deviceCert, config.deviceCert, std::strlen(reinterpret_cast<const char*>(config.deviceCert)));
     if(sslError)
     {
         log->printf("SSL CRT fail - %d\r\n", sslError);
@@ -266,9 +266,9 @@ int32_t TLS::sslInit()
         return sslError;
     }
 
-    mbedtls_ssl_conf_own_cert(&sslConf, &devicecert, &pkey);
+    mbedtls_ssl_conf_own_cert(&sslConf, &deviceCert, &pkey);
     mbedtls_ssl_conf_authmode(&sslConf, MBEDTLS_SSL_VERIFY_REQUIRED);
-    mbedtls_ssl_conf_ca_chain(&sslConf, &cacert, nullptr);
+    mbedtls_ssl_conf_ca_chain(&sslConf, &caCert, nullptr);
     mbedtls_ssl_conf_rng(&sslConf, mbedtls_ctr_drbg_random, &ctrDrbg);
 
     sslError = sslSetup();

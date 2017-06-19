@@ -21,8 +21,8 @@ namespace mbed
 struct TlsConfig
 {
     uint8_t deviceId[30]; // used for SSL seed @TODO: use random seed
-    uint8_t cacert[1425];
-    uint8_t devicecert[1514];
+    uint8_t caCert[1425];
+    uint8_t deviceCert[1514];
     uint8_t key[3244];
 
 };
@@ -39,10 +39,6 @@ public:
     virtual size_t receive(uint8_t* data, size_t len) override;
 
 private:
-    // mbed
-    void lock();
-    void unlock();
-
     void connecting();
 
     // SSL
@@ -70,7 +66,7 @@ private:
     mbedtls_ssl_config sslConf;
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctrDrbg;
-    mbedtls_x509_crt cacert;
-    mbedtls_x509_crt devicecert;
+    mbedtls_x509_crt caCert;
+    mbedtls_x509_crt deviceCert;
     mbedtls_pk_context pkey;
 };

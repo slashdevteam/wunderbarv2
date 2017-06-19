@@ -4,7 +4,6 @@
 #include "PinNames.h"
 #include "DigitalOut.h"
 #include "Thread.h"
-#include "PlatformMutex.h"
 #include <memory>
 
 class Led : public Resource
@@ -35,6 +34,5 @@ private:
     mbed::DigitalOut ledPin;
     rtos::Thread subscriber;
     std::unique_ptr<uint8_t[]> command;
-    PlatformMutex mutex;
     volatile bool subscribed;
 };

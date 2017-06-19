@@ -57,13 +57,3 @@ void Led::ackDone(bool status)
 {
     subscriber.signal_set(ACK_DONE_SIGNAL);
 }
-
-void Led::lock()
-{
-    mutex.lock();
-}
-
-void Led::unlock()
-{
-    mutex.unlock();
-}

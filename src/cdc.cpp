@@ -15,6 +15,11 @@ CDC::CDC()
     cdcDevice.run();
 }
 
+void CDC::run()
+{
+    cdcDevice.run();
+}
+
 int CDC::_putc(int c)
 {
     cdcDevice.send((uint8_t*)&c, 1);
@@ -23,8 +28,18 @@ int CDC::_putc(int c)
 
 int CDC::_getc()
 {
-    assert(false); // NOT IMPLEMENTED YET!
+    assert(false); // NOT IMPLEMENTED
     return 0;
+}
+
+void CDC::lock()
+{
+    mutex.lock();
+}
+
+void CDC::unlock()
+{
+    mutex.unlock();
 }
 
 }

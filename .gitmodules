@@ -13,3 +13,6 @@
 [submodule "mqttlib"]
 	path = mqttlib
 	url = https://github.com/eclipse/paho.mqtt.embedded-c.git
+[submodule "drivers/nrf51822-driver"]
+	path = drivers/nrf51822-driver
+	url = https://code.slashdev.team/conrad/wubar-main-nrf-comm.git

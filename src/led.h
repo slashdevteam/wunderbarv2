@@ -24,9 +24,6 @@ private:
     void subscribeDone(bool status);
     void ackDone(bool status);
 
-    void lock();
-    void unlock();
-
 private:
     const std::string subtopic;
     const std::string acktopic;

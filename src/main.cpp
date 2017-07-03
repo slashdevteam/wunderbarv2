@@ -9,6 +9,9 @@
 #include "button.h"
 #include "led.h"
 #include "blebridge.h"
+#include "InterruptIn.h"
+#include "DigitalIn.h"
+#include "DigitalOut.h"
 
 using usb::CDC;
 using wunderbar::Configuration;
@@ -19,8 +22,8 @@ const Configuration& config = flash.getConfig();
 CDC               cdc;
 CDC* gcdc = &cdc;
 GS1500MInterface  wifiConnection(WIFI_TX, WIFI_RX, 115200);
-// Nrf51822Interface ble(NRF_MOSI, NRF_MISO, NRF_SCLK, NC, NRF_SPI_EXT_INT);
-Nrf51822Interface ble(NRF_MOSI, NRF_MISO, NRF_SCLK, NRF_SSEL, NRF_SPI_EXT_INT);
+Nrf51822Interface ble(NRF_MOSI, NRF_MISO, NRF_SCLK, NC, NRF_SPI_EXT_INT);
+// Nrf51822Interface ble(NRF_MOSI, NRF_MISO, NRF_SCLK, NRF_SSEL, NRF_SPI_EXT_INT);
 TLS               tls(&wifiConnection, config.tls, &cdc);
 MqttProtocol      mqtt(&tls, config.proto, &cdc);
 Button            sw2(&mqtt, "button1", SW2);

@@ -1,10 +1,14 @@
 #pragma once
 
 #include "resource.h"
-#include "bleserver.h"
+#include "wunderbarsensor.h"
 #include "Thread.h"
 
-class BleBridge : public Resource, public BleServer
+#include <unordered_map>
+
+using CharcteristicData = std::unordered_map<uint16_t, uint8_t*>;
+
+class BleBridge : public Resource, public WunderbarSensor
 {
 
 const int32_t NEW_SUB_SIGNAL = 0x1;
@@ -18,7 +22,6 @@ public:
               const std::string& _pubtopic,
               IBleGateway& _gateway);
     virtual ~BleBridge() {};
-
     bool subscribe();
 
 private:
@@ -31,7 +34,7 @@ private:
     void ackDone(bool status);
 
     // ble
-    void bleEvent(const uint8_t* data, size_t len);
+    void bleEvent(BleEvent event, const uint8_t* data, size_t len);
 
 private:
     const std::string subtopic;

@@ -7,9 +7,8 @@ class BleServer
 public:
     BleServer(IBleGateway& _gateway,
               ServerName&& _name,
-              ServerID _id,
+              ServerHandle _handle,
               RequiredServices&& _requiredServices,
-              Characteristics&& _characteristics,
               ServerUUID&& _uuid,
               PassKey&& _passKey,
               Security&& _security,
@@ -17,10 +16,17 @@ public:
     virtual ~BleServer();
 
 private:
-    IBleGateway& gateway;
-    BleServerConfig config;
+    void bleServerEvent(BleEvent event, const uint8_t* data, size_t len);
+    void storeMac(const uint8_t* data);
 
 protected:
+    BleServerConfig config;
     bool registrationOk;
+    size_t discoveryCharacteristicIdx;
+    size_t discoveryServiceIdx;
+    bool discoveryOk;
+    IBleGateway& gateway;
 
+private:
+    BleServerCallback externalCallback;
 };

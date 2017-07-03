@@ -24,6 +24,10 @@ namespace characteristics
     const uint16_t SENSOR_DATA_W_UUID = 0x2017;
     const uint16_t SENSOR_PASSKEY_UUID = 0x2018;
     const uint16_t SENSOR_MITM_REQ_FLAG_UUID = 0x2019;
+    const uint16_t BLE_BATTERY_LEVEL_UUID = 0x2A19;
+    const uint16_t BLE_MANUFACTURER_NAME_STRING_UUID = 0x2A29;
+    const uint16_t BLE_HARDWARE_REVISION_STRING_UUID = 0x2A27;
+    const uint16_t BLE_FIRMWARE_REVISION_STRING_UUID = 0x2A26;
 }
 
 namespace limits

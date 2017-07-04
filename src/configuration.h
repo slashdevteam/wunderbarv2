@@ -14,13 +14,13 @@ struct WiFiConfig
     char pass[64];
     nsapi_security_t security;
     uint8_t channel;
-};
+} __attribute__ ((__packed__));
 
 struct Configuration
 {
     WiFiConfig wifi;
     TlsConfig tls;
     MqttConfig proto;
-};
+} __attribute__ ((__packed__));
 
 }

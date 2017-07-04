@@ -25,7 +25,7 @@ struct TlsConfig
     uint8_t deviceCert[1514];
     uint8_t key[3244];
 
-};
+} __attribute__ ((__packed__));
 
 class TLS : public ITransportLayer
 {

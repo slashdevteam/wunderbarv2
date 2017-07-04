@@ -19,6 +19,6 @@ To build:
 3. ```mbed compile --profile mbed-os/tools/profiles/debug.json```
 
 To flash:
-1. Switch Wunderbar to DFU mode (reset Wunderbar with user button pressed)
+1. Switch Wunderbar to DFU mode (while user button is pressed press & release reset button)
 2. ```dfu-util -R -d 15a2:1000 -a 0 -D BUILD/WUNDERBAR_APP_BIN/GCC_ARM/wunderbarv2_application.bi```
-3. Reset Wunderbar to APP mode (reset Wunderbar normally)
+3. Reset Wunderbar to APP mode (reset Wunderbar with reset button only)

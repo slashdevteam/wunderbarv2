@@ -7,5 +7,12 @@
              "macro_name": "USB_STACK_BM",
              "value": 1
         }
+    },
+    "target_overrides":
+    {
+        "WUNDERBAR_APP_BIN":
+        {
+            "target.mbed_app_start": "0x00018000"
+        }
     }
 }

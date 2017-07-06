@@ -1,7 +1,5 @@
 #include "flash.h"
 
-// extern size_t __flash_storage;
-
 const uint32_t FLASH_MARKER = 0xDEC0FFEE;
 const uint32_t DEFAULT_CONFIGURATION = 0x004B1D00;
 const uint32_t ONBOARDED_CONFIGURATION = 0X1ABE11ED;

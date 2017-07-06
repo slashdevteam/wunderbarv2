@@ -14,7 +14,6 @@ struct FlashStorage
     Configuration config;
 } __attribute__ ((__packed__));
 
-// By default storage has 3 sectors
 static_assert(sizeof(FlashStorage) <= FLASH_STORAGE_SECTORS * FLASH_SECTOR_SIZE,
               "Struct FlashStorage size has to be less than FLASH_STORAGE_SECTORS * FLASH_SECTOR_SIZE!");
 static_assert(std::is_standard_layout<FlashStorage>::value,

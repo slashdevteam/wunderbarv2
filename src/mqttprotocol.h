@@ -45,7 +45,7 @@ struct MqttConfig
     char clientId[32];
     char userId[32];
     char password[32];
-};
+} __attribute__ ((__packed__));
 
 enum MQTT_STATUS : int32_t
 {

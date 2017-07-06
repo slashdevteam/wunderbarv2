@@ -20,5 +20,5 @@ To build:
 
 To flash:
 1. Switch Wunderbar to DFU mode (while user button is pressed press & release reset button)
-2. ```dfu-util -R -d 15a2:1000 -a 0 -D BUILD/WUNDERBAR_APP_BIN/GCC_ARM/wunderbarv2_application.bi```
+2. ```dfu-util -R -d 15a2:1000 -a 0 -D BUILD/WUNDERBAR_APP_BIN/GCC_ARM/wunderbarv2_application.bin```
 3. Reset Wunderbar to APP mode (reset Wunderbar with reset button only)

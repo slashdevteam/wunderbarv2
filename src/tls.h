@@ -13,10 +13,7 @@
 #include "mbedtls/ctr_drbg.h"
 
 class NetworkStack;
-namespace mbed
-{
-    class Stream;
-}
+class IStdInOut;
 
 struct TlsConfig
 {
@@ -30,7 +27,7 @@ struct TlsConfig
 class TLS : public ITransportLayer
 {
 public:
-    TLS(NetworkStack* _network, const TlsConfig& _config, mbed::Stream* _log);
+    TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log);
     virtual ~TLS();
 
     virtual bool connect(const char* server, size_t port) override;
@@ -56,7 +53,7 @@ private:
     NetworkStack* network;
     TCPSocket socket;
     const TlsConfig& config;
-    mbed::Stream* log;
+    IStdInOut* log;
     std::shared_ptr<const char> server;
     size_t port;
 

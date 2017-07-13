@@ -1,8 +1,9 @@
 #include "tls.h"
+#include "istdinout.h"
+#include <cstring>
 
 // mbed
 #include "Thread.h"
-#include "Stream.h"
 
 // SSL
 #include "mbedtls/entropy_poll.h"
@@ -76,7 +77,7 @@ static int sslSend(void* ctx, const unsigned char* buf, size_t len)
     }
 }
 
-TLS::TLS(NetworkStack* _network, const TlsConfig& _config, mbed::Stream* _log)
+TLS::TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log)
     : network(_network),
       socket(network),
       config(_config),

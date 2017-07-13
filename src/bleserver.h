@@ -8,10 +8,7 @@ public:
     BleServer(IBleGateway& _gateway,
               ServerName&& _name,
               ServerHandle _handle,
-              RequiredServices&& _requiredServices,
-              ServerUUID&& _uuid,
               PassKey&& _passKey,
-              Security&& _security,
               BleServerCallback _callback);
     virtual ~BleServer();
 
@@ -22,8 +19,6 @@ private:
 protected:
     BleServerConfig config;
     bool registrationOk;
-    size_t discoveryCharacteristicIdx;
-    size_t discoveryServiceIdx;
     bool discoveryOk;
     IBleGateway& gateway;
 

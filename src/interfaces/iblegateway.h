@@ -93,17 +93,17 @@ struct BleService
 
 enum class BleEvent
 {
-    NONE = 0x0,
+    NONE               = 0x0,
     DISCOVERY_COMPLETE = 0x1,
-    DISCOVERY_CHARACTERISTIC_WRITE_DONE = 0x2,
-    DISCOVERY_CHARACTERISTIC_READ_DONE = 0x3,
-    DISCOVERY_ERROR = 0x4
+    DISCOVERY_ERROR    = 0x2,
+    CONNECTION_OPENED  = 0x3,
+    CONNECTION_CLOSED  = 0x4,
+    NEW_DATA_READOUT   = 0x5
 };
 
 using RequiredServices = std::deque<BleService>;
 using ServerUUID = std::array<uint8_t, 16>;
 using PassKey = std::array<uint8_t, 8>;
-using Security = bool;
 
 struct ServerIdentificator
 {
@@ -123,10 +123,7 @@ struct BleServerConfig
     ServerHandle handle;
     ServerName name;
     ServerGapAddress mac;
-    RequiredServices services;
-    ServerUUID uuid;
     PassKey passKey;
-    Security security;
 };
 
 using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;

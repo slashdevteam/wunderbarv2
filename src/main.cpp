@@ -5,12 +5,18 @@
 #include "GS1500MInterface.h"
 #include "loops.h"
 
-using usb::CDC;ś
+using usb::CDC;
 using wunderbar::Configuration;
 
+namespace wunderbar
+{
+    extern device_specific_descriptors cdcDescriptors;
+}
+
+const uint8_t CONTROLLER_ID = 0; //kUSB_ControllerKhci0
 // Putting most objects in global scope to save thread_stack_main, which is too small!
 Flash flash;
-CDC              cdc;
+CDC              cdc(CONTROLLER_ID, wunderbar::cdcDescriptors);
 GS1500MInterface wifiConnection(WIFI_TX, WIFI_RX, 115200);
 
 int main(int argc, char **argv)

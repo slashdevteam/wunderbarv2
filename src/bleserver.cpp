@@ -12,7 +12,7 @@ BleServer::BleServer(IBleGateway& _gateway,
              {0},
              _passKey},
       registrationOk(false),
-      discoveryOk(true),
+      discoveryOk(false),
       gateway(_gateway),
       externalCallback(_callback)
 {

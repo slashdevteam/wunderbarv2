@@ -15,7 +15,7 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
 
 void WunderbarSensor::handleDiscovery()
 {
-    discoveryOk = false;
+    discoveryOk = true;
     gateway.serverDiscoveryComlpete(config);
 }
 

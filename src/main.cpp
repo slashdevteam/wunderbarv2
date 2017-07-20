@@ -17,6 +17,7 @@
 using usb::CDC;
 
 using wunderbar::Configuration;
+using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
 
 // Putting most object in global scope to save thread_stack_main, which is to small!
 const Flash flash;
@@ -41,29 +42,22 @@ void bleCb(BleEvent a, const uint8_t* b, size_t c) {
     cdc.printf("Ble cb!\n");
 }
 
-WunderbarSensor s0(ble, ServerName(WunderbarSensorNames[0]), PassKey(defaultPass), bleCb);
-// WunderbarSensor s1(ble, ServerName(WunderbarSensorNames[1]), PassKey(defaultPass), bleCb);
-// WunderbarSensor s2(ble, ServerName(WunderbarSensorNames[2]), PassKey(defaultPass), bleCb);
-// WunderbarSensor s3(ble, ServerName(WunderbarSensorNames[3]), PassKey(defaultPass), bleCb);
-// WunderbarSensor s4(ble, ServerName(WunderbarSensorNames[4]), PassKey(defaultPass), bleCb);
-// WunderbarSensor s5(ble, ServerName(WunderbarSensorNames[5]), PassKey(defaultPass), bleCb);
-
-// using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
+WunderbarSensor wbHtu(ble, ServerName(WunderbarSensorNames[0]), PassKey(defaultPass), bleCb);
+WunderbarSensor wbGyro(ble, ServerName(WunderbarSensorNames[1]), PassKey(defaultPass), bleCb);
+WunderbarSensor wbLight(ble, ServerName(WunderbarSensorNames[2]), PassKey(defaultPass), bleCb);
+WunderbarSensor wbMic(ble, ServerName(WunderbarSensorNames[3]), PassKey(defaultPass), bleCb);
+WunderbarSensor wbBridge(ble, ServerName(WunderbarSensorNames[4]), PassKey(defaultPass), bleCb);
+WunderbarSensor wbIr(ble, ServerName(WunderbarSensorNames[5]), PassKey(defaultPass), bleCb);
 
 int main(int argc, char **argv)
 {
 
-    wait(7.0);
+    wait(2.0);
     cdc.printf("Welcome to WunderBar v2 mbed OS firmware\n");
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
-    // std::list<WunderbarSensor> wubarSensors;
-    // for(const auto& wubarName : ServerNamesToDataId)
-    // {
-    //      wubarSensors.emplace_back(WunderbarSensor(ble, ServerName(std::get<const ServerName>(wubarName)), PassKey(defaultPass), bleCb));
-    // }
-
     cdc.printf("Configuring BLE... \n");
+    ble.setSensorOnboardNeeded();
     const bool isBleConfigOk = ble.configure();
     cdc.printf("%s!\n", isBleConfigOk ? "success" : "failure");
 

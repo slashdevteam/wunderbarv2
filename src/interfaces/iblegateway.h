@@ -22,7 +22,6 @@ enum class BleEvent
     NEW_DATA_READOUT   = 0x5
 };
 
-
 struct ServerIdentificator
 {
     ServerGapAddress mac;
@@ -41,6 +40,41 @@ struct BleServerConfig
     ServerGapAddress mac;
     PassKey passKey;
 };
+
+enum class AccessMode : uint8_t
+{
+    NONE  = 0x0,
+    READ  = 0x1,
+    WRITE = 0x2,
+    RW    = 0x3
+};
+
+struct CharcteristicDescriptor
+{
+    uint16_t    uuid;
+    AccessMode  mode;
+
+    CharcteristicDescriptor(uint16_t _uuid, AccessMode  _mode)
+        : uuid(_uuid),
+          mode(_mode)
+    {
+    }
+
+    bool operator==(const CharcteristicDescriptor& other) const
+    {
+        return (uuid == other.uuid);
+    }
+
+    void* data()
+    {
+        return &uuid;
+    }
+
+    const void* data() const
+    {
+        return &uuid;
+    }
+} __attribute__((packed));
 
 using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
 

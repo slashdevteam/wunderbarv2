@@ -14,20 +14,30 @@ namespace services
     const uint16_t SHORT_BATTERY_UUID = 0x180F;
 }
 
+// UUIDs for all used characteristics
 namespace characteristics
 {
-    const uint16_t SENSOR_ID_UUID = 0x2010;
-    const uint16_t SENSOR_BEACON_FREQUENCY_UUID = 0x2011;
-    const uint16_t SENSOR_LED_STATE_UUID = 0x2013;
-    const uint16_t SENSOR_CONFIG_UUID = 0x2015;
-    const uint16_t SENSOR_DATA_R_UUID = 0x2016;
-    const uint16_t SENSOR_DATA_W_UUID = 0x2017;
-    const uint16_t SENSOR_PASSKEY_UUID = 0x2018;
-    const uint16_t SENSOR_MITM_REQ_FLAG_UUID = 0x2019;
-    const uint16_t BLE_BATTERY_LEVEL_UUID = 0x2A19;
-    const uint16_t BLE_MANUFACTURER_NAME_STRING_UUID = 0x2A29;
-    const uint16_t BLE_HARDWARE_REVISION_STRING_UUID = 0x2A27;
-    const uint16_t BLE_FIRMWARE_REVISION_STRING_UUID = 0x2A26;
+    namespace sensor
+    {
+    const uint16_t ID = 0x2010;
+    const uint16_t BEACON_FREQ = 0x2011;
+    const uint16_t FREQUENCY = 0x2012;
+    const uint16_t LED_STATE = 0x2013;
+    const uint16_t THRESHOLD = 0x2014;
+    const uint16_t CONFIG = 0x2015;
+    const uint16_t DATA_R = 0x2016;
+    const uint16_t DATA_W = 0x2017;
+    const uint16_t PASSKEY = 0x2018;
+    const uint16_t MITM_REQ_FLAG = 0x2019;
+    }
+
+    namespace ble
+    {
+    const uint16_t BATTERY_LEVEL = 0x2A19;
+    const uint16_t MANUFACTURER_NAME_STRING = 0x2A29;
+    const uint16_t HARDWARE_REVISION_STRING = 0x2A27;
+    const uint16_t FIRMWARE_REVISION_STRING = 0x2A26;
+    }
 }
 
 namespace limits

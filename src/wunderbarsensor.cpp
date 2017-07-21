@@ -7,7 +7,6 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
                                  BleServerCallback _callback)
     : BleServer(_gateway,
                 std::forward<ServerName>(_name),
-                0xFF,
                 std::forward<PassKey>(_passKey),
                 mbed::callback(this, &WunderbarSensor::wunderbarEvent)),
       sensorCallback(_callback)

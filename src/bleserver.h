@@ -7,7 +7,6 @@ class BleServer
 public:
     BleServer(IBleGateway& _gateway,
               ServerName&& _name,
-              ServerHandle _handle,
               PassKey&& _passKey,
               BleServerCallback _callback);
     virtual ~BleServer();

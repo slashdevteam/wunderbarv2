@@ -1,5 +1,6 @@
 debug
 BUILD
+.vscode
 *.pyc
 *.lib
 *.DS_Store

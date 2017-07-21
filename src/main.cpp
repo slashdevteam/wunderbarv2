@@ -17,7 +17,6 @@
 using usb::CDC;
 
 using wunderbar::Configuration;
-using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
 
 // Putting most object in global scope to save thread_stack_main, which is to small!
 const Flash flash;
@@ -51,53 +50,54 @@ WunderbarSensor wbIr(ble, ServerName(WunderbarSensorNames[5]), PassKey(defaultPa
 
 int main(int argc, char **argv)
 {
-
-    wait(2.0);
     cdc.printf("Welcome to WunderBar v2 mbed OS firmware\n");
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
     cdc.printf("Configuring BLE... \n");
-    ble.setSensorOnboardNeeded();
-    const bool isBleConfigOk = ble.configure();
-    cdc.printf("%s!\n", isBleConfigOk ? "success" : "failure");
+    if (ble.configure())
+    {
+        cdc.printf("BLE config ok. Storing config.\n");
+        if (ble.storeConfig())
+        {
+            cdc.printf("BLE config stored ok\n");
+        }
 
-    // if(ble.configure())
-    // {
-    //     cdc.printf("BLE config ok. Storing config.\n");
-    //     if(ble.storeConfig())
-    //     {
-    //         cdc.printf("BLE config stored ok\n");
-    //     }
-    //     cdc.printf("Connecting to %s network\r\n", config.wifi.ssid);
+        ble.startOperation();
 
-    //     int status = wifiConnection.connect(config.wifi.ssid,
-    //                                         config.wifi.pass,
-    //                                         config.wifi.security,
-    //                                         config.wifi.channel);
+        // cdc.printf("Connecting to %s network\r\n", config.wifi.ssid);
 
-    //     if(status == NSAPI_ERROR_OK)
-    //     {
-    //         cdc.printf("Connected to %s network\r\n", config.wifi.ssid);
-    //         cdc.printf("Creating connection over %s to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
+        // int status = wifiConnection.connect(config.wifi.ssid,
+        //                                     config.wifi.pass,
+        //                                     config.wifi.security,
+        //                                     config.wifi.channel);
 
-    //         if(mqtt.connect())
-    //         {
-    //             cdc.printf("%s connected to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
-    //             mqtt.setPingPeriod(10000);
-    //             led.subscribe();
-    //             bridge.subscribe();
-    //         }
-    //         else
-    //         {
-    //             cdc.printf("Connection to %s:%d over %s failed\r\n", config.proto.server, config.proto.port, mqtt.name);
-    //             mqtt.disconnect();
-    //         }
-    //     }
-    //     else
-    //     {
-    //         cdc.printf("Connection to %s network failed with status %d\r\n", config.wifi.ssid, status);
-    //     }
-    // }
+        // if(status == NSAPI_ERROR_OK)
+        // {
+        //     cdc.printf("Connected to %s network\r\n", config.wifi.ssid);
+        //     cdc.printf("Creating connection over %s to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
+
+        //     if(mqtt.connect())
+        //     {
+        //         cdc.printf("%s connected to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
+        //         mqtt.setPingPeriod(10000);
+        //         led.subscribe();
+        //         bridge.subscribe();
+        //     }
+        //     else
+        //     {
+        //         cdc.printf("Connection to %s:%d over %s failed\r\n", config.proto.server, config.proto.port, mqtt.name);
+        //         mqtt.disconnect();
+        //     }
+        // }
+        // else
+        // {
+        //     cdc.printf("Connection to %s network failed with status %d\r\n", config.wifi.ssid, status);
+        // }
+    }
+    else
+    {
+        cdc.printf("BLE config failed!\n");
+    }
 
     while(true)
     {

@@ -4,11 +4,9 @@
 
 BleServer::BleServer(IBleGateway& _gateway,
                      ServerName&& _name,
-                     ServerHandle _handle,
                      PassKey&& _passKey,
                      BleServerCallback _callback)
-    : config{_handle,
-             _name,
+    : config{_name,
              {0},
              _passKey},
       registrationOk(false),

@@ -3,9 +3,28 @@
     {
         "USB_STACK":
         {
-             "help": "Define for USB stack",
-             "macro_name": "USB_STACK_BM",
-             "value": 1
+            "help": "Define for USB stack",
+            "macro_name": "USB_STACK_BM",
+            "value": 1
+        },
+        "FLASH_STORAGE_SECTORS":
+        {
+            "help": "Define number of used data sectors in non-volatile flash",
+            "macro_name": "FLASH_STORAGE_SECTORS",
+            "value": 3
+        },
+        "FLASH_SECTOR_SIZE":
+        {
+            "help": "Define size of data sector in non-volatile flash",
+            "macro_name": "FLASH_SECTOR_SIZE",
+            "value": 4096
+        }
+    },
+    "target_overrides":
+    {
+        "WUNDERBAR_APP_BIN":
+        {
+            "target.mbed_app_start": "0x00018000"
         }
     }
 }

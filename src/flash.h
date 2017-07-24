@@ -5,7 +5,6 @@
 #include "PlatformMutex.h"
 
 using wunderbar::Configuration;
-extern size_t __flash_storage;
 
 struct FlashStorage
 {

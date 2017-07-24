@@ -33,10 +33,8 @@ using Subscribers = std::unordered_map<std::string, MessageDataCallback>;
 
 const int MAX_MQTT_PACKET_SIZE = 200;
 
-namespace mbed
-{
-    class Stream;
-}
+
+class IStdInOut;
 
 struct MqttConfig
 {
@@ -59,7 +57,7 @@ enum MQTT_STATUS : int32_t
 class MqttProtocol : public IPubSub
 {
 public:
-    MqttProtocol(ITransportLayer* _transport, const MqttConfig& _config, mbed::Stream* _log);
+    MqttProtocol(ITransportLayer* _transport, const MqttConfig& _config, IStdInOut* _log);
     virtual ~MqttProtocol();
 
     // IPubSub
@@ -98,7 +96,7 @@ private:
 
 private:
     const MqttConfig& config;
-    mbed::Stream* log;
+    IStdInOut* log;
     PlatformMutex mutex;
     rtos::Thread dispatcher;
     int32_t error;

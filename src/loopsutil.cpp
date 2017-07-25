@@ -28,7 +28,7 @@ bool readField(char* field,
     size_t numCharacters = 0;
 
     bool gotNewline = false;
-    bool ssidOk = true;
+    bool fieldOk = true;
     while((numCharacters <= maxCharacters))
     {
         char newChar = cdc.getc();
@@ -94,29 +94,29 @@ bool readField(char* field,
     // check if any character was given
     if(0 == numCharacters && 0 == defaultLength)
     {
-        ssidOk = false;
+        fieldOk = false;
         cdc.printf("\r\nNo characters were given!\r\n");
     }
     // check if password was not too long
     else if(((numCharacters < minCharacters) && (defaultLength < minCharacters)) && gotNewline)
     {
-        ssidOk = false;
+        fieldOk = false;
         cdc.printf("\r\nEntry too short!\r\n");
     }
     // check if password was not too long
     else if((numCharacters == maxCharacters) && !gotNewline)
     {
-        ssidOk = false;
+        fieldOk = false;
         cdc.printf("\r\nEntry too long!\r\n");
     }
     // invalid character
     else if(!gotNewline)
     {
-        ssidOk = false;
+        fieldOk = false;
         cdc.printf("\r\nInvalid characters entered!\r\n");
     }
 
-    return ssidOk;
+    return fieldOk;
 }
 
 bool isCharPrintableAscii(char c)

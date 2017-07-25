@@ -41,17 +41,17 @@ bool newDeviceOnboard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& 
     bool tokenOk = false;
     char userName[30] = {"wunderbar"};
     char token[9] = {"conrad"};
-    // while(!userNameOk)
-    // {
-    //     cdc.printf("Please enter your username:\r\n");
-    //     userNameOk = readField(userName, 5, 30, userName, &isCharPrintableAscii, true, led);
-    // }
+    while(!userNameOk)
+    {
+        cdc.printf("Please enter your username:\r\n");
+        userNameOk = readField(userName, 5, 30, userName, &isCharPrintableAscii, true, led);
+    }
 
-    // while(!tokenOk)
-    // {
-    //     cdc.printf("Please enter your token:\r\n");
-    //     tokenOk = readField(token, 6, 8, token, &isCharPrintableAscii, true, led);
-    // }
+    while(!tokenOk)
+    {
+        cdc.printf("Please enter your token:\r\n");
+        tokenOk = readField(token, 6, 8, token, &isCharPrintableAscii, true, led);
+    }
 
     std::string registrationUrl = "https://";
     registrationUrl.append(DEFAULT_SERVER);
@@ -61,7 +61,6 @@ bool newDeviceOnboard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& 
     cdc.printf("Contacting %s\r\n", registrationUrl.c_str());
 
     HttpsRequest registrationReq(net, reinterpret_cast<const char*>(tlsConfig.caCert), HTTP_GET, registrationUrl.c_str(), httpsRequestCallback);
-    // registrationReq.set_debug(true);
     // create Authorization header
     std::string userToken(userName);
     userToken.append(":");
@@ -70,7 +69,6 @@ bool newDeviceOnboard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& 
     size_t bytesOut = 0;
     mbedtls_base64_encode(&userTokenB64[6], sizeof(userTokenB64) - 6, &bytesOut, reinterpret_cast<const uint8_t*>(userToken.c_str()), userToken.size());
     registrationReq.set_header("Authorization", reinterpret_cast<const char*>(userTokenB64));
-    // cdc.printf("Authorization: %s\r\n", userTokenB64);
     // send request and wait till callback clears flag
     HttpResponse* resp = registrationReq.send();
 
@@ -136,11 +134,10 @@ bool cloudWizard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& tlsCo
             cdc.printf("1 - onboard with existing device using your device id and token\r\n");
 
             char methodText[2] = "";
-            // if(readField(methodText, 1, 1, "0", &validateOnboardChoice, true, led))
-            // {
-            //     method = std::atoi(methodText);
-                methodOk = true;
-            // }
+            if(readField(methodText, 1, 1, "0", &validateOnboardChoice, true, led))
+            {
+                method = std::atoi(methodText);
+            }
         }
 
         bool onboardOk = false;

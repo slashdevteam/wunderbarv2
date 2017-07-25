@@ -56,36 +56,36 @@ bool wifiWizard(WiFiInterface* net, wunderbar::WiFiConfig& config, DigitalOut& l
     cdc.printf("\r\nFirst, we need to setup WiFi connection\r\n");
     while(!wifiConnected)
     {
-        // bool ssidOk = false;
-        // bool securityOk = false;
-        // bool passOk = false;
-        // // keep asking for SSID till valid name is entered
-        // cdc.printf("\r\nPlease enter your WiFi SSID below and press ENTER.\r\n");
-        // while(!ssidOk)
-        // {
-        //     validCharactersBanner("SSID", 1, 31);
-        //     ssidOk = readField(config.ssid, 1, 31, config.ssid, &isCharPrintableAscii, true, led);
-        // }
+        bool ssidOk = false;
+        bool securityOk = false;
+        bool passOk = false;
+        // keep asking for SSID till valid name is entered
+        cdc.printf("\r\nPlease enter your WiFi SSID below and press ENTER.\r\n");
+        while(!ssidOk)
+        {
+            validCharactersBanner("SSID", 1, 31);
+            ssidOk = readField(config.ssid, 1, 31, config.ssid, &isCharPrintableAscii, true, led);
+        }
 
-        // cdc.printf("Ok! WunderBar will try to use WiFi: %s\r\n\r\n", config.ssid);
-        // // keep asking for security till valid one is selected
-        // cdc.printf("\r\nNow, please select WiFi security and press ENTER.\r\n");
-        // while(!securityOk)
-        // {
-        //     securityOk = selectSecurity(config.security, led);
-        // }
+        cdc.printf("Ok! WunderBar will try to use WiFi: %s\r\n\r\n", config.ssid);
+        // keep asking for security till valid one is selected
+        cdc.printf("\r\nNow, please select WiFi security and press ENTER.\r\n");
+        while(!securityOk)
+        {
+            securityOk = selectSecurity(config.security, led);
+        }
 
-        // // keep asking for password till valid one is entered
-        // while(!passOk)
-        // {
-        //     validCharactersBanner("Password", 8, 63);
-        //     cdc.printf("Characters entered for password will not be echoed!\r\n");
-        //     passOk = readField(config.pass, 8, 63, defaultPassword, &isCharPrintableAscii, false, led);
-        //     if(passOk)
-        //     {
-        //         std::memcpy(defaultPassword, "<previous password>", 19);
-        //     }
-        // }
+        // keep asking for password till valid one is entered
+        while(!passOk)
+        {
+            validCharactersBanner("Password", 8, 63);
+            cdc.printf("Characters entered for password will not be echoed!\r\n");
+            passOk = readField(config.pass, 8, 63, defaultPassword, &isCharPrintableAscii, false, led);
+            if(passOk)
+            {
+                std::memcpy(defaultPassword, "<previous password>", 19);
+            }
+        }
 
         cdc.printf("\r\n\r\nOk! WunderBar will now try to connect to WiFi: %s\r\n", config.ssid);
         cdc.printf("Please be patient - this might take w while!\r\n");

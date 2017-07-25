@@ -88,15 +88,13 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
                                  ServerName&& _name,
                                  PassKey&& _passKey,
                                  BleServerCallback _callback,
-                                 IPubSub* _proto,
-                                 const std::string& _subtopic,
-                                 const std::string& _pubtopic)
+                                 IPubSub* _proto)
     : BleServer(_gateway,
                 std::forward<ServerName>(_name),
                 std::forward<PassKey>(_passKey),
                 mbed::callback(this, &WunderbarSensor::wunderbarEvent)),
       sensorCallback(_callback),
-      mqttClient(_proto, _subtopic, _pubtopic),
+      mqttClient(_proto, "actuator/" + _name, "sensor/" + _name),
       bleChars(wbSenorChars.at(ServerNamesToDataId.at(_name)))
 {}
 

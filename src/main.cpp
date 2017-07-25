@@ -41,7 +41,7 @@ extern MqttProtocol mqtt;
 // WunderbarSensor wbLight(ble, ServerName(WunderbarSensorNames[2]), PassKey(defaultPass), bleCb);
 // WunderbarSensor wbMic(ble, ServerName(WunderbarSensorNames[3]), PassKey(defaultPass), bleCb);
 // WunderbarSensor wbIr(ble, ServerName(WunderbarSensorNames[5]), PassKey(defaultPass), bleCb);
-WunderbarSensor wbBridge(ble, ServerName(WunderbarSensorNames[4]), PassKey(defaultPass), userBleCb, &mqtt, "actuator/bridgetx", "actuator/bridgerx");
+WunderbarSensor wbBridge(ble, ServerName(WunderbarSensorNames[4]), PassKey(defaultPass), userBleCb, &mqtt);
 
 int main(int argc, char **argv)
 {

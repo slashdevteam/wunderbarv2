@@ -12,9 +12,7 @@ public:
                     ServerName&& _name,
                     PassKey&& _passKey,
                     BleServerCallback _callback,
-                    IPubSub* _proto,
-                    const std::string& _subtopic,
-                    const std::string& _pubtopic);
+                    IPubSub* _proto);
     virtual ~WunderbarSensor() {};
 
 private:

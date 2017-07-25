@@ -43,11 +43,6 @@ int main(int argc, char **argv)
     cdc.printf("Welcome to WunderBar v2 mbed OS firmware\n");
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
-    cdc.printf("Configuring BLE... \n");
-    ble.configure();
-
-    ble.startOperation();
-
     while(true)
     {
         if(!flash.isOnboarded())

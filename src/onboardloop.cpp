@@ -1,14 +1,15 @@
 #include "loops.h"
 #include "loopsutil.h"
-
 #include "DigitalOut.h"
 #include "cdc.h"
 #include "GS1500MInterface.h"
+#include "nrf51822interface.h"
 #include "configuration.h"
 #include "wifiwizard.h"
 #include "cloudwizard.h"
 
 extern GS1500MInterface wifiConnection;
+extern Nrf51822Interface ble;
 using usb::CDC;
 extern CDC cdc;
 
@@ -36,6 +37,9 @@ void onboard()
 
 
     cdc.printf("Now, Wunderbar will store all parameters in memory. Please be patient.");
+
+    cdc.printf("Configuring BLE... \n");
+    ble.configure();
 
     while(true)
     {

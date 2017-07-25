@@ -7,6 +7,8 @@
 #include "button.h"
 #include "led.h"
 
+
+
 using usb::CDC;
 using wunderbar::Configuration;
 
@@ -15,6 +17,7 @@ extern GS1500MInterface wifiConnection;
 extern Flash flash;
 extern CDC cdc;
 const Configuration& config = flash.getConfig();
+
 TLS              tls(&wifiConnection, config.tls, &cdc);
 MqttProtocol     mqtt(&tls, config.proto, &cdc);
 Button           sw2(&mqtt, "button1", SW2);

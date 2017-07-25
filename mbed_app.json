@@ -18,6 +18,18 @@
             "help": "Define size of data sector in non-volatile flash",
             "macro_name": "FLASH_SECTOR_SIZE",
             "value": 4096
+        },
+        "MBEDTLS_PLATFORM_PRINTF_ALT":
+        {
+            "help": "Retarget TLS printf",
+            "macro_name": "MBEDTLS_PLATFORM_PRINTF_ALT",
+            "value": 1
+        },
+        "DEBUG_LEVEL":
+        {
+            "help": "Debug level for mbed TLS",
+            "macro_name": "DEBUG_LEVEL",
+            "value": 0
         }
     },
     "target_overrides":

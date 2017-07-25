@@ -1,0 +1,5 @@
+si 1
+speed 4000
+device MK24FN1M0xxx12
+erase
+q

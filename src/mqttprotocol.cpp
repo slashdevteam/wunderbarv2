@@ -1,11 +1,11 @@
 #include "mqttprotocol.h"
 #include "itransportlayer.h"
+#include "istdinout.h"
 
 #include <memory>
 #include <tuple>
 
 // mbed
-#include "Stream.h"
 #include "Timer.h"
 
 // MQTT
@@ -13,7 +13,7 @@
 
 const int COMMAND_TIMEOUT = 5000;
 
-MqttProtocol::MqttProtocol(ITransportLayer* _transport, const MqttConfig& _config, mbed::Stream* _log)
+MqttProtocol::MqttProtocol(ITransportLayer* _transport, const MqttConfig& _config, IStdInOut* _log)
     : IPubSub(_transport, "MQTT"),
       config(_config),
       log(_log),

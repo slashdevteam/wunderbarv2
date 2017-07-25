@@ -1,5 +1,6 @@
 #include "loops.h"
 #include "GS1500MInterface.h"
+#include "nrf51822interface.h"
 #include "flash.h"
 #include "cdc.h"
 #include "tls.h"
@@ -10,11 +11,12 @@
 using usb::CDC;
 using wunderbar::Configuration;
 
-// Putting most objects in global scope to save thread_stack_main, which is to small!
+extern Nrf51822Interface ble;
 extern GS1500MInterface wifiConnection;
 extern Flash flash;
 extern CDC cdc;
 const Configuration& config = flash.getConfig();
+
 TLS              tls(&wifiConnection, config.tls, &cdc);
 MqttProtocol     mqtt(&tls, config.proto, &cdc);
 Button           sw2(&mqtt, "button1", SW2);
@@ -23,7 +25,6 @@ Led              led(&mqtt, "actuator/led1", LED1);
 void runLoop()
 {
     cdc.printf("Connecting to %s network\r\n", config.wifi.ssid);
-
     int status = wifiConnection.connect(config.wifi.ssid,
                                         config.wifi.pass,
                                         config.wifi.security,
@@ -32,8 +33,10 @@ void runLoop()
     if(status == NSAPI_ERROR_OK)
     {
         cdc.printf("Connected to %s network\r\n", config.wifi.ssid);
-        cdc.printf("Creating connection over %s to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
+        cdc.printf("Starting BLE\n");
+        ble.startOperation();
 
+        cdc.printf("Creating connection over %s to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
         if(mqtt.connect())
         {
             cdc.printf("%s connected to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);

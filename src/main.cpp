@@ -23,12 +23,11 @@ CDC               cdc(CONTROLLER_ID, wunderbar::cdcDescriptors);
 GS1500MInterface  wifiConnection(WIFI_TX, WIFI_RX, 115200);
 Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
 
-DigitalOut               leda(LED1);
-
 // Dummy passkey and callback for ongoing development
 PassKey defaultPass = {0x34, 0x36, 0x37, 0x33, 0x36, 0x31, 0x00, 0x00};
 
-void bleCb(BleEvent a, const uint8_t* b, size_t c) {
+void bleCb(BleEvent a, const uint8_t* b, size_t c)
+{
     cdc.printf("Ble cb!\n");
 }
 
@@ -44,11 +43,6 @@ int main(int argc, char **argv)
     cdc.printf("Welcome to WunderBar v2 mbed OS firmware\n");
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
-    cdc.printf("Configuring BLE... \n");
-    ble.configure();
-
-    ble.startOperation();
-
     while(true)
     {
         if(!flash.isOnboarded())
@@ -60,8 +54,6 @@ int main(int argc, char **argv)
         {
             runLoop();
         }
-
-        leda=!leda;
         wait(2);
         cdc.printf("Flash marker: 0x%x\r\n", flash.getStorage().marker);
     }

@@ -1,12 +1,9 @@
 #pragma once
 
-
 #include "bleserver.h"
 #include "Thread.h"
-
-#include <unordered_map>
-
-using CharcteristicData = std::unordered_map<uint16_t, uint8_t*>;
+#include "mqttclient.h"
+#include <list>
 
 class WunderbarSensor : public BleServer
 {
@@ -14,7 +11,10 @@ public:
     WunderbarSensor(IBleGateway& _gateway,
                     ServerName&& _name,
                     PassKey&& _passKey,
-                    BleServerCallback _callback);
+                    BleServerCallback _callback,
+                    IPubSub* _proto,
+                    const std::string& _subtopic,
+                    const std::string& _pubtopic);
     virtual ~WunderbarSensor() {};
 
 private:
@@ -24,4 +24,7 @@ private:
 
 private:
     BleServerCallback sensorCallback;
+    MqttClient        mqttClient;
+
+    const std::list<uint16_t>& bleChars;
 };

@@ -7,6 +7,8 @@
 #include "nrf51822interface.h"
 #include "wunderbarsensor.h"
 
+#include "mqttprotocol.h"
+
 using usb::CDC;
 
 using wunderbar::Configuration;
@@ -26,17 +28,18 @@ Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
 // Dummy passkey and callback for ongoing development
 PassKey defaultPass = {0x34, 0x36, 0x37, 0x33, 0x36, 0x31, 0x00, 0x00};
 
-void bleCb(BleEvent a, const uint8_t* b, size_t c)
-{
+void userBleCb(BleEvent a, const uint8_t* b, size_t c) {
     cdc.printf("Ble cb!\n");
 }
 
-WunderbarSensor wbHtu(ble, ServerName(WunderbarSensorNames[0]), PassKey(defaultPass), bleCb);
-WunderbarSensor wbGyro(ble, ServerName(WunderbarSensorNames[1]), PassKey(defaultPass), bleCb);
-WunderbarSensor wbLight(ble, ServerName(WunderbarSensorNames[2]), PassKey(defaultPass), bleCb);
-WunderbarSensor wbMic(ble, ServerName(WunderbarSensorNames[3]), PassKey(defaultPass), bleCb);
-WunderbarSensor wbBridge(ble, ServerName(WunderbarSensorNames[4]), PassKey(defaultPass), bleCb);
-WunderbarSensor wbIr(ble, ServerName(WunderbarSensorNames[5]), PassKey(defaultPass), bleCb);
+extern MqttProtocol mqtt;
+
+// WunderbarSensor wbHtu(ble, ServerName(WunderbarSensorNames[0]), PassKey(defaultPass), bleCb);
+// WunderbarSensor wbGyro(ble, ServerName(WunderbarSensorNames[1]), PassKey(defaultPass), bleCb);
+// WunderbarSensor wbLight(ble, ServerName(WunderbarSensorNames[2]), PassKey(defaultPass), bleCb);
+// WunderbarSensor wbMic(ble, ServerName(WunderbarSensorNames[3]), PassKey(defaultPass), bleCb);
+// WunderbarSensor wbIr(ble, ServerName(WunderbarSensorNames[5]), PassKey(defaultPass), bleCb);
+WunderbarSensor wbBridge(ble, ServerName(WunderbarSensorNames[4]), PassKey(defaultPass), userBleCb, &mqtt, "actuator/bridgetx", "actuator/bridgerx");
 
 int main(int argc, char **argv)
 {

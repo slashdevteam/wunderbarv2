@@ -42,8 +42,6 @@ namespace characteristics
 
 namespace limits
 {
-    const size_t MAX_DISCOVERY_SERVICES = 4;
-    const size_t MAX_NUMBER_OF_CHARACTERISTICS = 12;
     const size_t MAX_SERVERS = 7;
     const size_t SERVER_NAME_MAX_LEN = 14;
     const size_t SERVER_PASS_MAX_LEN = 6;

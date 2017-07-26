@@ -70,9 +70,3 @@ void MqttClient::publishDone(bool status)
 {
     publisher.signal_set(PUBLISH_DONE_SIGNAL);
 }
-
-// ble
-void MqttClient::handleDeviceEvent(BleEvent event, const uint8_t* data, size_t len)
-{
-
-}

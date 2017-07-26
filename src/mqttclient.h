@@ -20,11 +20,7 @@ public:
     virtual ~MqttClient() {};
     bool subscribe();
 
-    // handling of device events
-    void handleDeviceEvent(BleEvent event, const uint8_t* data, size_t len);
-
 private:
-    // mqtt
     void publishThread();
     void publishDone(bool status);
     void subscribeThread();
@@ -32,7 +28,6 @@ private:
     void subscribeDone(bool status);
     void ackDone(bool status);
 
-private:
     const std::string subtopic;
     const std::string pubtopic;
     const std::string acktopic;

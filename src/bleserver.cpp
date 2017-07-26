@@ -21,23 +21,24 @@ BleServer::~BleServer()
 {
 }
 
-void BleServer::storeMac(const uint8_t* data)
-{
-    ServerIdentificator serverId(data);
-
-    if(serverId.name == config.name)
-    {
-        std::memcpy(&config.mac, serverId.mac, sizeof(ServerGapAddress));
-    }
-}
-
 void BleServer::bleServerEvent(BleEvent event, const uint8_t* data, size_t len)
 {
-    if(event == BleEvent::DISCOVERY_COMPLETE)
+    switch (event)
     {
-        storeMac(data);
+        case BleEvent::DISCOVERY_COMPLETE:
+            discoveryOk = true;
+            gateway.serverDiscoveryComlpete(config);
+            break;
+
+        case BleEvent::DISCOVERY_ERROR:
+            discoveryOk = false;
+            break;
+
+        default:
+            break;
     }
-    if(externalCallback)
+
+    if (externalCallback)
     {
         externalCallback(event, data, len);
     }

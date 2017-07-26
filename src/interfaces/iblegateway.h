@@ -84,11 +84,11 @@ public:
     virtual bool registerServer(BleServerConfig& config, BleServerCallback incomingCallback) = 0;
     virtual void serverDiscoveryComlpete(BleServerConfig& config) = 0;
     virtual bool sendToServer(const BleServerConfig& config, BleServerCallback doneCallback) = 0;
-    virtual bool readCharacteristic(const BleServerConfig& server, uint32_t bleCharUuid) = 0;
-    virtual bool writeCharacteristic(const BleServerConfig& server,
-                                     uint32_t bleCharUuid,
-                                     const uint8_t* data,
-                                     const size_t len) = 0;
+    virtual bool requestCharacteristicRead(const BleServerConfig& server, uint16_t bleCharUuid) = 0;
+    virtual bool requestCharacteristicWrite(const BleServerConfig& server,
+                                            uint16_t bleCharUuid,
+                                            const uint8_t* data,
+                                            const size_t len) = 0;
     virtual bool configure() = 0;
     virtual void startOperation() = 0;
     virtual bool storeConfig() = 0;

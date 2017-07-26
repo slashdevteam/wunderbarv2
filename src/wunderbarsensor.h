@@ -16,12 +16,9 @@ public:
     virtual ~WunderbarSensor() {};
 
 private:
-    bool subscribe();
-    void handleDiscovery();
     void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
-private:
-    BleServerCallback sensorCallback;
+    BleServerCallback userCallback;
     MqttClient        mqttClient;
 
     const std::list<uint16_t>& bleChars;

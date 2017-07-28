@@ -34,9 +34,9 @@ namespace characteristics
     namespace ble
     {
     const uint16_t BATTERY_LEVEL = 0x2A19;
-    const uint16_t MANUFACTURER_NAME_STRING = 0x2A29;
-    const uint16_t HARDWARE_REVISION_STRING = 0x2A27;
-    const uint16_t FIRMWARE_REVISION_STRING = 0x2A26;
+    const uint16_t MANUFACTURER_NAME = 0x2A29;
+    const uint16_t HARDWARE_REVISION = 0x2A27;
+    const uint16_t FIRMWARE_REVISION = 0x2A26;
     }
 }
 

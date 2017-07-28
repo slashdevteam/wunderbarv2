@@ -59,9 +59,8 @@ void MqttClient::publishThread()
 {
     while(1)
     {
-        rtos::Thread::signal_wait(BLE_SIGNAL);
-        std::string data = "\"ble\":";
-        publish(pubtopic, data, mbed::callback(this, &MqttClient::publishDone));
+        rtos::Thread::signal_wait(NEW_PUB_SIGNAL);
+        Resource::publish(pubtopic, publishContent, mbed::callback(this, &MqttClient::publishDone));
         rtos::Thread::signal_wait(PUBLISH_DONE_SIGNAL);
     }
 }
@@ -69,4 +68,9 @@ void MqttClient::publishThread()
 void MqttClient::publishDone(bool status)
 {
     publisher.signal_set(PUBLISH_DONE_SIGNAL);
+}
+
+void MqttClient::publish()
+{
+    publisher.signal_set(NEW_PUB_SIGNAL);
 }

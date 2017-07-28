@@ -12,7 +12,7 @@ class MqttClient : public Resource
 
 const int32_t NEW_SUB_SIGNAL = 0x1;
 const int32_t ACK_DONE_SIGNAL = 0x2;
-const int32_t BLE_SIGNAL = 0x4;
+const int32_t NEW_PUB_SIGNAL = 0x4;
 const int32_t PUBLISH_DONE_SIGNAL = 0x8;
 
 public:
@@ -21,6 +21,8 @@ public:
                const std::string& _pubtopic);
     virtual ~MqttClient() {};
     bool subscribe();
+    void publish();
+
 
 private:
     void publishThread();
@@ -41,4 +43,9 @@ private:
     char publishContent[MQTT_MSG_PAYLOAD_SIZE];
     char subscribeContent[MQTT_MSG_PAYLOAD_SIZE];
 
+public:
+    inline char* getPublishBuffer()
+    {
+        return publishContent;
+    }
 };

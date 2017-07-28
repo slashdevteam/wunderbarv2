@@ -2,6 +2,9 @@
 #include "wunderbarble.h"
 #include <unordered_map>
 #include "wunderbarsensordatatypes.h"
+#include <cstdint>
+#include <cstdio>
+#include "mbed.h"
 
 // List of all available characteristics for sensor types
 using CharDesc = CharcteristicDescriptor;
@@ -10,7 +13,8 @@ using namespace wunderbar::characteristics::sensor;
 
 using AM = AccessMode;
 
-const std::unordered_map<uint8_t, std::list<CharDesc> > WbChars = {
+const std::unordered_map<uint8_t, std::list<CharDesc> > WbChars
+{
     {sensors::DATA_ID_DEV_HTU,    {CharDesc(ID, AM::READ), CharDesc(BEACON_FREQ, AM::RW), CharDesc(LED_STATE, AM::WRITE), 
                                    CharDesc(FREQUENCY, AM::RW), CharDesc(THRESHOLD, AM::RW), CharDesc(CONFIG, AM::RW), 
                                    CharDesc(DATA_R, AM::READ)} },
@@ -33,7 +37,8 @@ const std::unordered_map<uint8_t, std::list<CharDesc> > WbChars = {
                                    CharDesc(DATA_W, AM::WRITE)} }
 };
 
-const std::unordered_map<uint8_t, std::list<uint16_t>> wbSenorChars = {
+const std::unordered_map<uint8_t, std::list<uint16_t>> wbSenorChars
+{
     {sensors::DATA_ID_DEV_HTU,    {ID, BEACON_FREQ, LED_STATE,
                                    FREQUENCY, THRESHOLD, CONFIG, 
                                    DATA_R} },
@@ -56,15 +61,21 @@ const std::unordered_map<uint8_t, std::list<uint16_t>> wbSenorChars = {
                                    DATA_W} }
 };
 
-const std::unordered_map<uint16_t, AccessMode> bleCharsAccessModes {
-    {characteristics::sensor::ID,          AccessMode::READ},
-    {characteristics::sensor::BEACON_FREQ, AccessMode::RW},
-    {characteristics::sensor::FREQUENCY,   AccessMode::RW},
-    {characteristics::sensor::LED_STATE,   AccessMode::WRITE},
-    {characteristics::sensor::THRESHOLD,   AccessMode::RW},
-    {characteristics::sensor::CONFIG,      AccessMode::RW},
-    {characteristics::sensor::DATA_R,      AccessMode::READ},
-    {characteristics::sensor::DATA_W,      AccessMode::WRITE},
+const std::unordered_map<uint16_t, AccessMode> bleCharsAccessMode
+{
+    {characteristics::sensor::ID,             AccessMode::READ},
+    {characteristics::sensor::BEACON_FREQ,    AccessMode::RW},
+    {characteristics::sensor::FREQUENCY,      AccessMode::RW},
+    {characteristics::sensor::LED_STATE,      AccessMode::WRITE},
+    {characteristics::sensor::THRESHOLD,      AccessMode::RW},
+    {characteristics::sensor::CONFIG,         AccessMode::RW},
+    {characteristics::sensor::DATA_R,         AccessMode::READ},
+    {characteristics::sensor::DATA_W,         AccessMode::WRITE},
+
+    {characteristics::ble::BATTERY_LEVEL,     AccessMode::READ},
+    {characteristics::ble::MANUFACTURER_NAME, AccessMode::READ},
+    {characteristics::ble::HARDWARE_REVISION, AccessMode::READ},
+    {characteristics::ble::FIRMWARE_REVISION, AccessMode::READ}
 };
 
 const ServerName WunderbarSensorNames[] = {
@@ -99,20 +110,98 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
       bleChars(wbSenorChars.at(ServerNamesToDataId.at(_name)))
 {}
 
-void WunderbarSensor::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
+void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
 {
     if (registrationOk)
     {
+        // handle common events
         switch(event)
         {
-            default:
+            case BleEvent::DATA_SENSOR_ID:
+            break;
 
-                if (userCallback)
-                {
-                    userCallback(event, data, len);
-                }
-                break;
+            case BleEvent::DATA_SENSOR_BEACON_FREQUENCY:
+            break;
+
+            case BleEvent::DATA_SENSOR_FREQUENCY:
+            break;
+
+            case BleEvent::DATA_SENSOR_THRESHOLD :
+            break;
+
+            case BleEvent::DATA_SENSOR_CONFIG:
+            break;
+
+            case BleEvent::DATA_SENSOR_NEW_DATA:
+            break;
+
+            case BleEvent::DATA_BATTERY_LEVEL:
+                createJsonBattLevel(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, static_cast<int>(data[0]));
+                mqttClient.publish();
+            break;
+
+            case BleEvent::DATA_MANUFACTURER_NAME:
+                createJsonSensorManufacturer(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<char*>(data));
+                mqttClient.publish();
+            break;
+
+            case BleEvent::DATA_HARDWARE_REVISION:
+                createJsonSensorHwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<char*>(data));
+                mqttClient.publish();
+            break;
+
+            case BleEvent::DATA_FIRMWARE_REVISION:
+                createJsonSensorFwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<char*>(data));
+                mqttClient.publish();
+            break;
+
+            default:
+            break;
+        }
+
+        // call user function to handle sensor-specific events or extra handling
+        if (userCallback)
+        {
+            userCallback(event, data, len);
         }
     }
+}
+
+int WunderbarSensor::createJsonBattLevel(char* outputString, size_t maxLen, int data)
+{
+    return snprintf(outputString, maxLen, jsonMqttBattLevelFormat, time(NULL), data);
+}
+
+void WunderbarSensor::terminateFwHwRawString(char* data)
+{
+    // uint32_t first not valid char and change it to string termination
+    for (uint32_t nChar = 0; nChar < maxRevStringLen; ++nChar)
+    {
+        if (0xFF == data[nChar])
+        {
+            data[nChar] = 0;
+        }
+    }
+}
+
+int WunderbarSensor::createJsonSensorFwRev(char* outputString, size_t maxLen, char* data)
+{
+    terminateFwHwRawString(data);
+
+    return snprintf(outputString, maxLen, jsonMqttSensorFwRevFormat, time(NULL), data);
+}
+
+int WunderbarSensor::createJsonSensorHwRev(char* outputString, size_t maxLen, char* data)
+{
+    terminateFwHwRawString(data);
+
+    return snprintf(outputString, maxLen, jsonMqttSensorHwRevFormat, time(NULL), data);
+}
+
+int WunderbarSensor::createJsonSensorManufacturer(char* outputString, size_t maxLen, char* data)
+{
+    terminateFwHwRawString(data);
+
+    return snprintf(outputString, maxLen, jsonMqttSensorManufacturerFormat, time(NULL), data);
 }
 

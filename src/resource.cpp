@@ -29,7 +29,7 @@ Resource::Resource(IPubSub* _proto)
 {}
 
 
-bool Resource::publish(const std::string& topic, const std::string& data, MessageDoneCallback doneCallback)
+bool Resource::publish(const std::string& topic, const char* data, MessageDoneCallback doneCallback)
 {
     message.clear();
     message.append(PubHeader);

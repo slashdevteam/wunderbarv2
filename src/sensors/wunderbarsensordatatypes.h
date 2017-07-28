@@ -4,60 +4,6 @@
 #include <cstdio>
 #include "mbed.h"
 
-const char* KINETIS_FIRMWARE_REV = "2.0.0";
-const char* MAIN_BOARD_HW_REV = "1.02";
-
-const char* jsonMqttKinetisFwRevFormat = "{\"ts\":%ld,\"kinetis\":\"%s\",\"master ble\":\"%s\"}";
-const char* jsonMqttWbHwRevFormat = "{\"ts\":%ld,\"hardware\":\"%s\"}";
-
-// strings common to all sensors
-const char* jsonMqttBattLevelFormat = "{\"ts\":%ld,\"val\":%d}";
-const char* jsonMqttSensorFwRevFormat = "{\"ts\":%ld,\"firmware\":\"%s\"}";
-const char* jsonMqttSensorHwRevFormat = "{\"ts\":%ld,\"hardware\":\"%s\"}";
-
-const uint32_t maxRevStringLen = 12;
-
-inline int createJsonKinetisFwRev(char* outputString, size_t maxLen, char* masterBleFwVerString)
-{
-    return snprintf(outputString, maxLen, jsonMqttKinetisFwRevFormat, time(NULL), KINETIS_FIRMWARE_REV, masterBleFwVerString);
-}
-
-inline int createJsonWbHwRev(char* outputString, size_t maxLen)
-{
-    return snprintf(outputString, maxLen, jsonMqttWbHwRevFormat, time(NULL), MAIN_BOARD_HW_REV);
-}
-
-inline int createJsonBattLevel(char* outputString, size_t maxLen, const int32_t data)
-{
-    return snprintf(outputString, maxLen, jsonMqttBattLevelFormat, time(NULL), data);
-}
-
-void terminateFwHwRawString(char* data)
-{
-    // uint32_t first not valid char and change it to string termination
-    for (uint32_t nChar = 0; nChar < maxRevStringLen; ++nChar)
-    {
-        if (0xFF == data[nChar])
-        {
-            data[nChar] = 0;
-        }
-    }
-}
-
-inline int createJsonSensorFwRev(char* outputString, size_t maxLen, char* data)
-{
-    terminateFwHwRawString(data);
-
-    return snprintf(outputString, maxLen, jsonMqttSensorFwRevFormat, time(NULL), data);
-}
-
-inline int createJsonSensorHwRev(char* outputString, size_t maxLen, char* data)
-{
-    terminateFwHwRawString(data);
-
-    return snprintf(outputString, maxLen, jsonMqttSensorHwRevFormat, time(NULL), data);
-}
-
 struct threshold_int8_t
 {
     uint8_t sbl;
@@ -220,7 +166,7 @@ inline int createJsonDataLight(char* outputString, size_t maxLen, const sensor_l
 }
 
 //IR-TX
-uint8_t sensor_ir_data_t;
+using sensor_ir_data_t = uint8_t;
 
 //MICROPHONE
 struct sensor_microphone_threshold_t

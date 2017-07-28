@@ -12,7 +12,15 @@ extern CDC cdc;
 using mbed::DigitalOut;
 using DeviceOnboard = mbed::Callback<bool(NetworkInterface*, MqttConfig&, TlsConfig&, DigitalOut&)>;
 
-#include "cloudconfig.cpp"
+// #include "cloudconfig.cpp"
+#include <cstdint>
+
+const char DEFAULT_ROOT_CA[] = "-----BEGIN CERTIFICATE-----\n"
+    "-----END CERTIFICATE-----\n";
+
+const char DEFAULT_SERVER[] = "hyphen.marogi";
+const uint32_t DEFAULT_REST_PORT = 8080;
+const uint32_t DEFAULT_MQTT_PORT = 8883;
 
 volatile bool responseReceived = false;
 volatile bool responseOk = false;

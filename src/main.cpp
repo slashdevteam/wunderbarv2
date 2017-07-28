@@ -28,7 +28,7 @@ Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
 // Dummy passkey and callback for ongoing development
 PassKey defaultPass = {0x34, 0x36, 0x37, 0x33, 0x36, 0x31, 0x00, 0x00};
 
-void userBleCb(BleEvent a, const uint8_t* b, size_t c) {
+void userBleCb(BleEvent a, uint8_t* b, size_t c) {
     cdc.printf("Ble cb!\n");
 }
 

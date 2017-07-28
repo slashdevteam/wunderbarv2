@@ -24,7 +24,7 @@ void Button::publishThread()
         rtos::Thread::signal_wait(BUTTON_IRQ_SIGNAL);
         std::string data = "\"counter\":";
         data.append(std::to_string(counter));
-        publish(pubtopic, data, mbed::callback(this, &Button::publishDone));
+        publish(pubtopic, data.c_str(), mbed::callback(this, &Button::publishDone));
         rtos::Thread::signal_wait(PUBLISH_DONE_SIGNAL);
     }
 }

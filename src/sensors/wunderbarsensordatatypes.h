@@ -3,6 +3,25 @@
 #include <cstdint>
 #include <cstdio>
 #include "mbed.h"
+#include <cstring>
+
+using ServerName = std::string;
+
+const ServerName sensorNameHtu        = "WunderbarHTU";
+const ServerName sensorNameGyro       = "WunderbarGYRO";
+const ServerName sensorNameLightProx  = "WunderbarLIGHT";
+const ServerName sensorNameMicrophone = "WunderbarMIC";
+const ServerName sensorNameBridge     = "WunderbarBRIDG";
+const ServerName sensorNameInfraRed   = "WunderbarIR";
+
+const ServerName WunderbarSensorNames[] = {
+    sensorNameHtu,
+    sensorNameGyro,
+    sensorNameLightProx,
+    sensorNameMicrophone,
+    sensorNameBridge,
+    sensorNameInfraRed
+};
 
 struct threshold_int8_t
 {

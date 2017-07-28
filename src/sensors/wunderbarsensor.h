@@ -4,6 +4,7 @@
 #include "Thread.h"
 #include "../mqttclient.h"
 #include <list>
+#include "wunderbarsensordatatypes.h"
 
 class WunderbarSensor : public BleServer
 {
@@ -15,9 +16,12 @@ public:
                     IPubSub* _proto);
     virtual ~WunderbarSensor() {};
 
-private:
-    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
+protected:
+    virtual void wunderbarEvent(BleEvent event, uint8_t* data, size_t len) = 0;
 
+    MqttClient                 mqttClient;
+    const std::list<uint16_t>& bleChars;
+private:
     int createJsonBattLevel(char* outputString, size_t maxLen, int data);
 
     void terminateFwHwRawString(char* data);
@@ -29,9 +33,6 @@ private:
     int createJsonSensorManufacturer(char* outputString, size_t maxLen, char* data);
 
     BleServerCallback userCallback;
-    MqttClient        mqttClient;
-
-    const std::list<uint16_t>& bleChars;
 
     // strings common to all sensors
     const char* jsonMqttBattLevelFormat          = "{\"ts\":%ld,\"val\":%d}";

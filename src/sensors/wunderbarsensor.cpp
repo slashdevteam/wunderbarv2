@@ -78,15 +78,6 @@ const std::unordered_map<uint16_t, AccessMode> bleCharsAccessMode
     {characteristics::ble::FIRMWARE_REVISION, AccessMode::READ}
 };
 
-const ServerName WunderbarSensorNames[] = {
-    "WunderbarHTU",
-    "WunderbarGYRO",
-    "WunderbarLIGHT",
-    "WunderbarMIC",
-    "WunderbarBRIDG",
-    "WunderbarIR"
-};
-
 const std::unordered_map<ServerName, uint8_t> ServerNamesToDataId = {
     {WunderbarSensorNames[0], sensors::DATA_ID_DEV_HTU},
     {WunderbarSensorNames[1], sensors::DATA_ID_DEV_GYRO},
@@ -105,9 +96,9 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
                 std::forward<ServerName>(_name),
                 std::forward<PassKey>(_passKey),
                 mbed::callback(this, &WunderbarSensor::wunderbarEvent)),
-      userCallback(_callback),
       mqttClient(_proto, "actuator/" + _name, "sensor/" + _name),
-      bleChars(wbSenorChars.at(ServerNamesToDataId.at(_name)))
+      bleChars(wbSenorChars.at(ServerNamesToDataId.at(_name))),
+      userCallback(_callback)
 {}
 
 void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
@@ -118,21 +109,15 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
         switch(event)
         {
             case BleEvent::DATA_SENSOR_ID:
+                // not used yet
             break;
 
             case BleEvent::DATA_SENSOR_BEACON_FREQUENCY:
+                // not used yet
             break;
 
             case BleEvent::DATA_SENSOR_FREQUENCY:
-            break;
-
-            case BleEvent::DATA_SENSOR_THRESHOLD :
-            break;
-
-            case BleEvent::DATA_SENSOR_CONFIG:
-            break;
-
-            case BleEvent::DATA_SENSOR_NEW_DATA:
+                // not used yet
             break;
 
             case BleEvent::DATA_BATTERY_LEVEL:
@@ -159,7 +144,7 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
             break;
         }
 
-        // call user function to handle sensor-specific events or extra handling
+        // to handle sensor-specyfic events
         if (userCallback)
         {
             userCallback(event, data, len);

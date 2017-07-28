@@ -5,6 +5,8 @@
 
 #include "iblegateway.h" // only for bleevent, where to put it better?
 
+const uint32_t MQTT_MSG_PAYLOAD_SIZE = 200;
+
 class MqttClient : public Resource
 {
 
@@ -35,4 +37,8 @@ private:
     rtos::Thread publisher;
     std::unique_ptr<uint8_t[]> command;
     volatile bool subscribed;
+
+    char publishContent[MQTT_MSG_PAYLOAD_SIZE];
+    char subscribeContent[MQTT_MSG_PAYLOAD_SIZE];
+
 };

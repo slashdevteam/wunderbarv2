@@ -1,6 +1,7 @@
 #include "wunderbarsensor.h"
 #include "wunderbarble.h"
 #include <unordered_map>
+#include "wunderbarsensordatatypes.h"
 
 // List of all available characteristics for sensor types
 using CharDesc = CharcteristicDescriptor;

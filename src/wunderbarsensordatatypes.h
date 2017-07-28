@@ -1,168 +1,244 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdio>
+#include "mbed.h"
 
-struct threshold_int8_t;
+const char* KINETIS_FIRMWARE_REV = "2.0.0";
+const char* MAIN_BOARD_HW_REV = "1.02";
+
+const char* jsonMqttKinetisFwRevFormat = "{\"ts\":%ld,\"kinetis\":\"%s\",\"master ble\":\"%s\"}";
+const char* jsonMqttWbHwRevFormat = "{\"ts\":%ld,\"hardware\":\"%s\"}";
+
+// strings common to all sensors
+const char* jsonMqttBattLevelFormat = "{\"ts\":%ld,\"val\":%d}";
+const char* jsonMqttSensorFwRevFormat = "{\"ts\":%ld,\"firmware\":\"%s\"}";
+const char* jsonMqttSensorHwRevFormat = "{\"ts\":%ld,\"hardware\":\"%s\"}";
+
+const uint32_t maxRevStringLen = 12;
+
+inline int createJsonKinetisFwRev(char* outputString, size_t maxLen, char* masterBleFwVerString)
+{
+    return snprintf(outputString, maxLen, jsonMqttKinetisFwRevFormat, time(NULL), KINETIS_FIRMWARE_REV, masterBleFwVerString);
+}
+
+inline int createJsonWbHwRev(char* outputString, size_t maxLen)
+{
+    return snprintf(outputString, maxLen, jsonMqttWbHwRevFormat, time(NULL), MAIN_BOARD_HW_REV);
+}
+
+inline int createJsonBattLevel(char* outputString, size_t maxLen, const int32_t data)
+{
+    return snprintf(outputString, maxLen, jsonMqttBattLevelFormat, time(NULL), data);
+}
+
+void terminateFwHwRawString(char* data)
+{
+    // uint32_t first not valid char and change it to string termination
+    for (uint32_t nChar = 0; nChar < maxRevStringLen; ++nChar)
+    {
+        if (0xFF == data[nChar])
+        {
+            data[nChar] = 0;
+        }
+    }
+}
+
+inline int createJsonSensorFwRev(char* outputString, size_t maxLen, char* data)
+{
+    terminateFwHwRawString(data);
+
+    return snprintf(outputString, maxLen, jsonMqttSensorFwRevFormat, time(NULL), data);
+}
+
+inline int createJsonSensorHwRev(char* outputString, size_t maxLen, char* data)
+{
+    terminateFwHwRawString(data);
+
+    return snprintf(outputString, maxLen, jsonMqttSensorHwRevFormat, time(NULL), data);
+}
+
+struct threshold_int8_t
 {
     uint8_t sbl;
     int8_t  low;
     int8_t  high;
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct threshold_int16_t;
+struct threshold_int16_t
 {
     uint16_t sbl;
     int16_t  low;
     int16_t  high;
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct threshold_int32_t;
+struct threshold_int32_t
 {
     uint32_t sbl;
     int32_t  low;
     int32_t  high;
-} __attribute__((packed))
+} __attribute__((packed));
 
 
-struct threshold_float_t;
+struct threshold_float_t
 {
     float sbl;
     float low;
     float high;
-} __attribute__((packed))
+} __attribute__((packed));
 
 // HTU
-struct sensor_htu_threshold_t;
+struct sensor_htu_threshold_t
 {
     threshold_int16_t  temperature;
     threshold_int16_t  humidity;
-} __attribute__((packed))
+} __attribute__((packed));
 
-enum sensor_htu_config_t;
+enum sensor_htu_config_t
 {
     HTU21D_RH_12_TEMP14 = 0,
     HTU21D_RH_8_TEMP12,
     HTU21D_RH_10_TEMP13,
     HTU21D_RH_11_TEMP11,
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct sensor_htu_data_t;
+struct sensor_htu_data_t
 {
     int16_t temperature;
     int16_t humidity;
-} __attribute__((packed))
+} __attribute__((packed));
+
+const char jsonMqttDataFormatHtu[] = "{\"ts\":%ld,\"temp\":%05d.00,\"hum\":%05d.00}";
+
+inline int createJsonDataHtu(char* outputString, size_t maxLen, const sensor_htu_data_t& data)
+{
+    return snprintf(outputString, maxLen, jsonMqttDataFormatHtu, time(NULL), data.temperature/100, data.humidity/100);
+}
 
 // GYRO
-struct sensor_gyro_threshold_t;
+struct sensor_gyro_threshold_t
 {
     threshold_int32_t gyro;   
     threshold_int16_t acc;
-} __attribute__((packed))
+} __attribute__((packed));
 
-enum sensor_gyro_GyroFullScale_t;
+enum sensor_gyro_GyroFullScale_t
 {
     GYRO_FULL_SCALE_250DPS = 0,
     GYRO_FULL_SCALE_500DPS,
     GYRO_FULL_SCALE_1000DPS,
     GYRO_FULL_SCALE_2000DPS
-}
+};
 
-enum sensor_gyro_AccFullScale_t;
+enum sensor_gyro_AccFullScale_t
 {
     ACC_FULL_SCALE_2G = 0,
     ACC_FULL_SCALE_4G,
     ACC_FULL_SCALE_8G,
     ACC_FULL_SCALE_16G
-}
+};
 
-struct sensor_gyro_config_t;
+struct sensor_gyro_config_t
 {
     sensor_gyro_GyroFullScale_t gyro_full_scale;
     sensor_gyro_AccFullScale_t  acc_full_scale;
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct sensor_gyro_GyroCoord_t;
+struct sensor_gyro_GyroCoord_t
 {
     int32_t x;
     int32_t y;
     int32_t z;
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct sensor_gyro_AccCoord_t;
+struct sensor_gyro_AccCoord_t
 {
     int16_t x;
     int16_t y;
     int16_t z;
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct sensor_gyro_data_t;
+struct sensor_gyro_data_t
 {
     sensor_gyro_GyroCoord_t gyro;
     sensor_gyro_AccCoord_t acc;
-} __attribute__((packed))
+} __attribute__((packed));
 
-#define Template_gyro_data "{\"ts\":%s,\"gyro\":{\"x\":%s,\"y\":%s,\"z\":%s},\"accel\":{\"x\":%s,\"y\":%s,\"z\":%s}}"
+const char jsonMqttDataFormatGyro[] = "{\"ts\":%ld,\"gyro\":{\"x\":%05ld.00,\"y\":%05ld.00,\"z\":%05ld.00},\"accel\":{\"x\":%05d.00,\"y\":%05d.00,\"z\":%05d.00}}";
 
+inline int createJsonDataGyro(char* outputString, size_t maxLen, const sensor_gyro_data_t& data)
+{
+    return snprintf(outputString, maxLen, jsonMqttDataFormatGyro, time(NULL),
+                    data.gyro.x/100, data.gyro.y/100, data.gyro.z/100,
+                    data.acc.x/100, data.acc.y/100, data.acc.z/100);
+}
 
 //LIGHT-PROX
-struct sensor_lightprox_threshold_t;
+struct sensor_lightprox_threshold_t
 {
     threshold_int16_t white;
     threshold_int16_t proximity;
-} __attribute__((packed))
+} __attribute__((packed));
 
-
-enum sensor_lightprox_rgbc_gain_t;
+enum sensor_lightprox_rgbc_gain_t
 {
     RGBC_GAIN_1     = 0x00, 
     RGBC_GAIN_4     = 0x01,
     RGBC_GAIN_16    = 0x02,
     RGBC_GAIN_60    = 0x03
-}
+};
 
-
-enum sensor_lightprox_prox_drive_t;
+enum sensor_lightprox_prox_drive_t
 {
     PROX_DRIVE_12_5_MA = 0xC0,
     PROX_DRIVE_25_MA   = 0x80,
     PROX_DRIVE_50_MA   = 0x40,
     PROX_DRIVE_100_MA  = 0x00   
-}
+};
 
-struct sensor_lightprox_config_t;
+struct sensor_lightprox_config_t
 {
     sensor_lightprox_rgbc_gain_t    rgbc_gain;
     sensor_lightprox_prox_drive_t   prox_drive;
-} __attribute__((packed))
+} __attribute__((packed));
 
-
-struct sensor_lightprox_data_t;
+struct sensor_lightprox_data_t
 {
     uint16_t r;
     uint16_t g;
     uint16_t b;
     uint16_t white;
     uint16_t proximity;
-} __attribute__((packed))
+} __attribute__((packed));
 
-#define Template_light_data "{\"ts\":%s,\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d}"
+const char jsonMqttDataFormatLight[] = "{\"ts\":%ld,\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d}";
 
+inline int createJsonDataLight(char* outputString, size_t maxLen, const sensor_lightprox_data_t& data)
+{
+    return snprintf(outputString, maxLen, jsonMqttDataFormatLight, time(NULL),
+                    data.white, data.r, data.g, data.b, data.proximity);
+}
 
 //IR-TX
 uint8_t sensor_ir_data_t;
 
 //MICROPHONE
-struct sensor_microphone_threshold_t;
+struct sensor_microphone_threshold_t
 {
     threshold_int16_t mic_level;
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct sensor_microphone_data_t;
+struct sensor_microphone_data_t
 {
     int16_t mic_level;
-} __attribute__((packed))
+} __attribute__((packed));
 
-#define Template_sound_data "{\"ts\":%s,\"snd_level\":%d}"
+const char jsonMqttDataFormatSound[] = "{\"ts\":%ld,\"snd_level\":%d}";
+
+inline int createJsonDataSound(char* outputString, size_t maxLen, const sensor_microphone_data_t& data)
+{
+    return snprintf(outputString, maxLen, jsonMqttDataFormatSound, time(NULL), data.mic_level);
+}
 
 //BRIDGE
 const uint32_t BRIDGE_PAYLOAD_SIZE = 19;
@@ -170,32 +246,46 @@ const uint32_t BRIDGE_HEDER_SIZE   = 2;
 const uint32_t BRIDGE_CRC16_SIZE   = 2;
 const uint32_t BRIDGE_PACKET_SIZE  = BRIDGE_PAYLOAD_SIZE + BRIDGE_HEDER_SIZE + BRIDGE_CRC16_SIZE;
 
-struct sensor_bridge_data_t;
+struct sensor_bridge_data_t
 {
     uint8_t payload_length;
     uint8_t payload[BRIDGE_PAYLOAD_SIZE];
-} __attribute__((packed))
+} __attribute__((packed));
 
-struct sensor_bridge_config_t;
+struct sensor_bridge_config_t
 {
     uint32_t baud_rate;
-} __attribute__((packed))
+} __attribute__((packed));
 
-#define Template_bridge_data "{\"ts\":%s,\"up_ch_payload\":[%s]}"
+const char jsonMqttDataFormatBridgeBegin[] = "{\"ts\":%ld,\"up_ch_payload\":[";
+const char jsonMqttDataFormatBridgeEnd[]   = "]}";
 
-void Sensors_FormBridgeArray(sensor_bridge_data_t* bridgeData, char* txt){
-	char* ptr = txt;
-	int i;
+inline int createJsonDataBridge(char* outputString, size_t maxLen, const sensor_bridge_data_t& data)
+{
+    size_t totLen = snprintf(outputString, maxLen, jsonMqttDataFormatBridgeBegin, time(NULL));
 
-	for (i = 0; i < bridgeData->payload_length; i ++)
-	{
-		sprintf(ptr, "%d,", (int) bridgeData->payload[i]);
-		ptr = strchr(ptr, ',');
-		ptr ++;
-	}
-	*(ptr - 1) = 0;
+    for (auto dataChar = 0; (dataChar < data.payload_length && totLen < maxLen); ++dataChar)
+    {   
+        // try to write at the end of last write, for the remaining available len
+        size_t lenWritten = snprintf(outputString + totLen, maxLen-totLen, "%d,", static_cast<int>(data.payload[dataChar]));
+
+        if (0 < lenWritten)
+        {
+            totLen += lenWritten;
+        }
+        else
+        {
+            //error
+            return totLen;
+        }
+    }
+
+    // remove last coma and finish the string
+    size_t lenWritten = snprintf(outputString + totLen - 1, maxLen - totLen + 1, jsonMqttDataFormatBridgeEnd);
+    if (0 < lenWritten)
+    {
+        totLen += lenWritten - 1;
+    }
+
+    return totLen;
 }
-
-
-#define Template_main_firmware_rev   "{\"ts\":%s,\"kinetis\":\"%s\",\"master ble\":\"%s\"}"
-#define Template_main_hardware_rev   "{\"ts\":%s,\"hardware\":\"%s\"}"

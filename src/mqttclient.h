@@ -10,10 +10,11 @@ const uint32_t MQTT_MSG_PAYLOAD_SIZE = 200;
 class MqttClient : public Resource
 {
 
-const int32_t NEW_SUB_SIGNAL = 0x1;
-const int32_t ACK_DONE_SIGNAL = 0x2;
-const int32_t NEW_PUB_SIGNAL = 0x4;
+const int32_t NEW_SUB_SIGNAL      = 0x1;
+const int32_t ACK_DONE_SIGNAL     = 0x2;
+const int32_t NEW_PUB_SIGNAL      = 0x4;
 const int32_t PUBLISH_DONE_SIGNAL = 0x8;
+const int32_t SUB_DATA_WRITTEN    = 0x10;
 
 public:
     MqttClient(IPubSub* _proto,
@@ -21,8 +22,8 @@ public:
                const std::string& _pubtopic);
     virtual ~MqttClient() {};
     bool subscribe();
+    void subscribtionWritten();
     void publish();
-
 
 private:
     void publishThread();

@@ -136,6 +136,10 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
                 // not used yet
             break;
 
+            case BleEvent::WRITE_OK:
+                mqttClient.subscribtionWritten();
+            break;
+
             default:
             break;
         }

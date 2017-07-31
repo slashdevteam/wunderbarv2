@@ -19,7 +19,7 @@ enum class BleEvent
     DISCOVERY_ERROR    = 0x2,
     CONNECTION_OPENED  = 0x3,
     CONNECTION_CLOSED  = 0x4,
-    CHAR_WRITE_OK      = 0x5,
+    WRITE_OK           = 0x5,
 
     DATA_SENSOR_ID                  = 0x10,
     DATA_SENSOR_BEACON_FREQUENCY    = 0x11,

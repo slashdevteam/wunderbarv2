@@ -55,6 +55,11 @@ void MqttClient::ackDone(bool status)
     subscriber.signal_set(ACK_DONE_SIGNAL);
 }
 
+void MqttClient::subscribtionWritten()
+{
+    subscriber.signal_set(SUB_DATA_WRITTEN);
+}
+
 void MqttClient::publishThread()
 {
     while(1)

@@ -54,9 +54,9 @@ bool Resource::acknowledge(const std::string& topic, const std::string& _command
     message.append(std::to_string(13)); // epoch
     message.append(AckTail);
     return proto->publish(reinterpret_cast<const uint8_t*>(topic.c_str()),
-                              reinterpret_cast<const uint8_t*>(message.c_str()),
-                              message.size(),
-                              doneCallback);
+                          reinterpret_cast<const uint8_t*>(message.c_str()),
+                          message.size(),
+                          doneCallback);
 }
 
 bool Resource::subscribe(const std::string& topic, MessageDoneCallback doneCallback, MessageDataCallback datacallback)

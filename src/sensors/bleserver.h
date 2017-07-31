@@ -15,7 +15,7 @@ public:
     virtual ~BleServer();
 
 private:
-    void bleServerEvent(BleEvent event, uint8_t* data, size_t len);
+    void bleServerEvent(BleEvent event, const uint8_t* data, size_t len);
 
 protected:
     BleServerConfig config;

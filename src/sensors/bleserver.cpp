@@ -21,7 +21,7 @@ BleServer::~BleServer()
 {
 }
 
-void BleServer::bleServerEvent(BleEvent event, uint8_t* data, size_t len)
+void BleServer::bleServerEvent(BleEvent event, const uint8_t* data, size_t len)
 {
     switch (event)
     {

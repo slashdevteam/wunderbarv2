@@ -1,20 +1,20 @@
-#include "lightprox.h"
+#include "wblightprox.h"
 
-LightProx::LightProx(IBleGateway& _gateway, IPubSub* _proto)
+WbLightProx::WbLightProx(IBleGateway& _gateway, IPubSub* _proto)
     : WunderbarSensor(_gateway,
                       ServerName(sensorNameLightProx),
                       PassKey(defaultPass),
-                      mbed::callback(this, &LightProx::wunderbarEvent),
+                      mbed::callback(this, &WbLightProx::wunderbarEvent),
                       _proto)
 {
 };
 
-void LightProx::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
+void WbLightProx::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
 {
     switch (event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
-            createJsonDataLight(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<sensor_lightprox_data_t*>(data));
+            dataToJson(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_lightprox_data_t*>(data));
             mqttClient.publish();
         break;
 

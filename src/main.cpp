@@ -5,15 +5,15 @@
 #include "GS1500MInterface.h"
 #include "loops.h"
 #include "nrf51822interface.h"
-#include "htu.h"
 
 #include "mqttprotocol.h"
-#include "lightprox.h"
-#include "htu.h"
-#include "gyro.h"
-#include "infrared.h"
-#include "microphone.h"
-#include "bridge.h"
+
+#include "wblightprox.h"
+#include "wbhtu.h"
+#include "wbgyro.h"
+#include "wbinfrared.h"
+#include "wbmicrophone.h"
+#include "wbbridge.h"
 
 using usb::CDC;
 
@@ -33,12 +33,12 @@ Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
 
 extern MqttProtocol mqtt;
 
-Htu wbHtu(ble, &mqtt);
-Gyro wbGyro(ble, &mqtt);
-LightProx wbLight(ble, &mqtt);
-Microphone wbMic(ble, &mqtt);
-InfraRed wbIr(ble, &mqtt);
-Bridge wbBridge(ble, &mqtt);
+WbHtu        htu(ble, &mqtt);
+WbGyro       gyro(ble, &mqtt);
+WbLightProx  light(ble, &mqtt);
+WbMicrophone mic(ble, &mqtt);
+WbInfraRed   ir(ble, &mqtt);
+WbBridge     bridge(ble, &mqtt);
 
 int main(int argc, char **argv)
 {

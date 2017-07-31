@@ -2,13 +2,13 @@
 
 #include "wunderbarsensor.h"
 
-class Microphone : public WunderbarSensor
+class WbMicrophone : public WunderbarSensor
 {
 public:
-    Microphone(IBleGateway& _gateway, IPubSub* _proto);
+    WbMicrophone(IBleGateway& _gateway, IPubSub* _proto);
 
 private:
-    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
+    void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
     struct threshold_t
     {
@@ -22,7 +22,7 @@ private:
 
     const char* jsonMqttDataFormatMic = "{\"ts\":%ld,\"snd_level\":%d}";
 
-    inline int createJsonDataMic(char* outputString, size_t maxLen, const sensor_microphone_data_t& data)
+    inline int dataToJson(char* outputString, size_t maxLen, const sensor_microphone_data_t& data)
     {
         return snprintf(outputString, maxLen, jsonMqttDataFormatMic, time(NULL), data.mic_level);
     }

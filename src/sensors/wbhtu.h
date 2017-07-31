@@ -2,13 +2,13 @@
 
 #include "wunderbarsensor.h"
 
-class Htu : public WunderbarSensor
+class WbHtu : public WunderbarSensor
 {
 public:
-    Htu(IBleGateway& _gateway, IPubSub* _proto);
+    WbHtu(IBleGateway& _gateway, IPubSub* _proto);
 
 private:
-    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
+    void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
     struct sensor_htu_data_t
     {
@@ -32,7 +32,7 @@ private:
 
     const char* jsonMqttDataFormatHtu = "{\"ts\":%ld,\"temp\":%05d.00,\"hum\":%05d.00}";
 
-    inline int createJsonDataHtu(char* outputString, size_t maxLen, const sensor_htu_data_t& data)
+    inline int dataToJson(char* outputString, size_t maxLen, const sensor_htu_data_t& data)
     {
         return snprintf(outputString, maxLen, jsonMqttDataFormatHtu, time(NULL), data.temperature/100, data.humidity/100);
     };

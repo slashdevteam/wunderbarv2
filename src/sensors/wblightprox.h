@@ -2,13 +2,13 @@
 
 #include "wunderbarsensor.h"
 
-class LightProx : public WunderbarSensor
+class WbLightProx : public WunderbarSensor
 {
 public:
-    LightProx(IBleGateway& _gateway, IPubSub* _proto);
+    WbLightProx(IBleGateway& _gateway, IPubSub* _proto);
 
 private:
-    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
+    void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
     struct threshold_t
     {
@@ -49,10 +49,10 @@ private:
 
     const char* jsonMqttDataFormatLight = "{\"ts\":%ld,\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d}";
 
-    inline int createJsonDataLight(char* outputString, size_t maxLen, const sensor_lightprox_data_t& data)
+    inline int dataToJson(char* outputString, size_t maxLen, const sensor_lightprox_data_t& data)
     {
         return snprintf(outputString, maxLen, jsonMqttDataFormatLight, time(NULL),
                         data.white, data.r, data.g, data.b, data.proximity);
     }
-    
+
 };

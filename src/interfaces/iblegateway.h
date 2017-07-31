@@ -87,7 +87,7 @@ struct CharcteristicDescriptor
     }
 } __attribute__((packed));
 
-using BleServerCallback = mbed::Callback<void(BleEvent, uint8_t*, size_t)>;
+using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
 
 class IBleGateway
 {
@@ -95,11 +95,11 @@ public:
     virtual bool registerServer(BleServerConfig& config, BleServerCallback incomingCallback) = 0;
     virtual void serverDiscoveryComlpete(BleServerConfig& config) = 0;
     virtual bool sendToServer(const BleServerConfig& config, BleServerCallback doneCallback) = 0;
-    virtual bool requestCharacteristicRead(const BleServerConfig& server, uint16_t bleCharUuid) = 0;
-    virtual bool requestCharacteristicWrite(const BleServerConfig& server,
-                                            uint16_t bleCharUuid,
-                                            const uint8_t* data,
-                                            const size_t len) = 0;
+    virtual bool requestRead(const BleServerConfig& server, uint16_t bleCharUuid) = 0;
+    virtual bool requestWrite(const BleServerConfig& server,
+                              uint16_t bleCharUuid,
+                              const uint8_t* data,
+                              const size_t len) = 0;
     virtual bool configure() = 0;
     virtual void startOperation() = 0;
     virtual bool storeConfig() = 0;

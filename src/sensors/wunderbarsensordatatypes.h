@@ -5,6 +5,8 @@
 #include "mbed.h"
 #include <cstring>
 
+const size_t MAX_SENSOR_PAYLOAD_LEN = 20;
+
 using ServerName = std::string;
 
 const ServerName sensorNameHtu        = "WunderbarHTU";

@@ -101,7 +101,7 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
       userCallback(_callback)
 {}
 
-void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
+void WunderbarSensor::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
 {
     if (registrationOk)
     {
@@ -114,17 +114,17 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
             break;
 
             case BleEvent::DATA_MANUFACTURER_NAME:
-                createJsonSensorManufacturer(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<char*>(data));
+                createJsonSensorManufacturer(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
                 mqttClient.publish();
             break;
 
             case BleEvent::DATA_HARDWARE_REVISION:
-                createJsonSensorHwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<char*>(data));
+                createJsonSensorHwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
                 mqttClient.publish();
             break;
 
             case BleEvent::DATA_FIRMWARE_REVISION:
-                createJsonSensorFwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<char*>(data));
+                createJsonSensorFwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
                 mqttClient.publish();
             break;
 
@@ -159,8 +159,8 @@ int WunderbarSensor::createJsonBattLevel(char* outputString, size_t maxLen, int 
 
 void WunderbarSensor::terminateFwHwRawString(char* data)
 {
-    // uint32_t first not valid char and change it to string termination
-    for (uint32_t nChar = 0; nChar < maxRevStringLen; ++nChar)
+    // find first not valid char and change it to string termination
+    for (uint32_t nChar = 0; nChar < MAX_SENSOR_PAYLOAD_LEN; ++nChar)
     {
         if (0xFF == data[nChar])
         {
@@ -169,23 +169,32 @@ void WunderbarSensor::terminateFwHwRawString(char* data)
     }
 }
 
-int WunderbarSensor::createJsonSensorFwRev(char* outputString, size_t maxLen, char* data)
+int WunderbarSensor::createJsonSensorFwRev(char* outputString, size_t maxLen, const char* data)
 {
-    terminateFwHwRawString(data);
+    char buff[MAX_SENSOR_PAYLOAD_LEN];
+    memcpy(buff, data, MAX_SENSOR_PAYLOAD_LEN);
+
+    terminateFwHwRawString(buff);
 
     return snprintf(outputString, maxLen, jsonMqttSensorFwRevFormat, time(NULL), data);
 }
 
-int WunderbarSensor::createJsonSensorHwRev(char* outputString, size_t maxLen, char* data)
+int WunderbarSensor::createJsonSensorHwRev(char* outputString, size_t maxLen, const char* data)
 {
-    terminateFwHwRawString(data);
+    char buff[MAX_SENSOR_PAYLOAD_LEN];
+    memcpy(buff, data, MAX_SENSOR_PAYLOAD_LEN);
+
+    terminateFwHwRawString(buff);
 
     return snprintf(outputString, maxLen, jsonMqttSensorHwRevFormat, time(NULL), data);
 }
 
-int WunderbarSensor::createJsonSensorManufacturer(char* outputString, size_t maxLen, char* data)
+int WunderbarSensor::createJsonSensorManufacturer(char* outputString, size_t maxLen, const char* data)
 {
-    terminateFwHwRawString(data);
+    char buff[MAX_SENSOR_PAYLOAD_LEN];
+    memcpy(buff, data, MAX_SENSOR_PAYLOAD_LEN);
+
+    terminateFwHwRawString(buff);
 
     return snprintf(outputString, maxLen, jsonMqttSensorManufacturerFormat, time(NULL), data);
 }

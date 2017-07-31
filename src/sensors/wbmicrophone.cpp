@@ -1,20 +1,20 @@
-#include "microphone.h"
+#include "wbmicrophone.h"
 
-Microphone::Microphone(IBleGateway& _gateway, IPubSub* _proto)
+WbMicrophone::WbMicrophone(IBleGateway& _gateway, IPubSub* _proto)
     : WunderbarSensor(_gateway,
                       ServerName(sensorNameMicrophone),
                       PassKey(defaultPass),
-                      mbed::callback(this, &Microphone::wunderbarEvent),
+                      mbed::callback(this, &WbMicrophone::wunderbarEvent),
                       _proto)
 {
 };
 
-void Microphone::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
+void WbMicrophone::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
 {
     switch (event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
-            createJsonDataMic(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<sensor_microphone_data_t*>(data));
+            dataToJson(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_microphone_data_t*>(data));
             mqttClient.publish();
         break;
 

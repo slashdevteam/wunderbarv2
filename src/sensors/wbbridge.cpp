@@ -1,20 +1,20 @@
-#include "bridge.h"
+#include "wbbridge.h"
 
-Bridge::Bridge(IBleGateway& _gateway, IPubSub* _proto)
+WbBridge::WbBridge(IBleGateway& _gateway, IPubSub* _proto)
     : WunderbarSensor(_gateway,
                         ServerName(sensorNameBridge),
                         PassKey(defaultPass),
-                        mbed::callback(this, &Bridge::wunderbarEvent),
+                        mbed::callback(this, &WbBridge::wunderbarEvent),
                         _proto)
 {
 };
 
-void Bridge::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
+void WbBridge::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
 {
     switch (event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
-            createJsonDataBridge(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<sensor_bridge_data_t*>(data));
+            dataToJson(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_bridge_data_t*>(data));
             mqttClient.publish();
         break;
 

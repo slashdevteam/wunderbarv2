@@ -2,13 +2,13 @@
 
 #include "wunderbarsensor.h"
 
-class Gyro : public WunderbarSensor
+class WbGyro : public WunderbarSensor
 {
 public:
-    Gyro(IBleGateway& _gateway, IPubSub* _proto);
+    WbGyro(IBleGateway& _gateway, IPubSub* _proto);
 
 private:
-    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
+    void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
     struct threshold_t
     {
@@ -60,7 +60,7 @@ private:
 
     const char* jsonMqttDataFormatGyro = "{\"ts\":%ld,\"gyro\":{\"x\":%05ld.00,\"y\":%05ld.00,\"z\":%05ld.00},\"accel\":{\"x\":%05d.00,\"y\":%05d.00,\"z\":%05d.00}}";
 
-    inline int createJsonDataGyro(char* outputString, size_t maxLen, const sensor_gyro_data_t& data)
+    inline int dataToJson(char* outputString, size_t maxLen, const sensor_gyro_data_t& data)
     {
         return snprintf(outputString, maxLen, jsonMqttDataFormatGyro, time(NULL),
                         data.gyro.x/100, data.gyro.y/100, data.gyro.z/100,

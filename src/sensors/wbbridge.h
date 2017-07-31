@@ -2,13 +2,13 @@
 
 #include "wunderbarsensor.h"
 
-class Bridge : public WunderbarSensor
+class WbBridge : public WunderbarSensor
 {
 public:
-    Bridge(IBleGateway& _gateway, IPubSub* _proto);
+    WbBridge(IBleGateway& _gateway, IPubSub* _proto);
 
 private:
-    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
+    void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
     constexpr static uint32_t BRIDGE_PAYLOAD_SIZE = 19;
     const uint32_t BRIDGE_HEDER_SIZE   = 2;
@@ -29,7 +29,7 @@ private:
     const char* jsonMqttDataFormatBridgeBegin = "{\"ts\":%ld,\"up_ch_payload\":[";
     const char* jsonMqttDataFormatBridgeEnd   = "]}";
 
-    inline int createJsonDataBridge(char* outputString, size_t maxLen, const sensor_bridge_data_t& data)
+    inline int dataToJson(char* outputString, size_t maxLen, const sensor_bridge_data_t& data)
     {
         size_t totLen = snprintf(outputString, maxLen, jsonMqttDataFormatBridgeBegin, time(NULL));
 

@@ -17,7 +17,7 @@ public:
     virtual ~WunderbarSensor() {};
 
 protected:
-    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
+    void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
     MqttClient                 mqttClient;
     const std::list<uint16_t>& bleChars;
@@ -27,11 +27,11 @@ private:
 
     void terminateFwHwRawString(char* data);
 
-    int createJsonSensorFwRev(char* outputString, size_t maxLen, char* data);
+    int createJsonSensorFwRev(char* outputString, size_t maxLen, const char* data);
 
-    int createJsonSensorHwRev(char* outputString, size_t maxLen, char* data);
+    int createJsonSensorHwRev(char* outputString, size_t maxLen, const char* data);
 
-    int createJsonSensorManufacturer(char* outputString, size_t maxLen, char* data);
+    int createJsonSensorManufacturer(char* outputString, size_t maxLen, const char* data);
 
     BleServerCallback userCallback;
 
@@ -40,6 +40,4 @@ private:
     const char* jsonMqttSensorFwRevFormat        = "{\"ts\":%ld,\"firmware\":\"%s\"}";
     const char* jsonMqttSensorHwRevFormat        = "{\"ts\":%ld,\"hardware\":\"%s\"}";
     const char* jsonMqttSensorManufacturerFormat = "{\"ts\":%ld,\"manufacturer\":\"%s\"}";
-
-    const uint32_t maxRevStringLen = 12;
 };

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "wunderbarsensor.h"
@@ -55,5 +54,5 @@ private:
         return snprintf(outputString, maxLen, jsonMqttDataFormatLight, time(NULL),
                         data.white, data.r, data.g, data.b, data.proximity);
     }
-
+    
 };

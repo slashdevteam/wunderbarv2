@@ -1,9 +1,6 @@
-
 #pragma once
 
 #include "wunderbarsensor.h"
-
-
 
 class Htu : public WunderbarSensor
 {

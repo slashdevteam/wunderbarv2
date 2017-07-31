@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "wunderbarsensor.h"
@@ -67,5 +66,4 @@ private:
                         data.gyro.x/100, data.gyro.y/100, data.gyro.z/100,
                         data.acc.x/100, data.acc.y/100, data.acc.z/100);
     }   
-
 };

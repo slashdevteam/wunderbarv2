@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "wunderbarsensor.h"

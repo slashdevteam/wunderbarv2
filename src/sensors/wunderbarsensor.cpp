@@ -108,18 +108,6 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
         // handle common events
         switch(event)
         {
-            case BleEvent::DATA_SENSOR_ID:
-                // not used yet
-            break;
-
-            case BleEvent::DATA_SENSOR_BEACON_FREQUENCY:
-                // not used yet
-            break;
-
-            case BleEvent::DATA_SENSOR_FREQUENCY:
-                // not used yet
-            break;
-
             case BleEvent::DATA_BATTERY_LEVEL:
                 createJsonBattLevel(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, static_cast<int>(data[0]));
                 mqttClient.publish();
@@ -140,11 +128,19 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, uint8_t* data, size_t len)
                 mqttClient.publish();
             break;
 
+            case BleEvent::DATA_SENSOR_ID:
+                // not used yet
+            break;
+
+            case BleEvent::DATA_SENSOR_BEACON_FREQUENCY:
+                // not used yet
+            break;
+
             default:
             break;
         }
 
-        // to handle sensor-specyfic events
+        // handle sensor-specific events
         if (userCallback)
         {
             userCallback(event, data, len);

@@ -17,10 +17,11 @@ public:
     virtual ~WunderbarSensor() {};
 
 protected:
-    virtual void wunderbarEvent(BleEvent event, uint8_t* data, size_t len) = 0;
+    void wunderbarEvent(BleEvent event, uint8_t* data, size_t len);
 
     MqttClient                 mqttClient;
     const std::list<uint16_t>& bleChars;
+    
 private:
     int createJsonBattLevel(char* outputString, size_t maxLen, int data);
 

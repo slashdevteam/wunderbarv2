@@ -15,6 +15,19 @@
 #include "wbmicrophone.h"
 #include "wbbridge.h"
 
+
+// avoid prints to non-existent UART forced by mbed
+static uint8_t error_in_progress = 0;
+extern "C" void error(const char* format, ...)
+{
+    // Prevent recursion if error is called again
+    if (error_in_progress) {
+        return;
+    }
+    error_in_progress = 1;
+    exit(1);
+}
+
 using usb::CDC;
 
 using wunderbar::Configuration;

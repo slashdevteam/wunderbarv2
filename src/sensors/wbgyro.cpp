@@ -1,36 +1,33 @@
 #include "wbgyro.h"
+#include "wunderbarble.h"
 
 WbGyro::WbGyro(IBleGateway& _gateway, IPubSub* _proto)
     : WunderbarSensor(_gateway,
-                        ServerName(sensorNameGyro),
-                        PassKey(defaultPass),
-                        mbed::callback(this, &WbGyro::wunderbarEvent),
-                        _proto)
+                      ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_GYRO)),
+                      PassKey(defaultPass),
+                      mbed::callback(this, &WbGyro::event),
+                      _proto)
 {
 };
 
-void WbGyro::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
+void WbGyro::event(BleEvent _event, const uint8_t* data, size_t len)
 {
-    switch (event)
+    switch(_event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
             dataToJson(publishContent, MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_gyro_data_t*>(data));
             publish();
-        break;
-
+            break;
         case BleEvent::DATA_SENSOR_FREQUENCY:
-                // not used yet
-        break;
-
+            // not used yet
+            break;
         case BleEvent::DATA_SENSOR_THRESHOLD:
-                // not used yet
-        break;
-
+            // not used yet
+            break;
         case BleEvent::DATA_SENSOR_CONFIG:
-                // not used yet
-        break;
-
+            // not used yet
+            break;
         default:
-        break;
+            break;
     }
 }

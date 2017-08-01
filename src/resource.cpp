@@ -1,4 +1,5 @@
 #include "resource.h"
+#include <cstring>
 
 const std::string PubHeader =
 "{"

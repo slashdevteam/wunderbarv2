@@ -2,6 +2,9 @@
 
 #include "iblegateway.h"
 
+// Dummy passkey for ongoing development
+const PassKey defaultPass = {0x34, 0x36, 0x37, 0x33, 0x36, 0x31, 0x00, 0x00};
+
 class BleServer
 {
 public:
@@ -13,7 +16,6 @@ public:
 
 private:
     void bleServerEvent(BleEvent event, const uint8_t* data, size_t len);
-    void storeMac(const uint8_t* data);
 
 protected:
     BleServerConfig config;

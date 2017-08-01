@@ -19,7 +19,18 @@ enum class BleEvent
     DISCOVERY_ERROR    = 0x2,
     CONNECTION_OPENED  = 0x3,
     CONNECTION_CLOSED  = 0x4,
-    NEW_DATA_READOUT   = 0x5
+    WRITE_OK           = 0x5,
+
+    DATA_SENSOR_ID                  = 0x10,
+    DATA_SENSOR_BEACON_FREQUENCY    = 0x11,
+    DATA_SENSOR_FREQUENCY           = 0x12,
+    DATA_SENSOR_THRESHOLD           = 0x13,
+    DATA_SENSOR_CONFIG              = 0x14,
+    DATA_SENSOR_NEW_DATA            = 0x15,
+    DATA_BATTERY_LEVEL              = 0x16,
+    DATA_MANUFACTURER_NAME          = 0x17,
+    DATA_HARDWARE_REVISION          = 0x18,
+    DATA_FIRMWARE_REVISION          = 0x19
 };
 
 struct ServerIdentificator
@@ -84,11 +95,11 @@ public:
     virtual bool registerServer(BleServerConfig& config, BleServerCallback incomingCallback) = 0;
     virtual void serverDiscoveryComlpete(BleServerConfig& config) = 0;
     virtual bool sendToServer(const BleServerConfig& config, BleServerCallback doneCallback) = 0;
-    virtual bool readCharacteristic(const BleServerConfig& server, uint32_t bleCharUuid) = 0;
-    virtual bool writeCharacteristic(const BleServerConfig& server,
-                                     uint32_t bleCharUuid,
-                                     const uint8_t* data,
-                                     const size_t len) = 0;
+    virtual bool requestRead(const BleServerConfig& server, uint16_t bleCharUuid) = 0;
+    virtual bool requestWrite(const BleServerConfig& server,
+                              uint16_t bleCharUuid,
+                              const uint8_t* data,
+                              const size_t len) = 0;
     virtual bool configure() = 0;
     virtual void startOperation() = 0;
     virtual bool storeConfig() = 0;

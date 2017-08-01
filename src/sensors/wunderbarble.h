@@ -34,16 +34,14 @@ namespace characteristics
     namespace ble
     {
     const uint16_t BATTERY_LEVEL = 0x2A19;
-    const uint16_t MANUFACTURER_NAME_STRING = 0x2A29;
-    const uint16_t HARDWARE_REVISION_STRING = 0x2A27;
-    const uint16_t FIRMWARE_REVISION_STRING = 0x2A26;
+    const uint16_t MANUFACTURER_NAME = 0x2A29;
+    const uint16_t HARDWARE_REVISION = 0x2A27;
+    const uint16_t FIRMWARE_REVISION = 0x2A26;
     }
 }
 
 namespace limits
 {
-    const size_t MAX_DISCOVERY_SERVICES = 4;
-    const size_t MAX_NUMBER_OF_CHARACTERISTICS = 12;
     const size_t MAX_SERVERS = 7;
     const size_t SERVER_NAME_MAX_LEN = 14;
     const size_t SERVER_PASS_MAX_LEN = 6;

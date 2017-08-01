@@ -137,6 +137,7 @@ bool cloudWizard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& tlsCo
             if(readField(methodText, 1, 1, "0", &validateOnboardChoice, true, led))
             {
                 method = std::atoi(methodText);
+                methodOk = true;
             }
         }
 

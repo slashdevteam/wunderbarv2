@@ -1,19 +1,21 @@
 #include "wbinfrared.h"
+#include "wunderbarsensordatatypes.h"
+#include "wunderbarble.h"
 
 WbInfraRed::WbInfraRed(IBleGateway& _gateway, IPubSub* _proto)
     : WunderbarSensor(_gateway,
-                      ServerName(sensorNameInfraRed),
+                      ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_IR)),
                       PassKey(defaultPass),
-                      mbed::callback(this, &WbInfraRed::wunderbarEvent),
+                      mbed::callback(this, &WbInfraRed::event),
                       _proto)
 {
 };
 
-void WbInfraRed::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
+void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
 {
-    switch (event)
+    switch(_event)
     {
         default:
-        break;
+          break;
     }
 }

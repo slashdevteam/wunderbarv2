@@ -1,12 +1,13 @@
 #pragma once
 
 #include "bleserver.h"
+#include "resource.h"
 #include "Thread.h"
 #include "../mqttclient.h"
 #include <list>
 #include "wunderbarsensordatatypes.h"
 
-class WunderbarSensor : public BleServer
+class WunderbarSensor : public BleServer, public Resource
 {
 public:
     WunderbarSensor(IBleGateway& _gateway,
@@ -19,7 +20,6 @@ public:
 protected:
     void wunderbarEvent(BleEvent event, const uint8_t* data, size_t len);
 
-    MqttClient                 mqttClient;
     const std::list<uint16_t>& bleChars;
     
 private:

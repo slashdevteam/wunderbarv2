@@ -14,8 +14,8 @@ void WbHtu::wunderbarEvent(BleEvent event, const uint8_t* data, size_t len)
     switch (event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
-            dataToJson(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_htu_data_t*>(data));
-            mqttClient.publish();
+            dataToJson(publishContent, MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_htu_data_t*>(data));
+            publish();
         break;
 
         case BleEvent::DATA_SENSOR_FREQUENCY:

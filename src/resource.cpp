@@ -24,10 +24,17 @@ const std::string AckTime =
 const std::string AckTail =
 "}";
 
-Resource::Resource(IPubSub* _proto)
-    : proto(_proto)
-{}
-
+Resource::Resource(IPubSub* _proto,
+                   const std::string& _subtopic,
+                   const std::string& _pubtopic)
+    : proto(_proto),
+      subtopic(_subtopic),
+      pubtopic(_pubtopic),
+      acktopic(_subtopic + "ack")
+{
+    subscriber.start(mbed::callback(this, &Resource::subscribeThread));
+    publisher.start(mbed::callback(this, &Resource::publishThread));
+}
 
 bool Resource::publish(const std::string& topic, const char* data, MessageDoneCallback doneCallback)
 {
@@ -59,9 +66,67 @@ bool Resource::acknowledge(const std::string& topic, const std::string& _command
                           doneCallback);
 }
 
-bool Resource::subscribe(const std::string& topic, MessageDoneCallback doneCallback, MessageDataCallback datacallback)
+bool Resource::subscribe()
 {
-    return proto->subscribe(reinterpret_cast<const uint8_t*>(topic.c_str()),
-                            doneCallback,
-                            datacallback);
+    return proto->subscribe(reinterpret_cast<const uint8_t*>(subtopic.c_str()),
+                            mbed::callback(this, &Resource::subscribeDone),
+                            mbed::callback(this, &Resource::subscribeCallback));
+}
+
+void Resource::subscribeDone(bool status)
+{
+    subscribed = status;
+}
+
+void Resource::subscribeCallback(const uint8_t* data, size_t len)
+{
+    command = std::make_unique<uint8_t[]>(len);
+    std::memcpy(command.get(), data, len);
+    subscriber.signal_set(NEW_SUB_SIGNAL);
+}
+
+void Resource::subscribeThread()
+{
+    while(1)
+    {
+        rtos::Thread::signal_wait(NEW_SUB_SIGNAL);
+        if(subscribed)
+        {
+            std::string commandName = "Toggle";
+            std::string code = "200";
+            acknowledge(acktopic, commandName, code, mbed::callback(this, &Resource::ackDone));
+            rtos::Thread::signal_wait(ACK_DONE_SIGNAL);
+            command.reset();
+        }
+    }
+}
+
+void Resource::ackDone(bool status)
+{
+    subscriber.signal_set(ACK_DONE_SIGNAL);
+}
+
+void Resource::writeDone()
+{
+    subscriber.signal_set(SUB_DATA_DONE_SIGNAL);
+}
+
+void Resource::publishThread()
+{
+    while(1)
+    {
+        rtos::Thread::signal_wait(NEW_PUB_SIGNAL);
+        publish(pubtopic, publishContent, mbed::callback(this, &Resource::publishDone));
+        rtos::Thread::signal_wait(PUBLISH_DONE_SIGNAL);
+    }
+}
+
+void Resource::publishDone(bool status)
+{
+    publisher.signal_set(PUBLISH_DONE_SIGNAL);
+}
+
+void Resource::publish()
+{
+    publisher.signal_set(NEW_PUB_SIGNAL);
 }

@@ -96,7 +96,9 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
                 std::forward<ServerName>(_name),
                 std::forward<PassKey>(_passKey),
                 mbed::callback(this, &WunderbarSensor::wunderbarEvent)),
-      mqttClient(_proto, "actuator/" + _name, "sensor/" + _name),
+      Resource(_proto, 
+              "actuator/" + _name, 
+              "sensor/" + _name),
       bleChars(wbSenorChars.at(ServerNamesToDataId.at(_name))),
       userCallback(_callback)
 {}
@@ -109,23 +111,23 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, const uint8_t* data, size_t
         switch(event)
         {
             case BleEvent::DATA_BATTERY_LEVEL:
-                createJsonBattLevel(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, static_cast<int>(data[0]));
-                mqttClient.publish();
+                createJsonBattLevel(publishContent, MQTT_MSG_PAYLOAD_SIZE, static_cast<int>(data[0]));
+                publish();
             break;
 
             case BleEvent::DATA_MANUFACTURER_NAME:
-                createJsonSensorManufacturer(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
-                mqttClient.publish();
+                createJsonSensorManufacturer(publishContent, MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
+                publish();
             break;
 
             case BleEvent::DATA_HARDWARE_REVISION:
-                createJsonSensorHwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
-                mqttClient.publish();
+                createJsonSensorHwRev(publishContent, MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
+                publish();
             break;
 
             case BleEvent::DATA_FIRMWARE_REVISION:
-                createJsonSensorFwRev(mqttClient.getPublishBuffer(), MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
-                mqttClient.publish();
+                createJsonSensorFwRev(publishContent, MQTT_MSG_PAYLOAD_SIZE, reinterpret_cast<const char*>(data));
+                publish();
             break;
 
             case BleEvent::DATA_SENSOR_ID:
@@ -137,7 +139,7 @@ void WunderbarSensor::wunderbarEvent(BleEvent event, const uint8_t* data, size_t
             break;
 
             case BleEvent::WRITE_OK:
-                mqttClient.subscribtionWritten();
+                writeDone();
             break;
 
             default:

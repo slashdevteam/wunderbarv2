@@ -15,18 +15,9 @@
 #include "wbmicrophone.h"
 #include "wbbridge.h"
 
-
-// avoid prints to non-existent UART forced by mbed
-static uint8_t error_in_progress = 0;
-extern "C" void error(const char* format, ...)
-{
-    // Prevent recursion if error is called again
-    if (error_in_progress) {
-        return;
-    }
-    error_in_progress = 1;
-    exit(1);
-}
+// prevent mbed from using UART
+#include "nouartfix.h"
+#include "mbedtls/platform.h"
 
 using usb::CDC;
 
@@ -42,19 +33,20 @@ const uint8_t CONTROLLER_ID = 0; //kUSB_ControllerKhci0
 Flash flash;
 CDC               cdc(CONTROLLER_ID, wunderbar::cdcDescriptors);
 GS1500MInterface  wifiConnection(WIFI_TX, WIFI_RX, 115200);
-Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
+// Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
 
 extern MqttProtocol mqtt;
 
-WbHtu        htu(ble, &mqtt);
-WbGyro       gyro(ble, &mqtt);
-WbLightProx  light(ble, &mqtt);
-WbMicrophone mic(ble, &mqtt);
-WbInfraRed   ir(ble, &mqtt);
-WbBridge     bridge(ble, &mqtt);
+// WbHtu        htu(ble, &mqtt);
+// WbGyro       gyro(ble, &mqtt);
+// WbLightProx  light(ble, &mqtt);
+// WbMicrophone mic(ble, &mqtt);
+// WbInfraRed   ir(ble, &mqtt);
+// WbBridge     bridge(ble, &mqtt);
 
 int main(int argc, char **argv)
 {
+    mbedtls_platform_set_printf(&cdcPrintfRetarget);
     cdc.printf("Welcome to WunderBar v2 mbed OS firmware\n");
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 

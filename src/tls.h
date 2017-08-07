@@ -18,9 +18,9 @@ class IStdInOut;
 struct TlsConfig
 {
     uint8_t deviceId[30]; // used for SSL seed @TODO: use random seed
-    uint8_t caCert[1425];
-    uint8_t deviceCert[1514];
-    uint8_t key[3244];
+    const uint8_t* caCert;
+    uint8_t* deviceCert;
+    uint8_t* key;
 
 } __attribute__ ((__packed__));
 

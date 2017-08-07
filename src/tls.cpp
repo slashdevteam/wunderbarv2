@@ -16,7 +16,7 @@ static int sslRecv(void* ctx, unsigned char* buf, size_t len)
 {
     int recv = -1;
     TCPSocket* socket = static_cast<TCPSocket*>(ctx);
-    socket->set_timeout(DEFAULT_SOCKET_TIMEOUT);
+    socket->set_timeout(2*DEFAULT_SOCKET_TIMEOUT);
     recv = socket->recv(buf, len);
 
     if (NSAPI_ERROR_WOULD_BLOCK == recv)
@@ -226,25 +226,31 @@ int32_t TLS::sslInit()
         return sslError;
     }
 
-    sslError = sslParseCrt(caCert, config.caCert, std::strlen(reinterpret_cast<const char*>(&config.caCert[0])));
+    sslError = sslParseCrt(caCert, config.caCert, std::strlen(reinterpret_cast<const char*>(config.caCert)));
     if(sslError)
     {
         log->printf("SSL CA CRT fail - %d\r\n", sslError);
         return sslError;
     }
 
-    sslError = sslParseCrt(deviceCert, config.deviceCert, std::strlen(reinterpret_cast<const char*>(config.deviceCert)));
-    if(sslError)
+    if(config.deviceCert)
     {
-        log->printf("SSL CRT fail - %d\r\n", sslError);
-        return sslError;
+        sslError = sslParseCrt(deviceCert, config.deviceCert, std::strlen(reinterpret_cast<const char*>(config.deviceCert)));
+        if(sslError)
+        {
+            log->printf("SSL CRT fail - %d\r\n", sslError);
+            return sslError;
+        }
     }
 
-    sslError = sslParseKey();
-    if(sslError)
+    if(config.key)
     {
-        log->printf("SSL PKEY fail - %d\r\n", sslError);
-        return sslError;
+        sslError = sslParseKey();
+        if(sslError)
+        {
+            log->printf("SSL PKEY fail - %d\r\n", sslError);
+            return sslError;
+        }
     }
 
     mbedtls_ssl_conf_own_cert(&sslConf, &deviceCert, &pkey);

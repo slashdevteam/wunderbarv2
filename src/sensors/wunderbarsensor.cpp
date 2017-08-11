@@ -45,14 +45,14 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
                                  ServerName&& _name,
                                  PassKey&& _passKey,
                                  BleServerCallback _callback,
-                                 IPubSub* _proto)
+                                 Resources* _resources)
     : BleServer(_gateway,
                 std::forward<ServerName>(_name),
                 std::forward<PassKey>(_passKey),
                 mbed::callback(this, &WunderbarSensor::event)),
-      Resource(_proto,
-              "actuator/" + _name,
-              "sensor/" + _name),
+      Resource(_resources,
+               _name,
+               _name),
       userCallback(_callback)
 {}
 
@@ -102,41 +102,41 @@ void WunderbarSensor::event(BleEvent _event, const uint8_t* data, size_t len)
 
 int WunderbarSensor::batteryToJson(char* outputString, size_t maxLen, int data)
 {
-    const char* jsonBattLevel = "{\"ts\":%ld,\"val\":%d}";
-    return snprintf(outputString, maxLen, jsonBattLevel, time(NULL), data);
+    const char* jsonBattLevel = "{\"batteryLevel\":%d}";
+    return snprintf(outputString, maxLen, jsonBattLevel, data);
 }
 
 int WunderbarSensor::fwRevToJson(char* outputString, size_t maxLen, const char* data)
 {
-    const char* jsonSensorFwRev        = "{\"ts\":%ld,\"firmware\":\"%s\"}";
+    const char* jsonSensorFwRev        = "{\"firmware\":\"%s\"}";
     char buff[MAX_SENSOR_PAYLOAD_LEN];
     memcpy(buff, data, MAX_SENSOR_PAYLOAD_LEN);
 
     terminateRawString(buff);
 
-    return snprintf(outputString, maxLen, jsonSensorFwRev, time(NULL), data);
+    return snprintf(outputString, maxLen, jsonSensorFwRev, data);
 }
 
 int WunderbarSensor::hwRevToJson(char* outputString, size_t maxLen, const char* data)
 {
-    const char* jsonSensorHwRev        = "{\"ts\":%ld,\"hardware\":\"%s\"}";
+    const char* jsonSensorHwRev        = "{\"hardware\":\"%s\"}";
     char buff[MAX_SENSOR_PAYLOAD_LEN];
     memcpy(buff, data, MAX_SENSOR_PAYLOAD_LEN);
 
     terminateRawString(buff);
 
-    return snprintf(outputString, maxLen, jsonSensorHwRev, time(NULL), data);
+    return snprintf(outputString, maxLen, jsonSensorHwRev, data);
 }
 
 int WunderbarSensor::manufacturerToJson(char* outputString, size_t maxLen, const char* data)
 {
-    const char* jsonSensorManufacturer = "{\"ts\":%ld,\"manufacturer\":\"%s\"}";
+    const char* jsonSensorManufacturer = "{\"manufacturer\":\"%s\"}";
     char buff[MAX_SENSOR_PAYLOAD_LEN];
     memcpy(buff, data, MAX_SENSOR_PAYLOAD_LEN);
 
     terminateRawString(buff);
 
-    return snprintf(outputString, maxLen, jsonSensorManufacturer, time(NULL), data);
+    return snprintf(outputString, maxLen, jsonSensorManufacturer, data);
 }
 
 void WunderbarSensor::terminateRawString(char* data)
@@ -149,4 +149,32 @@ void WunderbarSensor::terminateRawString(char* data)
             data[nChar] = '\0';
         }
     }
+}
+
+const char* WunderbarSensor::getSenseSpec()
+{
+    return "{"
+                "\"name\":\"batteryLevel\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":100"
+            "},"
+            "{"
+                "\"name\":\"firmware\","
+                "\"type\":\"String\""
+            "},"
+            "{"
+                "\"name\":\"hardware\","
+                "\"type\":\"String\""
+            "},"
+            "{"
+                "\"name\":\"manufacturer\","
+                "\"type\":\"String\""
+            "}";
+}
+
+const char* WunderbarSensor::getActuateSpec()
+{
+    // no actuators by default
+    return "";
 }

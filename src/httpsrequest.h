@@ -2,7 +2,7 @@
 
 #include "itransportlayer.h"
 
-constexpr size_t maxBuffer = 2048;
+constexpr size_t maxBuffer = 512;
 
 class HttpsRequest
 {

@@ -19,7 +19,7 @@ struct sensor_microphone_data_t
 const char* jsonFormat = "{\"ts\":%ld,\"snd_level\":%d}";
 
 public:
-    WbMicrophone(IBleGateway& _gateway, IPubSub* _proto);
+    WbMicrophone(IBleGateway& _gateway, Resources* _resources);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);

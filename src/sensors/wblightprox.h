@@ -46,7 +46,7 @@ struct sensor_lightprox_data_t
 const char* jsonFormat = "{\"ts\":%ld,\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d}";
 
 public:
-    WbLightProx(IBleGateway& _gateway, IPubSub* _proto);
+    WbLightProx(IBleGateway& _gateway, Resources* _resources);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);

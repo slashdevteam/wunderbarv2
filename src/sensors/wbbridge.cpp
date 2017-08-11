@@ -2,12 +2,12 @@
 #include "wunderbarsensordatatypes.h"
 #include "wunderbarble.h"
 
-WbBridge::WbBridge(IBleGateway& _gateway, IPubSub* _proto)
+WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),
                       PassKey(defaultPass),
                       mbed::callback(this, &WbBridge::event),
-                      _proto)
+                      _resources)
 {
 };
 

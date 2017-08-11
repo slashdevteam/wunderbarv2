@@ -13,12 +13,19 @@
 
 const int COMMAND_TIMEOUT = 5000;
 
+// Apparently mbed calls Thread::terminate in ~Thread even for
+// a thread that is not started and this asserts
+void dummyFunctionForTerminatingThread()
+{
+    rtos::Thread::yield();
+}
+
 MqttProtocol::MqttProtocol(ITransportLayer* _transport, const MqttConfig& _config, IStdInOut* _log)
     : IPubSub(_transport, "MQTT"),
       config(_config),
       log(_log),
-      dispatcher(osPriorityNormal, 8192),
-      error(MQTT_STATUS::OK),
+      dispatcher(osPriorityNormal, 4096),
+      error(MQTT_STATUS::NOT_CONNECTED),
       keepAliveHeartbeat(10000),
       packetId(0)
 {
@@ -49,8 +56,11 @@ bool MqttProtocol::connect()
 
 bool MqttProtocol::disconnect()
 {
-    dispatcher.terminate();
-    transport->disconnect();
+    if(MQTT_STATUS::OK == error)
+    {
+        transport->disconnect();
+    }
+
     return true; //@TODO: add graceful MQTT DISCONNECT handling
 }
 
@@ -119,18 +129,10 @@ void MqttProtocol::connecting()
     if(transport->connect(config.server, config.port))
     {
         MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
-        // need to copy client credentials because Paho is _not_ const correct
-        std::unique_ptr<char[]> clientId = std::make_unique<char[]>(std::strlen(config.clientId));
-        std::memcpy(clientId.get(), config.clientId, std::strlen(config.clientId));
-        std::unique_ptr<char[]> username = std::make_unique<char[]>(std::strlen(config.userId));
-        std::memcpy(username.get(), config.userId, std::strlen(config.userId));
-        std::unique_ptr<char[]> password = std::make_unique<char[]>(std::strlen(config.password));
-        std::memcpy(password.get(), config.password, std::strlen(config.password));
-
         connectData.MQTTVersion = 3;
-        connectData.clientID.cstring = clientId.get();
-        connectData.username.cstring = username.get();
-        connectData.password.cstring = password.get();
+        connectData.clientID.cstring = config.clientId;
+        connectData.username.cstring = config.userId;
+        connectData.password.cstring = config.password;
 
         int packetLen = MQTTSerialize_connect(sendbuf, MAX_MQTT_PACKET_SIZE, &connectData);
         if(packetLen <= 0)
@@ -266,15 +268,8 @@ void MqttProtocol::handleMessageQueue()
     if(osEventMessage == msg.status)
     {
         MessageTuple& message = *reinterpret_cast<MessageTuple*>(msg.value.p);
-        // prepare topic
-        const char* _topic = reinterpret_cast<const char*>(std::get<1>(message));
-        size_t topicLen = std::strlen(_topic) + 1; // +1 for NULL
-        std::unique_ptr<char[]> topic = std::make_unique<char[]>(topicLen);
-        std::memcpy(topic.get(), _topic, topicLen);
-        topic[topicLen] = '\0';
-
         MQTTString mqttTopic = MQTTString_initializer;
-        mqttTopic.cstring = topic.get();
+        mqttTopic.cstring = reinterpret_cast<const char*>(std::get<1>(message));
 
         switch(std::get<msgTypes>(message))
         {
@@ -294,8 +289,6 @@ void MqttProtocol::handleMessageQueue()
 void MqttProtocol::sendPublish(const MQTTString& topic, MessageTuple& message)
 {
     bool ret = true;
-    uint8_t* data = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(std::get<2>(message))); // Paho is not const correct!
-    int len = static_cast<int>(std::get<3>(message)); // Paho mixes length and error codes, so length is signed (sic!)
 
     size_t packetLen = MQTTSerialize_publish(sendbuf,
                                        MAX_MQTT_PACKET_SIZE,
@@ -303,9 +296,9 @@ void MqttProtocol::sendPublish(const MQTTString& topic, MessageTuple& message)
                                        0, // QoS
                                        false,
                                        packetId++,
-                                       *const_cast<MQTTString*>(&topic), // Paho and consts correctness :/
-                                       data,
-                                       len);
+                                       topic,
+                                       std::get<2>(message),
+                                       std::get<3>(message));
     if((packetLen <= 0) || (!sendPacket(packetLen)))
     {
         log->printf("Publish to topic: %s failed!\r\n", topic.cstring);
@@ -323,7 +316,7 @@ void MqttProtocol::sendSubscribe(const MQTTString& topic, MessageTuple& message)
                                          0,
                                          packetId++,
                                          1,
-                                         const_cast<MQTTString*>(&topic), // Paho and consts correctness :/
+                                         &topic,
                                          &qos);
 
     if((len <= 0) || (!sendPacket(len)))

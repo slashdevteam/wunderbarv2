@@ -3,6 +3,8 @@
 class IStdInOut
 {
 public:
+    virtual ~IStdInOut() = default;
+
     virtual int putc(int c)
     {
         return 0;

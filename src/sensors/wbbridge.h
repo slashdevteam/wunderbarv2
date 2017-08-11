@@ -22,7 +22,7 @@ struct config_t
 } __attribute__((packed));
 
 public:
-    WbBridge(IBleGateway& _gateway, IPubSub* _proto);
+    WbBridge(IBleGateway& _gateway, Resources* _resources);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);

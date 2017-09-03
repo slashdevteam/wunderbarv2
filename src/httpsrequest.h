@@ -3,6 +3,7 @@
 #include "itransportlayer.h"
 
 constexpr size_t maxBuffer = 512;
+const size_t HEADER_BODY_DELIM_LEN = 1;
 
 class HttpsRequest
 {

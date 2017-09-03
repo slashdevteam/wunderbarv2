@@ -34,7 +34,7 @@ bool HttpParser::parse(const char* buffer)
         while(headerName)
         {
             headerName++;
-            if(*(headerName) == '\n' || *(headerName) == '\r')
+            if((*headerName == '\n') || (*headerName == '\r'))
             {
                 // empty line, so next character is start of body
                 body = headerName + 1;

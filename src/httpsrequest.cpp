@@ -15,13 +15,13 @@ HttpsRequest::HttpsRequest(ITransportLayer& _transport,
       port(_port),
       idx(0)
 {
-    idx = std::snprintf(out, maxBuffer, REQUEST_FORMAT, _method, _server, _port, _url);
+    idx = std::snprintf(out, maxBuffer - HEADER_BODY_DELIM_LEN, REQUEST_FORMAT, _method, _server, _port, _url);
 }
 
 bool HttpsRequest::setHeader(const char* _name, const char* _value)
 {
     bool headerOk = false;
-    int printed = std::snprintf(out + idx, maxBuffer - idx - 1, HEADER_FORMAT, _name, _value);
+    int printed = std::snprintf(out + idx, maxBuffer - idx - HEADER_BODY_DELIM_LEN, HEADER_FORMAT, _name, _value);
     if(printed > 0)
     {
         idx += printed;
@@ -37,7 +37,7 @@ bool HttpsRequest::send()
     if(transport.connect(server, port))
     {
         out[idx] = '\n';
-        success = sendData(out, idx+1);
+        success = sendData(out, idx + HEADER_BODY_DELIM_LEN);
         if(success && body)
         {
             success = sendData(body, std::strlen(body));

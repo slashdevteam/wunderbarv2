@@ -210,7 +210,7 @@ bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tl
 
                     mqttConfig.port = MQTT_PORT;
                     std::memcpy(&mqttConfig.server, MQTT_SERVER, std::strlen(MQTT_SERVER));
-                    std::memcpy(&mqttConfig.clientId, userId, std::strlen(deviceId));
+                    std::memcpy(&mqttConfig.clientId, deviceId, std::strlen(deviceId));
                     std::memcpy(&mqttConfig.userId, userId, std::strlen(userId));
                     std::memcpy(&mqttConfig.password, authToken, std::strlen(authToken));
 

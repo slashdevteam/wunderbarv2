@@ -31,7 +31,8 @@ using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 8>;
 using MessageTupleQueue = rtos::Queue<MessageTuple, 8>;
 using Subscribers = std::unordered_map<std::string, MessageDataCallback>;
 
-const int MAX_MQTT_PACKET_SIZE = 200;
+// 256 bytes are for authToken alone
+const int MAX_MQTT_PACKET_SIZE = 500;
 
 
 class IStdInOut;
@@ -40,9 +41,9 @@ struct MqttConfig
 {
     char server[40];
     uint32_t port;
-    char clientId[32];
+    char clientId[30];
     char userId[32];
-    char password[32];
+    char password[256];
 } __attribute__ ((__packed__));
 
 enum MQTT_STATUS : int32_t
@@ -52,6 +53,7 @@ enum MQTT_STATUS : int32_t
     TRANSPORT_LAYER_SEND_FAILURE = -3,
     SERIALIZATION_FAILED = -4,
     CONNACK_NOT_RECEIVED = -5,
+    NOT_CONNECTED = -6
 };
 
 class MqttProtocol : public IPubSub

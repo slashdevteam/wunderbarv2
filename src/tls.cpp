@@ -2,15 +2,34 @@
 #include "istdinout.h"
 #include <cstring>
 
+#include <memory>
 // mbed
 #include "Thread.h"
 
 // SSL
 #include "mbedtls/entropy_poll.h"
+#include "mbedtls/debug.h"
 #include "error.h"
 #include "pollentropy.h"
 
 const int32_t DEFAULT_SOCKET_TIMEOUT = 1000;
+
+#include "nouartfix.h"
+static void tlsdebugprint(void *ctx, int level, const char *file, int line,
+                         const char *str)
+{
+    const char *p, *basename;
+    (void) ctx;
+
+    // Extract basename from file
+    for(p = basename = file; *p != '\0'; p++) {
+        if(*p == '/' || *p == '\\') {
+            basename = p + 1;
+        }
+    }
+
+    cdcPrintfRetarget("%s:%04d: |%d| %s", basename, line, level, str);
+}
 
 static int sslRecv(void* ctx, unsigned char* buf, size_t len)
 {
@@ -63,6 +82,7 @@ TLS::TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log)
       config(_config),
       log(_log)
 {
+    log->printf("%s\n", __PRETTY_FUNCTION__);
     // Used to randomize source port
     unsigned int seed;
     size_t len;
@@ -72,8 +92,14 @@ TLS::TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log)
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&sslConf);
     mbedtls_x509_crt_init(&caCert);
-    mbedtls_x509_crt_init(&deviceCert);
-    mbedtls_pk_init(&pkey);
+    if(config.deviceCert)
+    {
+        mbedtls_x509_crt_init(&deviceCert);
+    }
+    if(config.key)
+    {
+        mbedtls_pk_init(&pkey);
+    }
     mbedtls_ctr_drbg_init(&ctrDrbg);
     mbedtls_entropy_init(&entropy);
 
@@ -82,28 +108,52 @@ TLS::TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log)
                                NULL,
                                128,
                                0); // weak entropy source @TODO: check for strong source?
+    // calling sslInit here, because mbed TLS teardown does not check for nullptrs before
+    // memset (and buffers are null after mbedtls_ssl_init!)
+    error = sslInit();
+    if(error)
+    {
+        log->printf("SSL Init fail - %d\r\n", error);
+    }
+
+    mbedtls_ssl_conf_dbg(&sslConf, tlsdebugprint, NULL);
+    mbedtls_debug_set_threshold(DEBUG_LEVEL);
 }
 
 TLS::~TLS()
 {
+    log->printf("%s\n", __PRETTY_FUNCTION__);
     disconnect();
     mbedtls_ssl_config_free(&sslConf);
     mbedtls_entropy_free(&entropy);
     mbedtls_ctr_drbg_free(&ctrDrbg);
+    if(config.deviceCert)
+    {
+        mbedtls_x509_crt_free(&deviceCert);
+    }
+    if(config.key)
+    {
+        mbedtls_pk_free(&pkey);
+    }
     mbedtls_x509_crt_free(&caCert);
     mbedtls_ssl_free(&ssl);
 }
 
 bool TLS::connect(const char* _server, size_t _port)
 {
-    // Connection uses _a lot_ of stack for AES/CRT
-    rtos::Thread connector(osPriorityNormal, 0x4000);
-    // copy parameters to members as mbed callbacks do not allow type erasure as std::bind
-    server.reset(_server);
-    port = _port;
-    connector.start(mbed::callback(this, &TLS::connecting));
-    connector.join();
-    log->printf("Connection status %d\n", error);
+    // attempt to connect only if sslInit was ok
+    if(error == 0)
+    {
+        // Connection uses _a lot_ of stack for AES/CRT
+        rtos::Thread connector(osPriorityNormal, 0x2000);
+        // copy parameters to members as mbed callbacks do not allow type erasure as std::bind
+        std::strncpy(server, _server, sizeof(server));
+        port = _port;
+        connector.start(mbed::callback(this, &TLS::connecting));
+        connector.join();
+        log->printf("Connection status %d\n", error);
+    }
+
     return (0 == error);
 }
 
@@ -143,13 +193,6 @@ size_t TLS::receive(uint8_t* data, size_t len)
 
 void TLS::connecting()
 {
-    error = sslInit();
-    if(error)
-    {
-        log->printf("SSL Init fail - %d\r\n", error);
-        return;
-    }
-
     error = mbedtls_ssl_session_reset(&ssl);
     if(error)
     {
@@ -157,7 +200,7 @@ void TLS::connecting()
         return;
     }
 
-    error = mbedtls_ssl_set_hostname(&ssl, server.get());
+    error = mbedtls_ssl_set_hostname(&ssl, server);
     if(error)
     {
         log->printf("SSL Set hostname fail - %d\r\n", error);
@@ -170,7 +213,7 @@ void TLS::connecting()
                         sslRecv,
                         nullptr);
 
-    error = socket.connect(server.get(), port);
+    error = socket.connect(server, port);
     if(error)
     {
         log->printf("TCP connect fail - %d\r\n", error);
@@ -200,7 +243,7 @@ int32_t TLS::sslHandshake()
     {
         char strerror[300];
         mbedtls_strerror(sslError, strerror, 300);
-        log->printf("TLS Handshake fail - %d %s\r\n", sslError, strerror);
+        log->printf("TLS Handshake fail - %x %s\r\n", sslError, strerror);
         return sslError;
     }
 
@@ -226,29 +269,35 @@ int32_t TLS::sslInit()
         return sslError;
     }
 
-    sslError = sslParseCrt(caCert, config.caCert, std::strlen(reinterpret_cast<const char*>(&config.caCert[0])));
+    sslError = sslParseCrt(caCert, config.caCert, std::strlen(reinterpret_cast<const char*>(config.caCert)));
     if(sslError)
     {
         log->printf("SSL CA CRT fail - %d\r\n", sslError);
         return sslError;
     }
 
-    sslError = sslParseCrt(deviceCert, config.deviceCert, std::strlen(reinterpret_cast<const char*>(config.deviceCert)));
-    if(sslError)
+    if(config.deviceCert)
     {
-        log->printf("SSL CRT fail - %d\r\n", sslError);
-        return sslError;
+        sslError = sslParseCrt(deviceCert, config.deviceCert, std::strlen(reinterpret_cast<const char*>(config.deviceCert)));
+        if(sslError)
+        {
+            log->printf("SSL CRT fail - %d\r\n", sslError);
+            return sslError;
+        }
     }
 
-    sslError = sslParseKey();
-    if(sslError)
+    if(config.key)
     {
-        log->printf("SSL PKEY fail - %d\r\n", sslError);
-        return sslError;
+        sslError = sslParseKey();
+        if(sslError)
+        {
+            log->printf("SSL PKEY fail - %d\r\n", sslError);
+            return sslError;
+        }
     }
 
     mbedtls_ssl_conf_own_cert(&sslConf, &deviceCert, &pkey);
-    mbedtls_ssl_conf_authmode(&sslConf, MBEDTLS_SSL_VERIFY_REQUIRED);
+    mbedtls_ssl_conf_authmode(&sslConf, config.authMode);
     mbedtls_ssl_conf_ca_chain(&sslConf, &caCert, nullptr);
     mbedtls_ssl_conf_rng(&sslConf, mbedtls_ctr_drbg_random, &ctrDrbg);
 

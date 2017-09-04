@@ -3,6 +3,6 @@
 #include "DigitalOut.h"
 #include "configuration.h"
 
-class NetworkInterface;
+class NetworkStack;
 
-bool cloudWizard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, mbed::DigitalOut& led);
+bool cloudWizard(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, mbed::DigitalOut& led);

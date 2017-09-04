@@ -7,8 +7,15 @@
 class Button : public Resource
 {
 public:
-    Button(IPubSub* _proto, const std::string& _topic, PinName _pin);
+    Button(Resources* _resources, const std::string& name, PinName _pin);
     virtual ~Button() {};
+
+    virtual const char* getSenseSpec() override;
+    virtual const char* getActuateSpec() override;
+
+protected:
+    virtual int handleCommand(const char* command) override;
+    bool parseCommand(const char* data);
 
 private:
     void irqCounter();

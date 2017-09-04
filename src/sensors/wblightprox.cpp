@@ -1,12 +1,12 @@
 #include "wblightprox.h"
 #include "wunderbarble.h"
 
-WbLightProx::WbLightProx(IBleGateway& _gateway, IPubSub* _proto)
+WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_LIGHT)),
                       PassKey(defaultPass),
                       mbed::callback(this, &WbLightProx::event),
-                      _proto)
+                      _resources)
 {
 };
 

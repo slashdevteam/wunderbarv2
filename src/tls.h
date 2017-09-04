@@ -2,8 +2,6 @@
 
 #include "itransportlayer.h"
 
-#include <memory>
-
 // mbed
 #include "TCPSocket.h"
 
@@ -18,9 +16,10 @@ class IStdInOut;
 struct TlsConfig
 {
     uint8_t deviceId[30]; // used for SSL seed @TODO: use random seed
-    uint8_t caCert[1425];
-    uint8_t deviceCert[1514];
-    uint8_t key[3244];
+    int authMode;
+    const uint8_t* caCert;
+    uint8_t* deviceCert;
+    uint8_t* key;
 
 } __attribute__ ((__packed__));
 
@@ -54,7 +53,7 @@ private:
     TCPSocket socket;
     const TlsConfig& config;
     IStdInOut* log;
-    std::shared_ptr<const char> server;
+    char server[60];
     size_t port;
 
     // SSL specific

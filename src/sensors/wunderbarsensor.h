@@ -12,8 +12,11 @@ public:
                     ServerName&& _name,
                     PassKey&& _passKey,
                     BleServerCallback _callback,
-                    IPubSub* _proto);
+                    Resources* _resources);
     virtual ~WunderbarSensor() {};
+
+    virtual const char* getSenseSpec() override;
+    virtual const char* getActuateSpec() override;
 
 protected:
     void event(BleEvent _event, const uint8_t* data, size_t len);

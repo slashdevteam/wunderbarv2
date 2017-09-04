@@ -1,12 +1,12 @@
 #include "wbmicrophone.h"
 #include "wunderbarble.h"
 
-WbMicrophone::WbMicrophone(IBleGateway& _gateway, IPubSub* _proto)
+WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_SOUND)),
                       PassKey(defaultPass),
                       mbed::callback(this, &WbMicrophone::event),
-                      _proto)
+                      _resources)
 {
 };
 

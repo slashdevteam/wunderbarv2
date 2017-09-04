@@ -18,7 +18,7 @@ public:
         : name{_name[0], _name[1], _name[2], _name[3], _name[4]},
           transport(_transport)
     {}
-    virtual ~IPubSub() {};
+    virtual ~IPubSub() = default;
 
     virtual bool connect() = 0;
     virtual bool disconnect() = 0;

@@ -8,21 +8,29 @@
 const uint32_t MQTT_MSG_PAYLOAD_SIZE = 200;
 
 class IPubSub;
+class Resources;
 
 class Resource
 {
 public:
-    Resource(IPubSub* _proto,
+    Resource(Resources* resources,
              const std::string& _subtopic,
              const std::string& _pubtopic);
+    virtual ~Resource() {};
 
+    virtual void advertise(IPubSub* _proto);
     bool subscribe();
     void publish();
-    bool acknowledge(const std::string& topic,
-                     const std::string& _command,
-                     const std::string& _code,
+    bool acknowledge(const std::string& _command,
+                     int _code,
                      MessageDoneCallback doneCallback);
     void writeDone();
+    virtual const char* getSenseSpec() = 0;
+    virtual const char* getActuateSpec() = 0;
+
+protected:
+    virtual int handleCommand(const char* command);
+
 
 private:
     bool publish(const std::string& topic,
@@ -34,6 +42,7 @@ private:
     void subscribeCallback(const uint8_t* data, size_t len);
     void subscribeDone(bool status);
     void ackDone(bool status);
+    bool parseSubscription(std::string& commandID, std::string& data);
 
 protected:
     char publishContent[MQTT_MSG_PAYLOAD_SIZE];
@@ -51,9 +60,7 @@ private:
 
     const std::string subtopic;
     const std::string pubtopic;
-    const std::string acktopic;
     rtos::Thread subscriber;
     rtos::Thread publisher;
-    std::unique_ptr<uint8_t[]> command;
     volatile bool subscribed;
 };

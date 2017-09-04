@@ -35,6 +35,10 @@ public:
     }
 
     bool isOnboarded();
+    void reset();
+    void resetHeader();
+
+    void store(const Configuration& config);
 
 private:
     FlashStorage* storage;

@@ -1,12 +1,12 @@
 #include "wbgyro.h"
 #include "wunderbarble.h"
 
-WbGyro::WbGyro(IBleGateway& _gateway, IPubSub* _proto)
+WbGyro::WbGyro(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_GYRO)),
                       PassKey(defaultPass),
                       mbed::callback(this, &WbGyro::event),
-                      _proto)
+                      _resources)
 {
 };
 

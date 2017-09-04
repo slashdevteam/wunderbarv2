@@ -2,12 +2,12 @@
 #include "wunderbarsensordatatypes.h"
 #include "wunderbarble.h"
 
-WbBridge::WbBridge(IBleGateway& _gateway, IPubSub* _proto)
+WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),
                       PassKey(defaultPass),
                       mbed::callback(this, &WbBridge::event),
-                      _proto)
+                      _resources)
 {
 };
 
@@ -29,9 +29,9 @@ void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
 
 int WbBridge::dataToJson(char* outputString, size_t maxLen, const sensor_bridge_data_t& data)
 {
-    const char* jsonFormatBegin = "{\"ts\":%ld,\"up_ch_payload\":[";
+    const char* jsonFormatBegin = "{\"up_ch_payload\":[";
     const char* jsonFormatEnd   = "]}";
-    size_t totLen = snprintf(outputString, maxLen, jsonFormatBegin, time(nullptr));
+    size_t totLen = snprintf(outputString, maxLen, jsonFormatBegin);
 
     for (auto dataChar = 0; (dataChar < data.payload_length && totLen < maxLen); ++dataChar)
     {

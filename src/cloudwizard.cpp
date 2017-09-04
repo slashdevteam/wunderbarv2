@@ -1,21 +1,38 @@
 #include "cloudwizard.h"
 #include "loopsutil.h"
-#include "https_request.h"
-#include "NetworkInterface.h"
+#include "httpsrequest.h"
+#include "httpparser.h"
+#include "NetworkStack.h"
 #include "base64.h"
 #include <cstdarg>
 #include "mbed_wait_api.h"
 #include "cdc.h"
+#include "resources.h"
+#include "jsondecode.h"
+
 using usb::CDC;
 extern CDC cdc;
-
+extern Resources resources;
 using mbed::DigitalOut;
-using DeviceOnboard = mbed::Callback<bool(NetworkInterface*, MqttConfig&, TlsConfig&, DigitalOut&)>;
 
 #include "cloudconfig.cpp"
 
-volatile bool responseReceived = false;
-volatile bool responseOk = false;
+
+extern "C" WEAK void getCpuId(uint32_t* part0,
+                              uint32_t* part1,
+                              uint32_t* part2,
+                              uint32_t* part3)
+{
+    *part0 = 0x42C0FFEE;
+    *part1 = 0xC0FFEE42;
+    *part2 = 0x42C0FFEE;
+    *part3 = 0xC0FFEE42;
+}
+
+// capabilities JSON can be humongous so creating
+// static buffer
+char capabilities[2048] = {0};
+uint8_t buffer[2048] = {0};
 
 bool validateOnboardChoice(char c)
 {
@@ -29,21 +46,98 @@ bool validateOnboardChoice(char c)
     return valid;
 }
 
-void httpsRequestCallback(const char *at, size_t length)
+size_t generateCapabilities(char* caps,
+                            size_t maxSize,
+                            const char* userId,
+                            const char* serialNo,
+                            const char* name,
+                            const char* deviceId,
+                            const char* authToken)
 {
-    cdc.printf("%s\r\n", at);
+    const char capsHeaderFormat[] =
+    "{"
+    "\"id\":\"%s\","
+    "\"serialNo\":\"%s\","
+    "\"name\":\"%s\","
+    "\"userId\":\"%s\","
+    "\"authToken\":\"%s\","
+    "\"type\":\"%s\","
+    "\"productCode\":\"%s\","
+    "\"version\":\"%s\","
+    "\"deviceState\":\"Alright\","
+    "\"lastHeartbeatTime\":%ld,"
+    "\"sensors\":[";
+
+    size_t outLen = std::snprintf(caps,
+                                maxSize,
+                                capsHeaderFormat,
+                                deviceId,
+                                serialNo,
+                                name,
+                                userId,
+                                authToken,
+                                PRODUCT_TYPE,
+                                PRODUCT_CODE,
+                                PRODUCT_VERSION,
+                                time(nullptr));
+
+    for(auto resource : resources.current)
+    {
+        const char* spec = resource->getSenseSpec();
+        if(spec && std::strlen(spec) > 0)
+        {
+            outLen += std::snprintf(caps + outLen,
+                                    maxSize - outLen,
+                                    "%s,",
+                                    spec);
+        }
+    }
+
+    outLen += std::snprintf(caps + outLen - 1,
+                                maxSize - outLen,
+                                "],\"actuators\":[");
+
+    outLen -= 1;
+    for(auto resource : resources.current)
+    {
+        const char* spec = resource->getActuateSpec();
+        if(spec && std::strlen(spec) > 0)
+        {
+            outLen += std::snprintf(caps + outLen,
+                                    maxSize - outLen,
+                                    "%s,",
+                                    spec);
+        }
+    }
+
+    outLen += std::snprintf(caps + outLen - 1,
+                            maxSize - outLen,
+                            "]}");
+    return outLen;
 }
 
-bool newDeviceOnboard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
+#include "mbed_stats.h"
+
+bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
 {
-    // collect username & token
+    // collect username & token & device name
+    mbed_stats_heap_t heap_stats;
+    mbed_stats_heap_get(&heap_stats);
+
+    mbed_stats_stack_t stack_stats;
+    mbed_stats_stack_get(&stack_stats);
+
+    bool responseOk = false;
     bool userNameOk = false;
     bool tokenOk = false;
-    char userName[30] = {"wunderbar"};
-    char token[9] = {"conrad"};
+    bool deviceNameOk = false;
+    char userName[30] = {0};
+    char token[9] = {0};
+    char deviceName[10] = {0};
+
     while(!userNameOk)
     {
-        cdc.printf("Please enter your username:\r\n");
+        cdc.printf("Please enter your user email:\r\n");
         userNameOk = readField(userName, 5, 30, userName, &isCharPrintableAscii, true, led);
     }
 
@@ -53,103 +147,122 @@ bool newDeviceOnboard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& 
         tokenOk = readField(token, 6, 8, token, &isCharPrintableAscii, true, led);
     }
 
-    std::string registrationUrl = "https://";
-    registrationUrl.append(DEFAULT_SERVER);
-    registrationUrl.append(":");
-    registrationUrl.append(std::to_string(DEFAULT_REST_PORT));
-    registrationUrl.append("/secret");
-    cdc.printf("Contacting %s\r\n", registrationUrl.c_str());
-
-    HttpsRequest registrationReq(net, reinterpret_cast<const char*>(tlsConfig.caCert), HTTP_GET, registrationUrl.c_str(), httpsRequestCallback);
-    // create Authorization header
-    std::string userToken(userName);
-    userToken.append(":");
-    userToken.append(token);
-    uint8_t userTokenB64[70] = {"Basic "};
-    size_t bytesOut = 0;
-    mbedtls_base64_encode(&userTokenB64[6], sizeof(userTokenB64) - 6, &bytesOut, reinterpret_cast<const uint8_t*>(userToken.c_str()), userToken.size());
-    registrationReq.set_header("Authorization", reinterpret_cast<const char*>(userTokenB64));
-    // send request and wait till callback clears flag
-    HttpResponse* resp = registrationReq.send();
-
-    while(!responseReceived)
+    while(!deviceNameOk)
     {
-        led = !led;
-        wait(0.1);
+        cdc.printf("Please enter your device name:\r\n");
+        deviceNameOk = readField(deviceName, 1, 10, deviceName, &isCharPrintableAscii, true, led);
     }
-    return responseOk;
-}
 
-bool existingDeviceOnboard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
-{
-    return false;
-}
+    TlsConfig restTlsConfig;
+    restTlsConfig.caCert = reinterpret_cast<const uint8_t*>(REST_CA_CHAIN);
+    restTlsConfig.deviceCert = nullptr;
+    restTlsConfig.key = nullptr;
+    restTlsConfig.authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
+    std::memcpy(&restTlsConfig.deviceId, deviceName, sizeof(deviceName));
+    TLS tls(net, restTlsConfig, &cdc);
+    std::string registrationUrl = REST_API_PATH;
+    registrationUrl.append("raspberry/email=").append(userName).append("/devices/getCredentials");
+    cdc.printf("Contacting %s\r\n", registrationUrl.c_str());
+    HttpsRequest request(tls, "GET", REST_SERVER, REST_PORT, registrationUrl.c_str(), nullptr);
+    request.setHeader("X-AUTH-TOKEN", VENDOR_TOKEN);
+    request.setHeader("shortToken", token);
+    request.setHeader("Accept", "*/*");
+    request.setHeader("Accept-Encoding", "gzip, deflate");
+    request.setHeader("Accept-Language", "en-us");
 
-int cdcPrintfRetarget(const char *format, ...)
-{
-    char internalBuffer[256];
-    std::va_list arg;
-    va_start(arg, format);
-    // ARMCC microlib does not properly handle a size of 0.
-    // As a workaround supply a dummy buffer with a size of 1.
-    char dummy_buf[1];
-    int len = vsnprintf(dummy_buf, sizeof(dummy_buf), format, arg);
-    if(static_cast<size_t>(len) < sizeof(internalBuffer))
+    if(request.send())
     {
-        vsprintf(internalBuffer, format, arg);
-        cdc.puts(internalBuffer);
+        if(request.recv(buffer, sizeof(buffer)))
+        {
+            HttpParser response(reinterpret_cast<const char*>(buffer));
+            cdc.printf("STATUS: %d\r\n", response.status);
+            if(response)
+            {
+                cdc.printf("BODY: %s\r\n", response.body);
+                char userId[40] = {0};
+                char serialNo[40] = {0};
+                uint32_t part0, part1, part2, part3;
+                getCpuId(&part0, &part1, &part2, &part3);
+                snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
+                char deviceId[30] = {0};
+                char authToken[256] = {0};
+                JsonDecode message(response.body, 16);
+                if(message)
+                {
+                    message.copyTo("userId", userId, sizeof(userId));
+                    message.copyTo("deviceId", deviceId, sizeof(deviceId));
+                    message.copyTo("authToken", authToken, sizeof(authToken));
+                    // generate it for user knowledge till an API for Wunderbar is available
+                    generateCapabilities(capabilities,
+                                         sizeof(capabilities),
+                                         userId,
+                                         serialNo,
+                                         deviceName,
+                                         deviceId,
+                                         authToken);
+                    cdc.printf("Current device capabilities: %s \r\n", capabilities);
+                    // prepare configuration
+                    tlsConfig.caCert = reinterpret_cast<const uint8_t*>(MQTT_CERT);
+                    tlsConfig.deviceCert = nullptr;
+                    tlsConfig.key = nullptr;
+                    tlsConfig.authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
+                    std::memcpy(&tlsConfig.deviceId, deviceId, sizeof(tlsConfig.deviceId));
+
+                    mqttConfig.port = MQTT_PORT;
+                    std::memcpy(&mqttConfig.server, MQTT_SERVER, std::strlen(MQTT_SERVER));
+                    std::memcpy(&mqttConfig.clientId, deviceId, std::strlen(deviceId));
+                    std::memcpy(&mqttConfig.userId, userId, std::strlen(userId));
+                    std::memcpy(&mqttConfig.password, authToken, std::strlen(authToken));
+
+                    responseOk = true;
+                }
+                else
+                {
+                    cdc.printf("Invalid data from %s\r\n", REST_SERVER);
+                }
+            }
+            else
+            {
+                cdc.printf("Error response from %s - %d: %s\r\n", REST_SERVER, response.status, response.statusString);
+            }
+        }
+        else
+        {
+            cdc.printf("No reply from %s\r\n", REST_SERVER);
+        }
     }
     else
     {
-        char *temp = new char[len + 1];
-        vsprintf(temp, format, arg);
-        cdc.puts(temp);
-        delete[] temp;
+        cdc.printf("Unable to connect to %s\r\n", REST_SERVER);
     }
-    va_end(arg);
-    return len;
+
+    return responseOk;
 }
 
-bool cloudWizard(NetworkInterface* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
+bool cloudWizard(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
 {
-    mbedtls_platform_set_printf(&cdcPrintfRetarget);
     bool cloudOk = false;
-    cdc.printf("\r\nNow we will setup communication with cloud.\r\n");
+    bool mqttOk = false;
+    cdc.printf("\r\n\r\nNow we will setup communication with cloud.\r\n");
 
-    // initialize defaults
-    std::memcpy(mqttConfig.server, DEFAULT_SERVER, sizeof(DEFAULT_SERVER));
-    char portText[6] = {0};
-    std::snprintf(portText, sizeof(portText), "%lu", DEFAULT_REST_PORT);
-    std::memcpy(&tlsConfig.caCert, DEFAULT_ROOT_CA, sizeof(DEFAULT_ROOT_CA));
-
-    const DeviceOnboard onboardMethods[] = {&newDeviceOnboard, &existingDeviceOnboard};
+    cdc.printf("Registering device using your user email and token\r\n");
     while(!cloudOk)
     {
-        bool methodOk = false;
-        uint32_t method = 0;
-        while(!methodOk)
-        {
-            cdc.printf("Would you like to:\r\n");
-            cdc.printf("0 - register new device using your username and token\r\n");
-            cdc.printf("1 - onboard with existing device using your device id and token\r\n");
-
-            char methodText[2] = "";
-            if(readField(methodText, 1, 1, "0", &validateOnboardChoice, true, led))
-            {
-                method = std::atoi(methodText);
-                methodOk = true;
-            }
-        }
-
-        bool onboardOk = false;
-
-        while(!onboardOk)
-        {
-            onboardMethods[method](net, mqttConfig, tlsConfig, led);
-        }
-
+        cloudOk = deviceRegistration(net, mqttConfig, tlsConfig, led);
     }
 
+    while(!mqttOk)
+    {
+        TLS tls(net, tlsConfig, &cdc);
+        MqttProtocol  mqtt(&tls, mqttConfig, &cdc);
+        mqttOk = mqtt.connect();
+        if(!mqttOk)
+        {
+            cdc.printf("MQTT connection failed. Trying again in 1s\r\n");
+            wait(1);
+            // @TODO: maybe ask user should we continue or abort?
+        }
+    }
     cdc.printf("\r\nPerfect! WunderBar successfully connected to MQTT server: %s\r\n", mqttConfig.server);
     cdc.printf("Your device name is: \r\n", mqttConfig.clientId);
 

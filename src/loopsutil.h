@@ -2,6 +2,7 @@
 
 #include "DigitalOut.h"
 #include "Callback.h"
+#include "jsmn.h"
 
 using CharacterValidator = mbed::Callback<bool(char c)>;
 

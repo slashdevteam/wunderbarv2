@@ -1,13 +1,38 @@
 #include "wbhtu.h"
 #include "wunderbarble.h"
 
-WbHtu::WbHtu(IBleGateway& _gateway, IPubSub* _proto)
+WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_HTU)),
                       PassKey(defaultPass),
                       mbed::callback(this, &WbHtu::event),
-                      _proto)
+                      _resources)
 {
+    const char senseSpecFormat[] = "{"
+        "\"name\":\"%s\","
+        "\"data\":"
+        "["
+            "{"
+                "\"name\":\"temp\","
+                "\"type\":\"integer\","
+                "\"min\":-50,"
+                "\"max\":100"
+            "},"
+            "{"
+                "\"name\":\"hum\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":100"
+            "},"
+            "%s"
+        "]"
+   "}";
+
+    snprintf(senseSpec,
+             sizeof(senseSpec),
+             senseSpecFormat,
+             config.name.c_str(),
+             WunderbarSensor::getSenseSpec());
 }
 
 void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
@@ -30,4 +55,9 @@ void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
         default:
             break;
     }
+}
+
+const char* WbHtu::getSenseSpec()
+{
+    return senseSpec;
 }

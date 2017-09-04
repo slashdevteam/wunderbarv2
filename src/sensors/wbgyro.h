@@ -54,10 +54,10 @@ struct sensor_gyro_data_t
     accCoordinates_t  acc;
 } __attribute__((packed));
 
-const char* jsonFormat = "{\"ts\":%ld,\"gyro\":{\"x\":%05ld.00,\"y\":%05ld.00,\"z\":%05ld.00},\"accel\":{\"x\":%05d.00,\"y\":%05d.00,\"z\":%05d.00}}";
+const char* jsonFormat = "{\"gyro\":{\"x\":%05ld.00,\"y\":%05ld.00,\"z\":%05ld.00},\"accel\":{\"x\":%05d.00,\"y\":%05d.00,\"z\":%05d.00}}";
 
 public:
-    WbGyro(IBleGateway& _gateway, IPubSub* _proto);
+    WbGyro(IBleGateway& _gateway, Resources* _resources);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
@@ -66,7 +66,6 @@ private:
         return snprintf(outputString,
                         maxLen,
                         jsonFormat,
-                        time(NULL),
                         data.gyro.x/100, data.gyro.y/100, data.gyro.z/100,
                         data.acc.x/100, data.acc.y/100, data.acc.z/100);
     }

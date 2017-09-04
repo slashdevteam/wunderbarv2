@@ -15,7 +15,7 @@
 const int32_t DEFAULT_SOCKET_TIMEOUT = 1000;
 
 #include "nouartfix.h"
-static void my_debug(void *ctx, int level, const char *file, int line,
+static void tlsdebugprint(void *ctx, int level, const char *file, int line,
                          const char *str)
 {
     const char *p, *basename;
@@ -116,7 +116,7 @@ TLS::TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log)
         log->printf("SSL Init fail - %d\r\n", error);
     }
 
-    mbedtls_ssl_conf_dbg(&sslConf, my_debug, NULL);
+    mbedtls_ssl_conf_dbg(&sslConf, tlsdebugprint, NULL);
     mbedtls_debug_set_threshold(DEBUG_LEVEL);
 }
 

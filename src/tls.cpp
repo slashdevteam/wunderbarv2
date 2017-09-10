@@ -296,10 +296,14 @@ int32_t TLS::sslInit()
         }
     }
 
-    mbedtls_ssl_conf_own_cert(&sslConf, &deviceCert, &pkey);
-    mbedtls_ssl_conf_authmode(&sslConf, config.authMode);
+    if(config.deviceCert)
+    {
+        mbedtls_ssl_conf_own_cert(&sslConf, &deviceCert, &pkey);
+    }
+
     mbedtls_ssl_conf_ca_chain(&sslConf, &caCert, nullptr);
     mbedtls_ssl_conf_rng(&sslConf, mbedtls_ctr_drbg_random, &ctrDrbg);
+    mbedtls_ssl_conf_authmode(&sslConf, config.authMode);
 
     sslError = sslSetup();
     if(sslError)

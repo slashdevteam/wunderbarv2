@@ -72,14 +72,14 @@ void Flash::store(const Configuration& config)
     FlashStorage newContent;
     newContent.marker = FLASH_MARKER;
     newContent.configuration = ONBOARDED_CONFIGURATION;
-    uint8_t* newContentStart = reinterpret_cast<uint8_t*>(&newContent);
-    std::memcpy(newContentStart, reinterpret_cast<const uint8_t*>(&config), sizeof(config));
+    uint8_t* newConfigStart = reinterpret_cast<uint8_t*>(&newContent.config);
+    std::memcpy(newConfigStart, reinterpret_cast<const uint8_t*>(&config), sizeof(config));
     uint32_t storageStart = reinterpret_cast<uint32_t>(storage);
 
     flash_erase_sector(&flashDriver, storageStart);
     flash_program_page(&flashDriver,
                        storageStart,
-                       newContentStart,
+                       reinterpret_cast<uint8_t*>(&newContent),
                        sizeof(newContent));
     mutex.unlock();
 }

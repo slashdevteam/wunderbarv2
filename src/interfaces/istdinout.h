@@ -3,6 +3,7 @@
 class IStdInOut
 {
 public:
+    IStdInOut() = default;
     virtual ~IStdInOut() = default;
 
     virtual int putc(int c)
@@ -25,4 +26,7 @@ public:
         return 0;
     }
 
+    // make non-copyable C++11 style
+    IStdInOut(const IStdInOut& other) = delete;
+    IStdInOut& operator=(const IStdInOut&) = delete;
 };

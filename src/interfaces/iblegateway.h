@@ -92,6 +92,9 @@ using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>
 class IBleGateway
 {
 public:
+    IBleGateway() = default;
+    virtual ~IBleGateway() = default;
+
     virtual bool registerServer(BleServerConfig& config, BleServerCallback incomingCallback) = 0;
     virtual void serverDiscoveryComlpete(BleServerConfig& config) = 0;
     virtual bool sendToServer(const BleServerConfig& config, BleServerCallback doneCallback) = 0;
@@ -103,4 +106,8 @@ public:
     virtual bool configure() = 0;
     virtual void startOperation() = 0;
     virtual bool storeConfig() = 0;
+
+    // make non-copyable C++11 style
+    IBleGateway(const IBleGateway& other) = delete;
+    IBleGateway& operator=(const IBleGateway&) = delete;
 };

@@ -6,12 +6,9 @@
 #include "base64.h"
 #include <cstdarg>
 #include "mbed_wait_api.h"
-#include "cdc.h"
 #include "resources.h"
 #include "jsondecode.h"
 
-using usb::CDC;
-extern CDC cdc;
 extern Resources resources;
 using mbed::DigitalOut;
 
@@ -118,7 +115,7 @@ size_t generateCapabilities(char* caps,
 
 #include "mbed_stats.h"
 
-bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
+bool deviceRegistration(IStdInOut& log, NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
 {
     // collect username & token & device name
     mbed_stats_heap_t heap_stats;
@@ -137,20 +134,20 @@ bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tl
 
     while(!userNameOk)
     {
-        cdc.printf("Please enter your user email:\r\n");
-        userNameOk = readField(userName, 5, 30, userName, &isCharPrintableAscii, true, led);
+        log.printf("Please enter your user email:\r\n");
+        userNameOk = readField(log, userName, 5, 30, userName, &isCharPrintableAscii, true, led);
     }
 
     while(!tokenOk)
     {
-        cdc.printf("Please enter your token:\r\n");
-        tokenOk = readField(token, 6, 8, token, &isCharPrintableAscii, true, led);
+        log.printf("Please enter your token:\r\n");
+        tokenOk = readField(log, token, 6, 8, token, &isCharPrintableAscii, true, led);
     }
 
     while(!deviceNameOk)
     {
-        cdc.printf("Please enter your device name:\r\n");
-        deviceNameOk = readField(deviceName, 1, 10, deviceName, &isCharPrintableAscii, true, led);
+        log.printf("Please enter your device name:\r\n");
+        deviceNameOk = readField(log, deviceName, 1, 10, deviceName, &isCharPrintableAscii, true, led);
     }
 
     TlsConfig restTlsConfig;
@@ -159,10 +156,10 @@ bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tl
     restTlsConfig.key = nullptr;
     restTlsConfig.authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
     std::memcpy(&restTlsConfig.deviceId, deviceName, sizeof(deviceName));
-    TLS tls(net, restTlsConfig, &cdc);
+    TLS tls(net, restTlsConfig, &log);
     std::string registrationUrl = REST_API_PATH;
     registrationUrl.append("raspberry/email=").append(userName).append("/devices/getCredentials");
-    cdc.printf("Contacting %s\r\n", registrationUrl.c_str());
+    log.printf("Contacting %s\r\n", registrationUrl.c_str());
     HttpsRequest request(tls, "GET", REST_SERVER, REST_PORT, registrationUrl.c_str(), nullptr);
     request.setHeader("X-AUTH-TOKEN", VENDOR_TOKEN);
     request.setHeader("shortToken", token);
@@ -175,10 +172,10 @@ bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tl
         if(request.recv(buffer, sizeof(buffer)))
         {
             HttpParser response(reinterpret_cast<const char*>(buffer));
-            cdc.printf("STATUS: %d\r\n", response.status);
+            log.printf("STATUS: %d\r\n", response.status);
             if(response)
             {
-                cdc.printf("BODY: %s\r\n", response.body);
+                log.printf("BODY: %s\r\n", response.body);
                 char userId[40] = {0};
                 char serialNo[40] = {0};
                 uint32_t part0, part1, part2, part3;
@@ -200,7 +197,7 @@ bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tl
                                          deviceName,
                                          deviceId,
                                          authToken);
-                    cdc.printf("Current device capabilities: %s \r\n", capabilities);
+                    log.printf("Current device capabilities: %s \r\n", capabilities);
                     // prepare configuration
                     tlsConfig.caCert = reinterpret_cast<const uint8_t*>(MQTT_CERT);
                     tlsConfig.deviceCert = nullptr;
@@ -218,53 +215,53 @@ bool deviceRegistration(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tl
                 }
                 else
                 {
-                    cdc.printf("Invalid data from %s\r\n", REST_SERVER);
+                    log.printf("Invalid data from %s\r\n", REST_SERVER);
                 }
             }
             else
             {
-                cdc.printf("Error response from %s - %d: %s\r\n", REST_SERVER, response.status, response.statusString);
+                log.printf("Error response from %s - %d: %s\r\n", REST_SERVER, response.status, response.statusString);
             }
         }
         else
         {
-            cdc.printf("No reply from %s\r\n", REST_SERVER);
+            log.printf("No reply from %s\r\n", REST_SERVER);
         }
     }
     else
     {
-        cdc.printf("Unable to connect to %s\r\n", REST_SERVER);
+        log.printf("Unable to connect to %s\r\n", REST_SERVER);
     }
 
     return responseOk;
 }
 
-bool cloudWizard(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
+bool cloudWizard(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led, IStdInOut& log)
 {
     bool cloudOk = false;
     bool mqttOk = false;
-    cdc.printf("\r\n\r\nNow we will setup communication with cloud.\r\n");
+    log.printf("\r\n\r\nNow we will setup communication with cloud.\r\n");
 
-    cdc.printf("Registering device using your user email and token\r\n");
+    log.printf("Registering device using your user email and token\r\n");
     while(!cloudOk)
     {
-        cloudOk = deviceRegistration(net, mqttConfig, tlsConfig, led);
+        cloudOk = deviceRegistration(log, net, mqttConfig, tlsConfig, led);
     }
 
     while(!mqttOk)
     {
-        TLS tls(net, tlsConfig, &cdc);
-        MqttProtocol  mqtt(&tls, mqttConfig, &cdc);
+        TLS tls(net, tlsConfig, &log);
+        MqttProtocol  mqtt(&tls, mqttConfig, &log);
         mqttOk = mqtt.connect();
         if(!mqttOk)
         {
-            cdc.printf("MQTT connection failed. Trying again in 1s\r\n");
+            log.printf("MQTT connection failed. Trying again in 1s\r\n");
             wait(1);
             // @TODO: maybe ask user should we continue or abort?
         }
     }
-    cdc.printf("\r\nPerfect! WunderBar successfully connected to MQTT server: %s\r\n", mqttConfig.server);
-    cdc.printf("Your device name is: \r\n", mqttConfig.clientId);
+    log.printf("\r\nPerfect! WunderBar successfully connected to MQTT server: %s\r\n", mqttConfig.server);
+    log.printf("Your device name is: %s\r\n", mqttConfig.clientId);
 
     return true;
 }

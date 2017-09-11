@@ -1,59 +1,76 @@
 #include "loops.h"
 #include "loopsutil.h"
 #include "DigitalOut.h"
-#include "cdc.h"
-#include "GS1500MInterface.h"
-#include "nrf51822interface.h"
+#include "istdinout.h"
 #include "configuration.h"
 #include "wifiwizard.h"
 #include "cloudwizard.h"
 #include "blewizard.h"
 #include "flash.h"
+#include "mbed_wait_api.h"
 
-extern GS1500MInterface wifiConnection;
-extern Nrf51822Interface ble;
-using usb::CDC;
-extern CDC cdc;
-extern Flash flash;
-
-void onboard()
+class Onboarder
 {
-    // let's wait till user connects to CDC console
-    DigitalOut led(LED1);
-    while(-1 == cdc.putc('\n'))
+public:
+    Onboarder(Flash& _flash, IStdInOut& _log, IBleGateway& _ble, WiFiInterface& _wifi, NetworkStack& _net)
+        : flash(_flash),
+          log(_log),
+          ble(_ble),
+          wifi(_wifi),
+          net(_net),
+          executor(osPriorityNormal, 0x6000)
+    {}
+
+    void run()
     {
-        wait(0.3);
-        led = !led;
+        executor.start(mbed::callback(this, &Onboarder::onboard));
+        executor.join();
     }
 
-    // configuration can be big and we need heap for TLS
-    wunderbar::Configuration config;
-    std::memset(&config, 0, sizeof(config));
-
-    cdc.printf("Welcome to WunderBar V2 onboarding wizard!\r\n");
-    cdc.printf("This app will guide you through the process of onboarding your device.\r\n");
-    cdc.printf("Press ENTER to continue.\r\n");
-    cdc.getc();
-    // wizards are blocking till successful completion
-    wifiWizard(&wifiConnection, config.wifi, led);
-    bleWizard(ble);
-    cloudWizard(&wifiConnection, config.proto, config.tls, led);
-
-    cdc.printf("Now, Wunderbar will store all parameters in memory. Please be patient.");
-    // @TODO: storing not tested as connection to CDC is not working
-    // flash.store(config);
-    while(true)
+private:
+    void onboard()
     {
-        wait(2);
-        cdc.printf("Onboard state: %d\r\n", 1);
-    }
-}
+        // let's wait till stdio is connected
+        mbed::DigitalOut led(LED1);
+        while(-1 == log.putc('\n'))
+        {
+            wait(0.3);
+            led = !led;
+        }
 
-void onboardLoop()
+        // configuration can be big and we need heap for TLS
+        wunderbar::Configuration config;
+        std::memset(&config, 0, sizeof(config));
+
+        log.printf("Welcome to WunderBar V2 onboarding wizard!\r\n");
+        log.printf("This app will guide you through the process of onboarding your device.\r\n");
+        log.printf("Press ENTER to continue.\r\n");
+        log.getc();
+        // wizards are blocking till successful completion
+        wifiWizard(&wifi, config.wifi, led, log);
+        bleWizard(ble, log);
+        cloudWizard(&net, config.proto, config.tls, led, log);
+
+        log.printf("Now, Wunderbar will store all parameters in memory. Please be patient.");
+        flash.store(config);
+        wifi.disconnect();
+    }
+
+private:
+    Flash& flash;
+    IStdInOut& log;
+    IBleGateway& ble;
+    WiFiInterface& wifi;
+    NetworkStack& net;
+    rtos::Thread executor;
+};
+
+void onboardLoop(Flash& flash, IStdInOut& log, IBleGateway& ble, WiFiInterface& wifi, NetworkStack& net)
 {
-    // Thread stack is on heap
-    rtos::Thread onboarder(osPriorityNormal, 0x6000);
-    onboarder.start(&onboard);
-    onboarder.join();
+    // mbed does not provide alternative for std::bind
+    // so emulating it with thin wrapper with necessary pointers
+    // around onboarding thread
+    Onboarder onboarder(flash, log, ble, wifi, net);
+    onboarder.run();
 }
 

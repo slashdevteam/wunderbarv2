@@ -38,7 +38,7 @@ MqttProtocol::~MqttProtocol()
 
 bool MqttProtocol::connect()
 {
-    rtos::Thread connector(osPriorityNormal, 2048);
+    rtos::Thread connector(osPriorityNormal, 0x1000);
     connector.start(mbed::callback(this, &MqttProtocol::connecting));
     connector.join();
     log->printf("Connection status %d\n", error);

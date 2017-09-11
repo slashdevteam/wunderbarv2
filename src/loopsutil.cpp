@@ -2,14 +2,17 @@
 
 #include "mbed_wait_api.h"
 #include "cdc.h"
+#include "DigitalOut.h"
 using usb::CDC;
 extern CDC cdc;
 
 void progressDots()
 {
+    mbed::DigitalOut led(LED1);
     while(true)
     {
         cdc.printf(".");
+        led = !led;
         wait(1);
     }
 }

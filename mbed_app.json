@@ -9,9 +9,15 @@
         },
         "FLASH_STORAGE_SECTORS":
         {
-            "help": "Define number of used data sectors in non-volatile flash",
+            "help": "Define number of used data sectors for configuration & cert in non-volatile flash",
             "macro_name": "FLASH_STORAGE_SECTORS",
             "value": 3
+        },
+        "FLASH_CERT_STORAGE_SECTORS":
+        {
+            "help": "Define number of used data sectors for certificates in non-volatile flash",
+            "macro_name": "FLASH_CERT_STORAGE_SECTORS",
+            "value": 2
         },
         "FLASH_SECTOR_SIZE":
         {

@@ -19,8 +19,8 @@ public:
     virtual int printf(const char *format, ...) override;
 
     // make non-copyable C++11 style
-    CDC(const CDC& other);
-    CDC& operator=(const CDC&);
+    CDC(const CDC& other) = delete;
+    CDC& operator=(const CDC&) = delete;
 
 private:
     void lock();

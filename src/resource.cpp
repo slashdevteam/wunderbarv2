@@ -34,7 +34,9 @@ Resource::Resource(Resources* resources,
                    const std::string& _pubtopic)
     : proto(nullptr),
       subtopic("actuator/" + _subtopic),
-      pubtopic("sensor/" + _pubtopic)
+      pubtopic("sensor/" + _pubtopic),
+      subscriber(osPriorityNormal, 0x400),
+      publisher(osPriorityNormal, 0x400)
 {
     resources->registerResource(this);
 }

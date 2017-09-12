@@ -26,6 +26,7 @@ void Led::readAndPub()
 void Led::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
+    Resource::subscribe();
     pubTick.attach(mbed::callback(this, &Led::readAndPub), 10.0);
 }
 

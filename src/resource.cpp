@@ -33,8 +33,8 @@ Resource::Resource(Resources* resources,
                    const std::string& _subtopic,
                    const std::string& _pubtopic)
     : proto(nullptr),
-      subtopic("actuator" + _subtopic),
-      pubtopic("sensor" + _pubtopic)
+      subtopic("actuator/" + _subtopic),
+      pubtopic("sensor/" + _pubtopic)
 {
     resources->registerResource(this);
 }

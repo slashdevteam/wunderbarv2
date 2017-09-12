@@ -34,6 +34,10 @@ public:
     virtual size_t send(const uint8_t* data, size_t len) override;
     virtual size_t receive(uint8_t* data, size_t len) override;
 
+    // make non-copyable C++11 style
+    TLS(const TLS& other) = delete;
+    TLS& operator=(const TLS&) = delete;
+
 private:
     void connecting();
 
@@ -45,8 +49,6 @@ private:
     int32_t sslParseKey();
     int32_t sslSetup();
     int32_t sslHandshake();
-
-
 
 private:
     NetworkStack* network;

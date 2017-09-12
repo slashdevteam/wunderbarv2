@@ -27,8 +27,8 @@ struct MqttMessage
 };
 
 using MessageTuple = std::tuple<msgTypes, const uint8_t*, const uint8_t*, size_t, MessageDoneCallback, MessageDataCallback>;
-using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 8>;
-using MessageTupleQueue = rtos::Queue<MessageTuple, 8>;
+using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 16>;
+using MessageTupleQueue = rtos::Queue<MessageTuple, 16>;
 using Subscribers = std::unordered_map<std::string, MessageDataCallback>;
 
 // 256 bytes are for authToken alone
@@ -75,6 +75,10 @@ public:
 
     // MQTT specific
     void setPingPeriod(int everyMs);
+
+    // make non-copyable C++11 style
+    MqttProtocol(const MqttProtocol& other) = delete;
+    MqttProtocol& operator=(const MqttProtocol&) = delete;
 
 private:
     void lock();

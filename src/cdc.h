@@ -2,14 +2,13 @@
 
 #include "deviceclass.h"
 #include "PlatformMutex.h"
-#include "NonCopyable.h"
 #include "istdinout.h"
 
 constexpr size_t INTERNAL_BUFFER_LEN = 120;
 namespace usb
 {
 
-class CDC : public IStdInOut, private mbed::NonCopyable<CDC>
+class CDC : public IStdInOut
 {
 public:
     CDC(uint8_t controllerid, device_specific_descriptors& deviceSpecificDescriptor);
@@ -18,6 +17,10 @@ public:
     virtual int getc() override;
     virtual int puts(const char *str) override;
     virtual int printf(const char *format, ...) override;
+
+    // make non-copyable C++11 style
+    CDC(const CDC& other) = delete;
+    CDC& operator=(const CDC&) = delete;
 
 private:
     void lock();

@@ -255,6 +255,7 @@ void MqttProtocol::handleSubscriptionAck()
 
 void MqttProtocol::ping()
 {
+    log->printf("Sending Ping\r\n");
     size_t len = MQTTSerialize_pingreq(sendbuf, MAX_MQTT_PACKET_SIZE);
     if (len > 0 && (sendPacket(len) == 0))
     {
@@ -268,9 +269,22 @@ void MqttProtocol::handleMessageQueue()
     if(osEventMessage == msg.status)
     {
         MessageTuple& message = *reinterpret_cast<MessageTuple*>(msg.value.p);
+        const char* messageTopic = reinterpret_cast<const char*>(std::get<1>(message));
+        const size_t messageTopicLen = std::strlen(messageTopic);
+        // full topic is userId + / clientId + / + message topic + \0
+        size_t fullTopicLen = std::strlen(config.userId)
+                             + 1
+                             + std::strlen(config.clientId)
+                             + 1
+                             + messageTopicLen
+                             + 1;
+        std::unique_ptr<char []> fullTopic = std::make_unique<char []>(fullTopicLen);
+        std::memset(fullTopic.get(), 0, fullTopicLen);
+        snprintf(fullTopic.get(), fullTopicLen, "%s/%s/%s", config.userId, config.clientId, messageTopic);
         MQTTString mqttTopic = MQTTString_initializer;
-        mqttTopic.cstring = reinterpret_cast<const char*>(std::get<1>(message));
+        mqttTopic.cstring = fullTopic.get();
 
+        log->printf("Sending message to topic: %s\r\n", fullTopic.get());
         switch(std::get<msgTypes>(message))
         {
             case PUBLISH:

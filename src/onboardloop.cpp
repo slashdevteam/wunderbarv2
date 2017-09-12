@@ -49,7 +49,7 @@ private:
         // wizards are blocking till successful completion
         wifiWizard(&wifi, config.wifi, led, log);
         bleWizard(ble, log);
-        cloudWizard(&net, config.proto, config.tls, led, log);
+        cloudWizard(&net, config.proto, config.tls, config.rest, led, log);
 
         log.printf("Now, Wunderbar will store all parameters in memory. Please be patient.");
         flash.store(config);

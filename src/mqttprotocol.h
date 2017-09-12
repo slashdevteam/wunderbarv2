@@ -92,8 +92,8 @@ private:
     void handleSubscriptionAck();
     void ping();
     void handleMessageQueue();
-    void sendPublish(const MQTTString& topic, MessageTuple& message);
-    void sendSubscribe(const MQTTString& topic, MessageTuple& message);
+    bool sendPublish(const MQTTString& topic, MessageTuple& message);
+    bool sendSubscribe(const MQTTString& topic, MessageTuple& message);
     bool sendPacket(size_t length);
     bool receivePacket(msgTypes& msg);
     bool readPacketLength(size_t& len);

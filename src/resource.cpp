@@ -18,13 +18,13 @@ const std::string PubTail =
 
 const std::string AckHeader =
 "{"
-"\"commandID\":";
+"\"commandID\":\"";
 
 const std::string AckMiddle =
-"\"code\":";
+"\",\"code\":";
 
 const std::string AckTime =
-"\"time\":";
+"\",\"time\":";
 
 const std::string AckTail =
 "}";
@@ -115,6 +115,7 @@ bool Resource::parseSubscription(std::string& commandID, std::string& data)
             commandID.assign(commandIDStart, commandIDSize);
             data.clear();
             data.assign(dataStart, dataSize);
+            parseOK = true;
         }
     }
 

@@ -3,11 +3,11 @@
 This repo uses submodules so execute this after cloning:
 ```git submodule update --init --recursive```
 
-# Only Wunderbar mbed OS app
+# Wunderbar mbed OS app only
 To build:
 1. ```mbed target WUNDERBAR``` (only needed once)
 2. ```mbed toolchain GCC_ARM``` (only needed once, GCC_ARM is currently the only supported toolchain)
-3. ```mbed compile --profile mbed-os/tools/profiles/debug.json```
+3. ```mbed compile --profile tools/debug.json -l tools/wunderbar.ld```
 
 To flash:
 ```JLinkExe -commanderscript flashwb.jlink```
@@ -16,7 +16,7 @@ To flash:
 To build:
 1. ```mbed target WUNDERBAR_APP_BIN``` (only needed once)
 2. ```mbed toolchain GCC_ARM``` (only needed once, GCC_ARM is currently the only supported toolchain)
-3. ```mbed compile --profile mbed-os/tools/profiles/debug.json```
+3. ```mbed compile --profile tools/profiles/debug.json -l tools/wunderbar.ld```
 
 To flash:
 1. Switch Wunderbar to DFU mode (while user button is pressed press & release reset button)

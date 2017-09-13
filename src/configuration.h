@@ -5,6 +5,15 @@
 #include "tls.h"
 #include "mqttprotocol.h"
 
+struct RestConfig
+{
+    char server[40];
+    uint32_t port;
+    char token[100];
+    char path[100];
+    TlsConfig tls;
+} __attribute__ ((__packed__));
+
 namespace wunderbar
 {
 
@@ -21,6 +30,7 @@ struct Configuration
     WiFiConfig wifi;
     TlsConfig tls;
     MqttConfig proto;
+    RestConfig rest;
 } __attribute__ ((__packed__));
 
 }

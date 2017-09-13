@@ -6,4 +6,9 @@
 
 class NetworkStack;
 
-bool cloudWizard(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, mbed::DigitalOut& led, IStdInOut& log);
+bool cloudWizard(NetworkStack* net,
+                 MqttConfig& mqttConfig,
+                 TlsConfig& tlsConfig,
+                 RestConfig& restConfig,
+                 mbed::DigitalOut& led,
+                 IStdInOut& log);

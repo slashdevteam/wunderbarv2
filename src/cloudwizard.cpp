@@ -115,7 +115,12 @@ size_t generateCapabilities(char* caps,
 
 #include "mbed_stats.h"
 
-bool deviceRegistration(IStdInOut& log, NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led)
+bool deviceRegistration(IStdInOut& log,
+                        NetworkStack* net,
+                        MqttConfig& mqttConfig,
+                        TlsConfig& tlsConfig,
+                        RestConfig& restConfig,
+                        mbed::DigitalOut& led)
 {
     // collect username & token & device name
     mbed_stats_heap_t heap_stats;
@@ -150,18 +155,21 @@ bool deviceRegistration(IStdInOut& log, NetworkStack* net, MqttConfig& mqttConfi
         deviceNameOk = readField(log, deviceName, 1, 10, deviceName, &isCharPrintableAscii, true, led);
     }
 
-    TlsConfig restTlsConfig;
-    restTlsConfig.caCert = reinterpret_cast<const uint8_t*>(REST_CA_CHAIN);
-    restTlsConfig.deviceCert = nullptr;
-    restTlsConfig.key = nullptr;
-    restTlsConfig.authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
-    std::memcpy(&restTlsConfig.deviceId, deviceName, sizeof(deviceName));
-    TLS tls(net, restTlsConfig, &log);
-    std::string registrationUrl = REST_API_PATH;
+    restConfig.tls.caCert = reinterpret_cast<const uint8_t*>(REST_CA_CHAIN);
+    restConfig.tls.deviceCert = nullptr;
+    restConfig.tls.key = nullptr;
+    restConfig.tls.authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
+    std::memcpy(&restConfig.tls.deviceId, deviceName, sizeof(deviceName));
+    TLS tls(net, restConfig.tls, &log);
+    std::memcpy(&restConfig.path, REST_API_PATH, sizeof(REST_API_PATH));
+    std::memcpy(&restConfig.server, REST_SERVER, sizeof(REST_SERVER));
+    std::memcpy(&restConfig.token, VENDOR_TOKEN, sizeof(VENDOR_TOKEN));
+    restConfig.port = REST_PORT;
+    std::string registrationUrl(restConfig.path);
     registrationUrl.append("raspberry/email=").append(userName).append("/devices/getCredentials");
     log.printf("Contacting %s\r\n", registrationUrl.c_str());
-    HttpsRequest request(tls, "GET", REST_SERVER, REST_PORT, registrationUrl.c_str(), nullptr);
-    request.setHeader("X-AUTH-TOKEN", VENDOR_TOKEN);
+    HttpsRequest request(tls, "GET", restConfig.server, restConfig.port, registrationUrl.c_str(), nullptr);
+    request.setHeader("X-AUTH-TOKEN", restConfig.token);
     request.setHeader("shortToken", token);
     request.setHeader("Accept", "*/*");
     request.setHeader("Accept-Encoding", "gzip, deflate");
@@ -236,7 +244,12 @@ bool deviceRegistration(IStdInOut& log, NetworkStack* net, MqttConfig& mqttConfi
     return responseOk;
 }
 
-bool cloudWizard(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig, DigitalOut& led, IStdInOut& log)
+bool cloudWizard(NetworkStack* net,
+                 MqttConfig& mqttConfig,
+                 TlsConfig& tlsConfig,
+                 RestConfig& restConfig,
+                 mbed::DigitalOut& led,
+                 IStdInOut& log)
 {
     bool cloudOk = false;
     bool mqttOk = false;
@@ -245,7 +258,7 @@ bool cloudWizard(NetworkStack* net, MqttConfig& mqttConfig, TlsConfig& tlsConfig
     log.printf("Registering device using your user email and token\r\n");
     while(!cloudOk)
     {
-        cloudOk = deviceRegistration(log, net, mqttConfig, tlsConfig, led);
+        cloudOk = deviceRegistration(log, net, mqttConfig, tlsConfig, restConfig, led);
     }
 
     while(!mqttOk)

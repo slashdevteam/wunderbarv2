@@ -13,12 +13,25 @@
 
 const int COMMAND_TIMEOUT = 5000;
 
-// Apparently mbed calls Thread::terminate in ~Thread even for
-// a thread that is not started and this asserts
-void dummyFunctionForTerminatingThread()
+const char* MESSAGE_NAMES[] =
 {
-    rtos::Thread::yield();
-}
+    "NONE",
+    "CONNECT",
+    "CONNACK",
+    "PUBLISH",
+    "PUBACK",
+    "PUBREC",
+    "PUBREL",
+    "PUBCOMP",
+    "SUBSCRIBE",
+    "SUBACK",
+    "UNSUBSCRIBE",
+    "UNSUBACK",
+    "PINGREQ",
+    "PINGRESP",
+    "DISCONNECT",
+    "UNKNOWN"
+};
 
 MqttProtocol::MqttProtocol(ITransportLayer* _transport, const MqttConfig& _config, IStdInOut* _log)
     : IPubSub(_transport, "MQTT"),
@@ -171,7 +184,7 @@ void MqttProtocol::dispatch()
         msgTypes msg = static_cast<msgTypes>(DISCONNECT + 1); // DISCONNECT is last in msgTypes enum
         if(receivePacket(msg))
         {
-            log->printf("%s msg %d\r\n", __PRETTY_FUNCTION__, msg);
+            log->printf("%s msg type: %s\r\n", __PRETTY_FUNCTION__, MESSAGE_NAMES[msg]);
 
             switch(msg)
             {
@@ -245,6 +258,7 @@ void MqttProtocol::handleSubscriptions()
 void MqttProtocol::resetKeepAlive()
 {
     keepAliveTimer.reset();
+    log->printf("Ping OK\r\n");
     keepAliveTimer.start();
 }
 
@@ -255,11 +269,10 @@ void MqttProtocol::handleSubscriptionAck()
 
 void MqttProtocol::ping()
 {
-    log->printf("Sending Ping\r\n");
     size_t len = MQTTSerialize_pingreq(sendbuf, MAX_MQTT_PACKET_SIZE);
-    if (len > 0 && (sendPacket(len) == 0))
+    if((len <= 0) || (!sendPacket(len)))
     {
-        log->printf("Ping OK\r\n");
+        log->printf("Ping FAILED!\r\n");
     }
 }
 
@@ -285,22 +298,24 @@ void MqttProtocol::handleMessageQueue()
         mqttTopic.cstring = fullTopic.get();
 
         log->printf("Sending message to topic: %s\r\n", fullTopic.get());
+        bool messageOk = false;
         switch(std::get<msgTypes>(message))
         {
             case PUBLISH:
-                sendPublish(mqttTopic, message);
+                messageOk = sendPublish(mqttTopic, message);
                 break;
             case SUBSCRIBE:
-                sendSubscribe(mqttTopic, message);
+                messageOk = sendSubscribe(mqttTopic, message);
                 break;
             default:
                 break;
         }
         messages.free(&message);
+        log->printf("%s\r\n", messageOk ? "OK" : "ERROR");
     }
 }
 
-void MqttProtocol::sendPublish(const MQTTString& topic, MessageTuple& message)
+bool MqttProtocol::sendPublish(const MQTTString& topic, MessageTuple& message)
 {
     bool ret = true;
 
@@ -319,9 +334,10 @@ void MqttProtocol::sendPublish(const MQTTString& topic, MessageTuple& message)
         ret = false;
     }
     std::get<4>(message)(ret);
+    return ret;
 }
 
-void MqttProtocol::sendSubscribe(const MQTTString& topic, MessageTuple& message)
+bool MqttProtocol::sendSubscribe(const MQTTString& topic, MessageTuple& message)
 {
     bool ret = true;
     int qos = 0;
@@ -363,6 +379,7 @@ void MqttProtocol::sendSubscribe(const MQTTString& topic, MessageTuple& message)
     subscribers.emplace(std::make_pair(topic.cstring, std::get<5>(message)));
 
     std::get<4>(message)(ret);
+    return ret;
 }
 
 bool MqttProtocol::sendPacket(size_t length)

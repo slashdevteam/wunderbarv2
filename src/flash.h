@@ -17,9 +17,10 @@ struct FlashStorage
     uint8_t PADDING_FOR_WRITE[FLASH_STORAGE_PADDING];
 } __attribute__ ((__packed__));
 
-
-static_assert(sizeof(FlashStorage) <= FLASH_STORAGE_SECTORS * FLASH_SECTOR_SIZE,
-              "Struct FlashStorage size has to be less than FLASH_STORAGE_SECTORS * FLASH_SECTOR_SIZE!");
+static_assert(FLASH_STORAGE_SECTORS > FLASH_CERT_STORAGE_SECTORS,
+              "Storage for certificates must be smaller than whole flash storage (FLASH_STORAGE_SECTORS > FLASH_CERT_STORAGE_SECTORS)");
+static_assert(sizeof(FlashStorage) <= (FLASH_STORAGE_SECTORS - FLASH_CERT_STORAGE_SECTORS) * FLASH_SECTOR_SIZE,
+              "Struct FlashStorage size has to be less than (FLASH_STORAGE_SECTORS - FLASH_CERT_STORAGE_SECTORS) * FLASH_SECTOR_SIZE!");
 static_assert((sizeof(FlashStorage) & (BLOCK_WRITE_UNIT_SIZE - 1)) == 0,
               "Struct FlashStorage size has to be aligned to BLOCK_WRITE_UNIT_SIZE");
 static_assert(std::is_standard_layout<FlashStorage>::value,

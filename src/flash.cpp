@@ -6,14 +6,11 @@ const uint32_t ONBOARDED_CONFIGURATION = 0X1ABE11ED;
 const uint32_t DEFAULT_FLASH_HEADER[] = {FLASH_MARKER, DEFAULT_CONFIGURATION};
 
 // storage is located at the end of flash
-extern size_t __uvisor_flash_end;
-extern size_t __etext;
+extern size_t configstart;
 
 Flash::Flash()
-  : storage(reinterpret_cast<FlashStorage*>((&__uvisor_flash_end - (FLASH_STORAGE_SECTORS * FLASH_SECTOR_SIZE))))
+  : storage(reinterpret_cast<FlashStorage*>((&configstart)))
 {
-    // this unfortunately cannot be asserted during compilation
-    MBED_ASSERT((FLASH_STORAGE_SECTORS *FLASH_SECTOR_SIZE) <= (&__uvisor_flash_end - &__etext));
     mutex.lock();
     flash_init(&flashDriver);
 

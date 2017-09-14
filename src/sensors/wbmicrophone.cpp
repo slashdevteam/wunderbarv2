@@ -8,6 +8,25 @@ WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources)
                       mbed::callback(this, &WbMicrophone::event),
                       _resources)
 {
+    const char senseSpecFormat[] = "{"
+    "\"name\":\"%s\","
+    "\"data\":"
+    "["
+        "{"
+            "\"name\":\"level\","
+            "\"type\":\"integer\","
+            "\"min\":0,"
+            "\"max\":65535"
+        "},"
+        "%s"
+    "]"
+"}";
+
+snprintf(senseSpec,
+         sizeof(senseSpec),
+         senseSpecFormat,
+         config.name.c_str(),
+         WunderbarSensor::getSenseSpec());
 };
 
 void WbMicrophone::event(BleEvent _event, const uint8_t* data, size_t len)
@@ -27,4 +46,9 @@ void WbMicrophone::event(BleEvent _event, const uint8_t* data, size_t len)
         default:
             break;
     }
+}
+
+const char* WbMicrophone::getSenseSpec()
+{
+    return senseSpec;
 }

@@ -54,10 +54,12 @@ struct sensor_gyro_data_t
     accCoordinates_t  acc;
 } __attribute__((packed));
 
-const char* jsonFormat = "{\"gyro\":{\"x\":%05ld.00,\"y\":%05ld.00,\"z\":%05ld.00},\"accel\":{\"x\":%05d.00,\"y\":%05d.00,\"z\":%05d.00}}";
+const char* jsonFormat = "{\"gyro\":{\"x\":%05ld,\"y\":%05ld,\"z\":%05ld},\"accel\":{\"x\":%05d,\"y\":%05d,\"z\":%05d}}";
 
 public:
     WbGyro(IBleGateway& _gateway, Resources* _resources);
+
+    virtual const char* getSenseSpec() override;
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
@@ -69,4 +71,7 @@ private:
                         data.gyro.x/100, data.gyro.y/100, data.gyro.z/100,
                         data.acc.x/100, data.acc.y/100, data.acc.z/100);
     }
+
+private:
+    char senseSpec[200];
 };

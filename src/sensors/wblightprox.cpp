@@ -8,6 +8,49 @@ WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources)
                       mbed::callback(this, &WbLightProx::event),
                       _resources)
 {
+    const char senseSpecFormat[] = "{"
+    "\"name\":\"%s\","
+    "\"data\":"
+    "["
+        "{"
+            "\"name\":\"red\","
+            "\"type\":\"integer\","
+            "\"min\":0,"
+            "\"max\":65535"
+        "},"
+        "{"
+            "\"name\":\"green\","
+            "\"type\":\"integer\","
+            "\"min\":0,"
+            "\"max\":65535"
+        "},"
+        "{"
+            "\"name\":\"blue\","
+            "\"type\":\"integer\","
+            "\"min\":0,"
+            "\"max\":65535"
+        "},"
+        "{"
+            "\"name\":\"white\","
+            "\"type\":\"integer\","
+            "\"min\":0,"
+            "\"max\":65535"
+        "},"
+        "{"
+            "\"name\":\"proximity\","
+            "\"type\":\"integer\","
+            "\"min\":0,"
+            "\"max\":65535"
+        "},"
+        "%s"
+    "]"
+"}";
+
+snprintf(senseSpec,
+         sizeof(senseSpec),
+         senseSpecFormat,
+         config.name.c_str(),
+         WunderbarSensor::getSenseSpec());
 };
 
 void WbLightProx::event(BleEvent _event, const uint8_t* data, size_t len)
@@ -30,4 +73,9 @@ void WbLightProx::event(BleEvent _event, const uint8_t* data, size_t len)
         default:
             break;
     }
+}
+
+const char* WbLightProx::getSenseSpec()
+{
+    return senseSpec;
 }

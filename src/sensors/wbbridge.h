@@ -24,7 +24,14 @@ struct config_t
 public:
     WbBridge(IBleGateway& _gateway, Resources* _resources);
 
+    virtual const char* getSenseSpec() override;
+    virtual const char* getActuateSpec() override;
+
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
     int dataToJson(char* outputString, size_t maxLen, const sensor_bridge_data_t& data);
+
+private:
+    char senseSpec[200];
+    char actuateSpec[200];
 };

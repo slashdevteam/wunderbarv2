@@ -1,6 +1,7 @@
 #include "wbbridge.h"
 #include "wunderbarsensordatatypes.h"
 #include "wunderbarble.h"
+#include <limits>
 
 WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
@@ -9,6 +10,59 @@ WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
                       mbed::callback(this, &WbBridge::event),
                       _resources)
 {
+    const char senseSpecFormat[] = "{"
+    "\"name\":\"%s\","
+    "\"data\":"
+    "["
+        "{"
+            "\"name\":\"upstream\","
+            "\"type\" : {"
+                "\"type\" : \"array\","
+                "\"maxItems\" : %ld,"
+                "\"items"": {"
+                    "\"type\":\"integer\","
+                    "\"min\":0,"
+                    "\"max\":255"
+                        "}"
+                "}"
+        "},"
+        "%s"
+    "]"
+"}";
+
+snprintf(senseSpec,
+         sizeof(senseSpec),
+         senseSpecFormat,
+         config.name.c_str(),
+         BRIDGE_PAYLOAD_SIZE,
+         WunderbarSensor::getSenseSpec());
+
+const char actuateSpecFormat[] = "{"
+    "\"name\":\"%s\","
+    "\"data\":"
+    "["
+        "{"
+            "\"name\":\"downstream\","
+            "\"type\" : {"
+                "\"type\" : \"array\","
+                "\"maxItems\" : %ld,"
+                "\"items"": {"
+                    "\"type\":\"integer\","
+                    "\"min\":0,"
+                    "\"max\":255"
+                        "}"
+                "}"
+        "},"
+        "%s"
+    "]"
+"}";
+     
+snprintf(actuateSpec,
+        sizeof(actuateSpec),
+        actuateSpecFormat,
+        config.name.c_str(),
+        BRIDGE_PAYLOAD_SIZE,
+        WunderbarSensor::getActuateSpec());
 };
 
 void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
@@ -60,4 +114,15 @@ int WbBridge::dataToJson(char* outputString, size_t maxLen, const sensor_bridge_
     }
 
     return totLen;
+}
+
+const char* WbBridge::getSenseSpec()
+{
+    return senseSpec;
+}
+
+
+const char* WbBridge::getActuateSpec()
+{
+    return actuateSpec;
 }

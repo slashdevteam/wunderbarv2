@@ -121,7 +121,6 @@ const char* WbBridge::getSenseSpec()
     return senseSpec;
 }
 
-
 const char* WbBridge::getActuateSpec()
 {
     return actuateSpec;

@@ -38,3 +38,8 @@ void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
           break;
     }
 }
+
+const char* WbInfraRed::getActuateSpec()
+{
+    return actuateSpec;
+}

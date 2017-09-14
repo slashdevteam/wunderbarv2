@@ -21,7 +21,7 @@ const char* jsonFormat = "{\"snd_level\":%d}";
 public:
     WbMicrophone(IBleGateway& _gateway, Resources* _resources);
 
-    virtual const char* getSenseSpec() override;
+    virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
@@ -29,7 +29,4 @@ private:
     {
         return snprintf(outputString, maxLen, jsonFormat, data.mic_level);
     }
-
-private:
-    char senseSpec[200];
 };

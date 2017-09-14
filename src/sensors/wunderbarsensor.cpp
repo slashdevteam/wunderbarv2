@@ -173,8 +173,12 @@ const char* WunderbarSensor::getSenseSpec()
             "}";
 }
 
-const char* WunderbarSensor::getActuateSpec()
+size_t WunderbarSensor::getSenseSpec(char* dst, size_t maxLen)
 {
-    // no actuators by default
-    return "";
+    return 0;
+}
+
+size_t WunderbarSensor::getActuateSpec(char* dst, size_t maxLen)
+{
+    return 0;
 }

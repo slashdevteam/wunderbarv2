@@ -59,7 +59,7 @@ const char* jsonFormat = "{\"gyro\":{\"x\":%05ld,\"y\":%05ld,\"z\":%05ld},\"acce
 public:
     WbGyro(IBleGateway& _gateway, Resources* _resources);
 
-    virtual const char* getSenseSpec() override;
+    virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
@@ -71,7 +71,4 @@ private:
                         data.gyro.x/100, data.gyro.y/100, data.gyro.z/100,
                         data.acc.x/100, data.acc.y/100, data.acc.z/100);
     }
-
-private:
-    char senseSpec[200];
 };

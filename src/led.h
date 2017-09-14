@@ -12,8 +12,8 @@ public:
     virtual ~Led() {};
 
     int32_t read();
-    virtual const char* getSenseSpec() override;
-    virtual const char* getActuateSpec() override;
+    virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
+    virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
     virtual void advertise(IPubSub* _proto) override;
 
 protected:

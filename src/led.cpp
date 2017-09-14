@@ -82,9 +82,9 @@ bool Led::parseCommand(const char* data)
     return false;
 }
 
-const char* Led::getSenseSpec()
+size_t Led::getSenseSpec(char* dst, size_t maxLen)
 {
-    return "{"
+    const char senseSpecFormat[] = "{"
                 "\"name\":\"LED\","
                 "\"data\":"
                 "["
@@ -96,11 +96,15 @@ const char* Led::getSenseSpec()
                     "}"
                 "]"
            "}";
+
+    return snprintf(dst,
+                    maxLen,
+                    senseSpecFormat);
 }
 
-const char* Led::getActuateSpec()
+size_t Led::getActuateSpec(char* dst, size_t maxLen)
 {
-    return "{"
+    const char actuaSpecFormat[] = "{"
                 "\"name\":\"LED\","
                 "\"data\":"
                 "["
@@ -116,4 +120,8 @@ const char* Led::getActuateSpec()
                     "}"
                 "]"
            "}";
+
+    return snprintf(dst,
+                    maxLen,
+                    actuaSpecFormat);
 }

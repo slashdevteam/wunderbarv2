@@ -76,9 +76,9 @@ bool Button::parseCommand(const char* data)
     return false;
 }
 
-const char* Button::getSenseSpec()
+size_t Button::getSenseSpec(char* dst, size_t maxLen)
 {
-    return "{"
+    const char senseSpecFormat[] =  "{"
                 "\"name\":\"BUTTON\","
                 "\"data\":"
                 "["
@@ -90,11 +90,15 @@ const char* Button::getSenseSpec()
                     "}"
                 "]"
            "}";
+
+    return snprintf(dst,
+                    maxLen,
+                    senseSpecFormat);
 }
 
-const char* Button::getActuateSpec()
+size_t Button::getActuateSpec(char* dst, size_t maxLen)
 {
-    return "{"
+    const char actuaSpecFormat[] =  "{"
                 "\"name\":\"BUTTON\","
                 "\"data\":"
                 "["
@@ -112,4 +116,8 @@ const char* Button::getActuateSpec()
                     "}"
                 "]"
            "}";
+
+    return snprintf(dst,
+                    maxLen,
+                    actuaSpecFormat);
 }

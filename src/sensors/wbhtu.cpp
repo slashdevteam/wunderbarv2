@@ -8,31 +8,6 @@ WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources)
                       mbed::callback(this, &WbHtu::event),
                       _resources)
 {
-    const char senseSpecFormat[] = "{"
-        "\"name\":\"%s\","
-        "\"data\":"
-        "["
-            "{"
-                "\"name\":\"temp\","
-                "\"type\":\"integer\","
-                "\"min\":-50,"
-                "\"max\":100"
-            "},"
-            "{"
-                "\"name\":\"hum\","
-                "\"type\":\"integer\","
-                "\"min\":0,"
-                "\"max\":100"
-            "},"
-            "%s"
-        "]"
-   "}";
-
-    snprintf(senseSpec,
-             sizeof(senseSpec),
-             senseSpecFormat,
-             config.name.c_str(),
-             WunderbarSensor::getSenseSpec());
 }
 
 void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
@@ -57,7 +32,31 @@ void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
     }
 }
 
-const char* WbHtu::getSenseSpec()
+size_t WbHtu::getSenseSpec(char* dst, size_t maxLen)
 {
-    return senseSpec;
+    const char senseSpecFormat[] = "{"
+        "\"name\":\"%s\","
+        "\"data\":"
+        "["
+            "{"
+                "\"name\":\"temp\","
+                "\"type\":\"integer\","
+                "\"min\":-50,"
+                "\"max\":100"
+            "},"
+            "{"
+                "\"name\":\"hum\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":100"
+            "},"
+            "%s"
+        "]"
+    "}";
+
+    return snprintf(dst,
+                    maxLen,
+                    senseSpecFormat,
+                    config.name.c_str(),
+                    WunderbarSensor::getSenseSpec());
 }

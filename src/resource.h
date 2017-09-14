@@ -25,8 +25,8 @@ public:
                      int _code,
                      MessageDoneCallback doneCallback);
     void writeDone();
-    virtual const char* getSenseSpec() = 0;
-    virtual const char* getActuateSpec() = 0;
+    virtual size_t getSenseSpec(char* dst, size_t maxLen) = 0;
+    virtual size_t getActuateSpec(char* dst, size_t maxLen) = 0;
 
 protected:
     virtual int handleCommand(const char* command);

@@ -80,14 +80,9 @@ size_t generateCapabilities(char* caps,
 
     for(auto resource : resources.current)
     {
-        const char* spec = resource->getSenseSpec();
-        if(spec && std::strlen(spec) > 0)
-        {
-            outLen += std::snprintf(caps + outLen,
-                                    maxSize - outLen,
-                                    "%s,",
-                                    spec);
-        }
+        outLen += resource->getSenseSpec(caps + outLen, maxSize - outLen);
+
+        outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
     }
 
     outLen += std::snprintf(caps + outLen - 1,
@@ -97,14 +92,9 @@ size_t generateCapabilities(char* caps,
     outLen -= 1;
     for(auto resource : resources.current)
     {
-        const char* spec = resource->getActuateSpec();
-        if(spec && std::strlen(spec) > 0)
-        {
-            outLen += std::snprintf(caps + outLen,
-                                    maxSize - outLen,
-                                    "%s,",
-                                    spec);
-        }
+        outLen += resource->getActuateSpec(caps + outLen, maxSize - outLen);
+            
+        outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
     }
 
     outLen += std::snprintf(caps + outLen - 1,

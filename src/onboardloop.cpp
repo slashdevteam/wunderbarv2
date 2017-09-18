@@ -51,9 +51,10 @@ private:
         bleWizard(ble, log);
         cloudWizard(&net, config.proto, config.tls, config.rest, led, log);
 
-        log.printf("Now, Wunderbar will store all parameters in memory. Please be patient.");
+        log.printf("Now, Wunderbar will store all parameters in memory. Please be patient.\r\n");
         flash.store(config);
         wifi.disconnect();
+        log.printf("Onboarding wizard done!\r\n");
     }
 
 private:

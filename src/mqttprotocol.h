@@ -27,8 +27,8 @@ struct MqttMessage
 };
 
 using MessageTuple = std::tuple<msgTypes, const uint8_t*, const uint8_t*, size_t, MessageDoneCallback, MessageDataCallback>;
-using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 16>;
-using MessageTupleQueue = rtos::Queue<MessageTuple, 16>;
+using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 64>;
+using MessageTupleQueue = rtos::Queue<MessageTuple, 64>;
 using Subscribers = std::unordered_map<std::string, MessageDataCallback>;
 
 // 256 bytes are for authToken alone
@@ -116,5 +116,5 @@ private:
     // MQTT specific
     uint8_t packetId;
     uint8_t sendbuf[MAX_MQTT_PACKET_SIZE];
-    uint8_t readbuf[MAX_MQTT_PACKET_SIZE];
+    uint8_t readbuf[2*MAX_MQTT_PACKET_SIZE];
 };

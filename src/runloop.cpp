@@ -25,7 +25,7 @@ public:
           wifi(_wifi),
           net(_net),
           resources(_resources),
-          executor(osPriorityNormal, 0x4500)
+          executor(osPriorityNormal, 0x7500)
     {}
 
     void run()
@@ -52,20 +52,21 @@ private:
         if(status == NSAPI_ERROR_OK)
         {
             log.printf("Connected to %s network\r\n", config.wifi.ssid);
-            log.printf("Starting BLE\n");
-            ble.startOperation();
+
 
             log.printf("Creating connection over %s to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
             if(mqtt.connect())
             {
                 log.printf("%s connected to %s:%d\r\n", mqtt.name, config.proto.server, config.proto.port);
-                mqtt.setPingPeriod(10000);
+                mqtt.setPingPeriod(30000);
 
                 // add resources to MQTT
                 for(auto resource : resources.current)
                 {
                     resource->advertise(&mqtt);
                 }
+                log.printf("Starting BLE\n");
+                ble.startOperation();
             }
             else
             {

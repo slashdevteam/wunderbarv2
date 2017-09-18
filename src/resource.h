@@ -5,7 +5,7 @@
 #include "ipubsub.h"
 #include "Thread.h"
 
-const uint32_t MQTT_MSG_PAYLOAD_SIZE = 200;
+const uint32_t MQTT_MSG_PAYLOAD_SIZE = 500;
 
 class IPubSub;
 class Resources;

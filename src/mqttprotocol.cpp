@@ -7,6 +7,7 @@
 
 // mbed
 #include "Timer.h"
+#include "mbed_wait_api.h"
 
 // MQTT
 #include "MQTTConnect.h"
@@ -139,6 +140,7 @@ void MqttProtocol::connecting()
 {
     error = MQTT_STATUS::TRANSPORT_LAYER_FAILURE;
 
+    transport->setTimeout(5000);
     if(transport->connect(config.server, config.port))
     {
         MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
@@ -182,6 +184,7 @@ void MqttProtocol::dispatch()
     {
         // first and foremost try to read packet
         msgTypes msg = static_cast<msgTypes>(DISCONNECT + 1); // DISCONNECT is last in msgTypes enum
+        transport->setTimeout(50);
         if(receivePacket(msg))
         {
             log->printf("%s msg type: %s\r\n", __PRETTY_FUNCTION__, MESSAGE_NAMES[msg]);
@@ -190,9 +193,6 @@ void MqttProtocol::dispatch()
             {
                 case PUBLISH:
                     handleSubscriptions();
-                    break;
-                case PINGRESP:
-                    resetKeepAlive();
                     break;
                 case CONNACK: // should only come in connector thread
                     break;
@@ -205,14 +205,13 @@ void MqttProtocol::dispatch()
                     break;
             }
         }
+        // process message queue
+        handleMessageQueue();
 
         if(keepAliveTimer.read_ms() > keepAliveHeartbeat)
         {
             ping();
         }
-
-        // process message queue
-        handleMessageQueue();
     }
 }
 
@@ -258,7 +257,6 @@ void MqttProtocol::handleSubscriptions()
 void MqttProtocol::resetKeepAlive()
 {
     keepAliveTimer.reset();
-    log->printf("Ping OK\r\n");
     keepAliveTimer.start();
 }
 
@@ -269,8 +267,19 @@ void MqttProtocol::handleSubscriptionAck()
 
 void MqttProtocol::ping()
 {
+    transport->setTimeout(1000);
     size_t len = MQTTSerialize_pingreq(sendbuf, MAX_MQTT_PACKET_SIZE);
-    if((len <= 0) || (!sendPacket(len)))
+
+    if((len > 0) && sendPacket(len))
+    {
+        msgTypes msg = static_cast<msgTypes>(DISCONNECT + 1); // DISCONNECT is last in msgTypes enum
+        if(receivePacket(msg) && PINGRESP == msg)
+        {
+            resetKeepAlive();
+            log->printf("Ping OK\r\n");
+        }
+    }
+    else
     {
         log->printf("Ping FAILED!\r\n");
     }
@@ -297,6 +306,7 @@ void MqttProtocol::handleMessageQueue()
         MQTTString mqttTopic = MQTTString_initializer;
         mqttTopic.cstring = fullTopic.get();
 
+        transport->setTimeout(5000);
         log->printf("Sending message to topic: %s\r\n", fullTopic.get());
         bool messageOk = false;
         switch(std::get<msgTypes>(message))
@@ -311,6 +321,10 @@ void MqttProtocol::handleMessageQueue()
                 break;
         }
         messages.free(&message);
+        if(messageOk)
+        {
+            resetKeepAlive();
+        }
         log->printf("%s\r\n", messageOk ? "OK" : "ERROR");
     }
 }

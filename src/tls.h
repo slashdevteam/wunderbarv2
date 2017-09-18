@@ -33,7 +33,7 @@ public:
     virtual bool disconnect() override;
     virtual size_t send(const uint8_t* data, size_t len) override;
     virtual size_t receive(uint8_t* data, size_t len) override;
-
+    virtual void setTimeout(uint32_t timeoutMs) override;
     // make non-copyable C++11 style
     TLS(const TLS& other) = delete;
     TLS& operator=(const TLS&) = delete;
@@ -57,6 +57,7 @@ private:
     IStdInOut* log;
     char server[60];
     size_t port;
+
 
     // SSL specific
     int32_t error;

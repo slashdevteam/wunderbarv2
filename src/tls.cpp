@@ -12,7 +12,7 @@
 #include "error.h"
 #include "pollentropy.h"
 
-const int32_t DEFAULT_SOCKET_TIMEOUT = 1000;
+const int32_t DEFAULT_SOCKET_TIMEOUT = 3000;
 
 #include "nouartfix.h"
 static void tlsdebugprint(void *ctx, int level, const char *file, int line,
@@ -35,7 +35,6 @@ static int sslRecv(void* ctx, unsigned char* buf, size_t len)
 {
     int recv = -1;
     TCPSocket* socket = static_cast<TCPSocket*>(ctx);
-    socket->set_timeout(DEFAULT_SOCKET_TIMEOUT);
     recv = socket->recv(buf, len);
 
     if (NSAPI_ERROR_WOULD_BLOCK == recv)
@@ -59,7 +58,6 @@ static int sslSend(void* ctx, const unsigned char* buf, size_t len)
 {
     int sent = -1;
     TCPSocket* socket = static_cast<TCPSocket*>(ctx);
-    socket->set_timeout(DEFAULT_SOCKET_TIMEOUT);
     sent = socket->send(buf, len);
 
     if(NSAPI_ERROR_WOULD_BLOCK == sent)
@@ -83,6 +81,7 @@ TLS::TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log)
       log(_log)
 {
     log->printf("%s\n", __PRETTY_FUNCTION__);
+    socket.set_timeout(DEFAULT_SOCKET_TIMEOUT);
     // Used to randomize source port
     unsigned int seed;
     size_t len;
@@ -137,6 +136,11 @@ TLS::~TLS()
     }
     mbedtls_x509_crt_free(&caCert);
     mbedtls_ssl_free(&ssl);
+}
+
+void TLS::setTimeout(uint32_t timeoutMs)
+{
+    socket.set_timeout(timeoutMs);
 }
 
 bool TLS::connect(const char* _server, size_t _port)

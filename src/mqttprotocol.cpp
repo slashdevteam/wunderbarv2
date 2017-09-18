@@ -179,7 +179,6 @@ void MqttProtocol::connecting()
 
 void MqttProtocol::dispatch()
 {
-    transport->setTimeout(10);
     keepAliveTimer.start();
     while(1)
     {

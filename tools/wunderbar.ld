@@ -78,16 +78,16 @@ M_VECTOR_RAM_SIZE = DEFINED(__ram_vector_table__) ? 0x0400 : 0x0;
 FLASH_CERT_STORAGE_SIZE = (FLASH_SECTOR_SIZE * FLASH_CERT_STORAGE_SECTORS);
 FLASH_STORAGE_SIZE = (FLASH_SECTOR_SIZE * FLASH_STORAGE_SECTORS);
 
-#if !defined(MBED_APP_SIZE)
-  #define MBED_APP_SIZE 0x100000 - FLASH_STORAGE_SIZE
-#endif
+/* Prevent mbed build system from autocalculating this size */
+#define MBED_APP_SIZE 0x100000
+
 
 /* Specify the memory areas */
 MEMORY
 {
   m_interrupts          (RX)  : ORIGIN = MBED_APP_START, LENGTH = 0x400
   m_flash_config        (RX)  : ORIGIN = MBED_APP_START + 0x400, LENGTH = 0x10
-  m_text                (RX)  : ORIGIN = MBED_APP_START + 0x410, LENGTH = MBED_APP_SIZE - 0x410
+  m_text                (RX)  : ORIGIN = MBED_APP_START + 0x410, LENGTH = MBED_APP_SIZE - MBED_APP_START - FLASH_STORAGE_SIZE - 0x410
   m_config              (R)   : ORIGIN = 0x100000 - FLASH_STORAGE_SIZE, LENGTH = FLASH_STORAGE_SIZE - FLASH_CERT_STORAGE_SIZE
   m_cert                (R)   : ORIGIN = 0x100000 - FLASH_CERT_STORAGE_SIZE, LENGTH = FLASH_CERT_STORAGE_SIZE
   m_data                (RW)  : ORIGIN = 0x1FFF0000, LENGTH = 0x00010000
@@ -392,7 +392,7 @@ SECTIONS
 
   /* Provide the physical memory boundaries for uVisor. */
   __uvisor_flash_start = ORIGIN(m_interrupts);
-  __uvisor_flash_end = ORIGIN(m_text) + LENGTH(m_text) + LENGTH(m_cert);
+  __uvisor_flash_end = ORIGIN(m_text) + LENGTH(m_text) + LENGTH(m_config) + LENGTH(m_cert);
   __uvisor_sram_start = ORIGIN(m_data);
   __uvisor_sram_end = ORIGIN(m_data_2) + LENGTH(m_data_2);
 

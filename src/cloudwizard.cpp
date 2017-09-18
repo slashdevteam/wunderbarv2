@@ -28,7 +28,7 @@ extern "C" WEAK void getCpuId(uint32_t* part0,
 
 // capabilities JSON can be humongous so creating
 // static buffer
-char capabilities[2048] = {0};
+char capabilities[4096] = {0};
 uint8_t buffer[2048] = {0};
 
 bool validateOnboardChoice(char c)
@@ -80,9 +80,14 @@ size_t generateCapabilities(char* caps,
 
     for(auto resource : resources.current)
     {
-        outLen += resource->getSenseSpec(caps + outLen, maxSize - outLen);
+        size_t resSpecLen = resource->getSenseSpec(caps + outLen, maxSize - outLen);
 
-        outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
+        if(resSpecLen > 0)
+        {
+            outLen += resSpecLen;
+            outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
+        }
+
     }
 
     outLen += std::snprintf(caps + outLen - 1,
@@ -90,16 +95,24 @@ size_t generateCapabilities(char* caps,
                                 "],\"actuators\":[");
 
     outLen -= 1;
+
     for(auto resource : resources.current)
     {
-        outLen += resource->getActuateSpec(caps + outLen, maxSize - outLen);
+        size_t resSpecLen = resource->getActuateSpec(caps + outLen, maxSize - outLen);
             
-        outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
+        if(resSpecLen > 0)
+        {
+            outLen += resSpecLen;
+            outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
+        }
     }
 
     outLen += std::snprintf(caps + outLen - 1,
                             maxSize - outLen,
                             "]}");
+
+    outLen -= 1;
+
     return outLen;
 }
 

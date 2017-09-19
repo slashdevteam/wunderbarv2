@@ -65,13 +65,13 @@ int WbBridge::dataToJson(char* outputString, size_t maxLen, const sensor_bridge_
 
 size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
 {
-    const char senseSpecFormat[] = "{"
+    const char senseSpecFormatHead[] = "{"
         "\"name\":\"%s\","
         "\"data\":"
         "["
             "{"
                 "\"name\":\"upstream\","
-                "\"type\" : {"
+                "\"type\": {"
                     "\"type\" : \"array\","
                     "\"maxItems\" : %ld,"
                     "\"items\": {"
@@ -80,17 +80,25 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
                         "\"max\":255"
                             "}"
                     "}"
-            "},"
-            "%s"
+            "},";
+
+    const char senseSpecFormatTail[] = 
         "]"
     "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    senseSpecFormat,
-                    config.name.c_str(),
-                    BRIDGE_PAYLOAD_SIZE,
-                    WunderbarSensor::getSenseSpec());
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  senseSpecFormatHead,
+                                  config.name.c_str(),
+                                  BRIDGE_PAYLOAD_SIZE);
+
+    sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            senseSpecFormatTail);
+
+    return sizeWritten;
 }
 
 size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)

@@ -31,7 +31,7 @@ void WbMicrophone::event(BleEvent _event, const uint8_t* data, size_t len)
 
 size_t WbMicrophone::getSenseSpec(char* dst, size_t maxLen)
 {
-    const char senseSpecFormat[] = "{"
+    const char senseSpecFormatHead[] = "{"
         "\"name\":\"%s\","
         "\"data\":"
         "["
@@ -40,14 +40,22 @@ size_t WbMicrophone::getSenseSpec(char* dst, size_t maxLen)
                 "\"type\":\"integer\","
                 "\"min\":0,"
                 "\"max\":65535"
-            "},"
-            "%s"
+            "},";
+
+    const char senseSpecFormatTail[] = 
         "]"
     "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    senseSpecFormat,
-                    config.name.c_str(),
-                    WunderbarSensor::getSenseSpec());
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  senseSpecFormatHead,
+                                  config.name.c_str());
+
+    sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            senseSpecFormatTail);
+
+    return sizeWritten;
 }

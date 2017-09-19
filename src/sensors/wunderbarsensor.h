@@ -18,8 +18,6 @@ public:
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
-    const char* getSenseSpec();
-
 protected:
     void event(BleEvent _event, const uint8_t* data, size_t len);
 

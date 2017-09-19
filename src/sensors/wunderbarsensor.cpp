@@ -151,31 +151,30 @@ void WunderbarSensor::terminateRawString(char* data)
     }
 }
 
-const char* WunderbarSensor::getSenseSpec()
-{
-    return "{"
-                "\"name\":\"batteryLevel\","
-                "\"type\":\"integer\","
-                "\"min\":0,"
-                "\"max\":100"
-            "},"
-            "{"
-                "\"name\":\"firmware\","
-                "\"type\":\"String\""
-            "},"
-            "{"
-                "\"name\":\"hardware\","
-                "\"type\":\"String\""
-            "},"
-            "{"
-                "\"name\":\"manufacturer\","
-                "\"type\":\"String\""
-            "}";
-}
-
 size_t WunderbarSensor::getSenseSpec(char* dst, size_t maxLen)
 {
-    return 0;
+    const char sensSpecFormat[] = "{"
+        "\"name\":\"batteryLevel\","
+        "\"type\":\"integer\","
+        "\"min\":0,"
+        "\"max\":100"
+    "},"
+    "{"
+        "\"name\":\"firmware\","
+        "\"type\":\"String\""
+    "},"
+    "{"
+        "\"name\":\"hardware\","
+        "\"type\":\"String\""
+    "},"
+    "{"
+        "\"name\":\"manufacturer\","
+        "\"type\":\"String\""
+    "}";
+ 
+    return snprintf(dst,
+                    maxLen,
+                    sensSpecFormat);
 }
 
 size_t WunderbarSensor::getActuateSpec(char* dst, size_t maxLen)

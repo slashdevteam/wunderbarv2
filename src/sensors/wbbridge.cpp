@@ -1,6 +1,7 @@
 #include "wbbridge.h"
 #include "wunderbarsensordatatypes.h"
 #include "wunderbarble.h"
+#include <limits>
 
 WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
@@ -60,4 +61,70 @@ int WbBridge::dataToJson(char* outputString, size_t maxLen, const sensor_bridge_
     }
 
     return totLen;
+}
+
+size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
+{
+    const char senseSpecFormatHead[] = "{"
+        "\"name\":\"%s\","
+        "\"data\":"
+        "["
+            "{"
+                "\"name\":\"upstream\","
+                "\"type\": {"
+                    "\"type\" : \"array\","
+                    "\"maxItems\" : %ld,"
+                    "\"items\": {"
+                        "\"type\":\"integer\","
+                        "\"min\":0,"
+                        "\"max\":255"
+                            "}"
+                    "}"
+            "},";
+
+    const char senseSpecFormatTail[] = 
+        "]"
+    "}";
+
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  senseSpecFormatHead,
+                                  config.name.c_str(),
+                                  BRIDGE_PAYLOAD_SIZE);
+
+    sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            senseSpecFormatTail);
+
+    return sizeWritten;
+}
+
+size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
+{
+    const char actuateSpecFormat[] = "{"
+        "\"name\":\"%s\","
+        "\"data\":"
+        "["
+            "{"
+                "\"name\":\"downstream\","
+                "\"type\" : {"
+                    "\"type\" : \"array\","
+                    "\"maxItems\" : %ld,"
+                    "\"items\": {"
+                        "\"type\":\"integer\","
+                        "\"min\":0,"
+                        "\"max\":255"
+                            "}"
+                    "}"
+            "}"
+        "]"
+    "}";
+     
+    return snprintf(dst,
+                    maxLen,
+                    actuateSpecFormat,
+                    config.name.c_str(),
+                    BRIDGE_PAYLOAD_SIZE);
 }

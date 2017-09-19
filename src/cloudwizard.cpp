@@ -28,7 +28,7 @@ extern "C" WEAK void getCpuId(uint32_t* part0,
 
 // capabilities JSON can be humongous so creating
 // static buffer
-char capabilities[2048] = {0};
+char capabilities[4096] = {0};
 uint8_t buffer[2048] = {0};
 
 bool validateOnboardChoice(char c)
@@ -78,38 +78,50 @@ size_t generateCapabilities(char* caps,
                                 PRODUCT_VERSION,
                                 time(nullptr));
 
+    size_t spurComaLen = 0;
+
     for(auto resource : resources.current)
     {
-        const char* spec = resource->getSenseSpec();
-        if(spec && std::strlen(spec) > 0)
+        size_t resSpecLen = resource->getSenseSpec(caps + outLen, maxSize - outLen);
+
+        if(resSpecLen > 0)
         {
-            outLen += std::snprintf(caps + outLen,
-                                    maxSize - outLen,
-                                    "%s,",
-                                    spec);
+            outLen += resSpecLen;
+            outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
+
+            // i.e. "if there is at least one coma"
+            spurComaLen = 1;
+        }
+    }
+    
+    outLen -= spurComaLen;
+
+    outLen += std::snprintf(caps + outLen,
+                            maxSize - outLen,
+                            "],\"actuators\":[");
+
+    spurComaLen = 0;
+
+    for(auto resource : resources.current)
+    {
+        size_t resSpecLen = resource->getActuateSpec(caps + outLen, maxSize - outLen);
+            
+        if(resSpecLen > 0)
+        {
+            outLen += resSpecLen;
+            outLen += std::snprintf(caps + outLen, maxSize - outLen, ",");
+
+            // i.e. "if there is at least one coma"
+            spurComaLen = 1;
         }
     }
 
-    outLen += std::snprintf(caps + outLen - 1,
-                                maxSize - outLen,
-                                "],\"actuators\":[");
+    outLen -= spurComaLen;
 
-    outLen -= 1;
-    for(auto resource : resources.current)
-    {
-        const char* spec = resource->getActuateSpec();
-        if(spec && std::strlen(spec) > 0)
-        {
-            outLen += std::snprintf(caps + outLen,
-                                    maxSize - outLen,
-                                    "%s,",
-                                    spec);
-        }
-    }
-
-    outLen += std::snprintf(caps + outLen - 1,
+    outLen += std::snprintf(caps + outLen,
                             maxSize - outLen,
                             "]}");
+
     return outLen;
 }
 

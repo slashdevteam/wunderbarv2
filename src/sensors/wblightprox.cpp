@@ -31,3 +31,58 @@ void WbLightProx::event(BleEvent _event, const uint8_t* data, size_t len)
             break;
     }
 }
+
+size_t WbLightProx::getSenseSpec(char* dst, size_t maxLen)
+{
+    const char senseSpecFormatHead  [] = "{"
+        "\"name\":\"%s\","
+        "\"data\":"
+        "["
+            "{"
+                "\"name\":\"red\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":65535"
+            "},"
+            "{"
+                "\"name\":\"green\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":65535"
+            "},"
+            "{"
+                "\"name\":\"blue\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":65535"
+            "},"
+            "{"
+                "\"name\":\"white\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":65535"
+            "},"
+            "{"
+                "\"name\":\"proximity\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":65535"
+            "},";
+
+    const char senseSpecFormatTail[] = 
+        "]"
+    "}";
+
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  senseSpecFormatHead,
+                                  config.name.c_str());
+
+    sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            senseSpecFormatTail);
+
+    return sizeWritten;
+}

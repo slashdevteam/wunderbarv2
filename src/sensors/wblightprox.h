@@ -48,6 +48,8 @@ const char* jsonFormat = "{\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"p
 public:
     WbLightProx(IBleGateway& _gateway, Resources* _resources);
 
+    virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
+
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
     inline int dataToJson(char* outputString, size_t maxLen, const sensor_lightprox_data_t& data)
@@ -59,5 +61,4 @@ private:
                         data.r, data.g, data.b,
                         data.proximity);
     }
-
 };

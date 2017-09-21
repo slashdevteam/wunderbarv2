@@ -8,9 +8,11 @@
 
 #include "Callback.h"
 
+constexpr size_t PASS_KEY_LEN = 8;
 using ServerName = std::string;
 using ServerGapAddress = uint8_t[6];
-using PassKey = std::array<uint8_t, 8>;
+using PassKey = std::array<uint8_t, PASS_KEY_LEN>;
+
 
 enum class BleEvent
 {
@@ -86,6 +88,7 @@ struct CharcteristicDescriptor
         return &uuid;
     }
 } __attribute__((packed));
+
 
 using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
 

@@ -1,10 +1,11 @@
 #include "wbgyro.h"
 #include "wunderbarble.h"
+#include "randompasskey.h"
 
 WbGyro::WbGyro(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_GYRO)),
-                      PassKey(defaultPass),
+                      randomPassKey(),
                       mbed::callback(this, &WbGyro::event),
                       _resources)
 {
@@ -65,7 +66,7 @@ size_t WbGyro::getSenseSpec(char* dst, size_t maxLen)
                     "}"
             "},";
 
-    const char senseSpecFormatTail[] = 
+    const char senseSpecFormatTail[] =
         "]"
     "}";
 

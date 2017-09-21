@@ -1,10 +1,11 @@
 #include "wbmicrophone.h"
 #include "wunderbarble.h"
+#include "randompasskey.h"
 
 WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_SOUND)),
-                      PassKey(defaultPass),
+                      randomPassKey(),
                       mbed::callback(this, &WbMicrophone::event),
                       _resources)
 {
@@ -42,7 +43,7 @@ size_t WbMicrophone::getSenseSpec(char* dst, size_t maxLen)
                 "\"max\":65535"
             "},";
 
-    const char senseSpecFormatTail[] = 
+    const char senseSpecFormatTail[] =
         "]"
     "}";
 

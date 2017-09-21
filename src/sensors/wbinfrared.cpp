@@ -1,11 +1,12 @@
 #include "wbinfrared.h"
 #include "wunderbarsensordatatypes.h"
 #include "wunderbarble.h"
+#include "randompasskey.h"
 
 WbInfraRed::WbInfraRed(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_IR)),
-                      PassKey(defaultPass),
+                      randomPassKey(),
                       mbed::callback(this, &WbInfraRed::event),
                       _resources)
 {
@@ -34,7 +35,7 @@ size_t WbInfraRed::getActuateSpec(char* dst, size_t maxLen)
             "}"
         "]"
     "}";
-     
+
     return snprintf(dst,
                     maxLen,
                     actuateSpecFormat,

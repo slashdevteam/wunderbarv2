@@ -2,5 +2,4 @@
 
 #include "iblegateway.h"
 
-
 PassKey randomPassKey();

@@ -80,6 +80,7 @@ size_t Button::getSenseSpec(char* dst, size_t maxLen)
 {
     const char senseSpecFormat[] =  "{"
                 "\"name\":\"BUTTON\","
+                "\"id\":\"BUTTON\","
                 "\"data\":"
                 "["
                     "{"
@@ -100,6 +101,7 @@ size_t Button::getActuateSpec(char* dst, size_t maxLen)
 {
     const char actuaSpecFormat[] =  "{"
                 "\"name\":\"BUTTON\","
+                "\"id\":\"BUTTON\","
                 "\"data\":"
                 "["
                     "{"

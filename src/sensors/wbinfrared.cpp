@@ -25,6 +25,7 @@ size_t WbInfraRed::getActuateSpec(char* dst, size_t maxLen)
 {
     const char actuateSpecFormat[] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -39,5 +40,6 @@ size_t WbInfraRed::getActuateSpec(char* dst, size_t maxLen)
     return snprintf(dst,
                     maxLen,
                     actuateSpecFormat,
+                    config.name.c_str(),
                     config.name.c_str());
 }

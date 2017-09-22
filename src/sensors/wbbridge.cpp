@@ -68,6 +68,7 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
 {
     const char senseSpecFormatHead[] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -91,6 +92,7 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
                                   maxLen,
                                   senseSpecFormatHead,
                                   config.name.c_str(),
+                                  config.name.c_str(),
                                   BRIDGE_PAYLOAD_SIZE);
 
     sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
@@ -106,6 +108,7 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
 {
     const char actuateSpecFormat[] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -126,6 +129,7 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
     return snprintf(dst,
                     maxLen,
                     actuateSpecFormat,
+                    config.name.c_str(),
                     config.name.c_str(),
                     BRIDGE_PAYLOAD_SIZE);
 }

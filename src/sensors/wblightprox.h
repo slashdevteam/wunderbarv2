@@ -43,7 +43,7 @@ struct sensor_lightprox_data_t
     uint16_t proximity;
 } __attribute__((packed));
 
-const char* jsonFormat = "{\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d}";
+const char* jsonFormat = "\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d";
 
 public:
     WbLightProx(IBleGateway& _gateway, Resources* _resources);

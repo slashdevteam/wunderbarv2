@@ -16,7 +16,7 @@ struct sensor_microphone_data_t
     int16_t mic_level;
 } __attribute__((packed));
 
-const char* jsonFormat = "{\"snd_level\":%d}";
+const char* jsonFormat = "\"snd_level\":%d";
 
 public:
     WbMicrophone(IBleGateway& _gateway, Resources* _resources);

@@ -37,6 +37,7 @@ size_t WbGyro::getSenseSpec(char* dst, size_t maxLen)
 {
     const char senseSpecFormatHead[] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -73,6 +74,7 @@ size_t WbGyro::getSenseSpec(char* dst, size_t maxLen)
     size_t sizeWritten = snprintf(dst,
                                   maxLen,
                                   senseSpecFormatHead,
+                                  config.name.c_str(),
                                   config.name.c_str());
 
     sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);

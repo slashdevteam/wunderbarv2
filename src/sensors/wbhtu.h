@@ -26,11 +26,11 @@ enum sensor_htu_config_t
     HTU21D_RH_11_TEMP11,
 } __attribute__((packed));
 
-const char* jsonFormat = "{\"temp\":%05d,\"hum\":%05d}";
+const char* jsonFormat = "\"temp\":%5d,\"hum\":%5d";
 
 public:
     WbHtu(IBleGateway& _gateway, Resources* _resources);
-    
+
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
 
 private:

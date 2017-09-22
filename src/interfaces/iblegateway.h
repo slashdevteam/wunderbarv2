@@ -108,6 +108,7 @@ public:
                               const size_t len) = 0;
     virtual bool configure() = 0;
     virtual void startOperation() = 0;
+    virtual void stopOperation() = 0;
     virtual bool storeConfig() = 0;
 
     // make non-copyable C++11 style

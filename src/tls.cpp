@@ -76,12 +76,12 @@ static int sslSend(void* ctx, const unsigned char* buf, size_t len)
 
 TLS::TLS(NetworkStack* _network, const TlsConfig& _config, IStdInOut* _log)
     : network(_network),
-      socket(network),
+      socket(nullptr),
+      socketTimeout(DEFAULT_SOCKET_TIMEOUT),
       config(_config),
       log(_log)
 {
     log->printf("%s\n", __PRETTY_FUNCTION__);
-    socket.set_timeout(DEFAULT_SOCKET_TIMEOUT);
     // Used to randomize source port
     unsigned int seed;
     size_t len;
@@ -140,7 +140,11 @@ TLS::~TLS()
 
 void TLS::setTimeout(uint32_t timeoutMs)
 {
-    socket.set_timeout(timeoutMs);
+    socketTimeout = timeoutMs;
+    if(socket)
+    {
+        socket->set_timeout(socketTimeout);
+    }
 }
 
 bool TLS::connect(const char* _server, size_t _port)
@@ -163,9 +167,9 @@ bool TLS::connect(const char* _server, size_t _port)
 
 bool TLS::disconnect()
 {
-    socket.close();
-    int32_t ret = mbedtls_ssl_session_reset(&ssl);
-    return (0 == ret);
+    error = 0;
+    socket.reset(nullptr);
+    return true;
 }
 
 size_t TLS::send(const uint8_t* data, size_t len)
@@ -211,30 +215,33 @@ void TLS::connecting()
         return;
     }
 
+    socket = std::make_unique<TCPSocket>(network);
+    socket->set_timeout(socketTimeout);
+
     mbedtls_ssl_set_bio(&ssl,
-                        static_cast<void*>(&socket),
+                        static_cast<void*>(socket.get()),
                         sslSend,
                         sslRecv,
                         nullptr);
 
-    error = socket.connect(server, port);
+    error = socket->connect(server, port);
     if(error)
     {
-        log->printf("TCP connect fail - %d\r\n", error);
-        socket.close();
+        log->printf("Socket connect fail - %d\r\n", error);
+        socket->close();
         return;
     }
 
     // mbed API lacks Socket event checking (callback is void() and [TCP]Socket does not expose
     // interface for getting socket state/event), so busy polling/listening is needed for MQTT subscriptions :(
     // socketMonitor.start(mbed::callback(this, &TLS::socketSignalThread));
-    // socket.sigio(mbed::callback(this, &TLS::socketSignal));
+    // socket->sigio(mbed::callback(this, &TLS::socketSignal));
 
     error = sslHandshake();
     if(error)
     {
         log->printf("SSL handshake fail - %d\r\n", error);
-        socket.close();
+        socket->close();
         return;
     }
 }

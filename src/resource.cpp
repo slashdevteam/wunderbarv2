@@ -21,7 +21,7 @@ const std::string AckHeader =
 "\"commandID\":\"";
 
 const std::string AckMiddle =
-"\",\"code\":";
+"\",\"code\":\"";
 
 const std::string AckTime =
 "\",\"time\":";
@@ -35,8 +35,8 @@ Resource::Resource(Resources* resources,
     : proto(nullptr),
       subtopic("actuator/" + _subtopic),
       pubtopic("sensor/" + _pubtopic),
-      subscriber(osPriorityNormal, 0x400),
-      publisher(osPriorityNormal, 0x400)
+      subscriber(nullptr),
+      publisher(nullptr)
 {
     resources->registerResource(this);
 }
@@ -44,7 +44,15 @@ Resource::Resource(Resources* resources,
 void Resource::advertise(IPubSub* _proto)
 {
     proto = _proto;
-    publisher.start(mbed::callback(this, &Resource::publishThread));
+    publisher = std::make_unique<rtos::Thread>(osPriorityNormal, 0x400);
+    publisher->start(mbed::callback(this, &Resource::publishThread));
+}
+
+void Resource::stopAdvertise()
+{
+    publisher.reset(nullptr);
+    subscriber.reset(nullptr);
+    proto = nullptr;
 }
 
 bool Resource::publish(const std::string& topic, const char* data, MessageDoneCallback doneCallback)
@@ -87,13 +95,14 @@ bool Resource::subscribe()
 void Resource::subscribeDone(bool status)
 {
     subscribed = status;
-    subscriber.start(mbed::callback(this, &Resource::subscribeThread));
+    subscriber = std::make_unique<rtos::Thread>(osPriorityNormal, 0x400);
+    subscriber->start(mbed::callback(this, &Resource::subscribeThread));
 }
 
 void Resource::subscribeCallback(const uint8_t* data, size_t len)
 {
     std::memcpy(subscribeContent, data, len);
-    subscriber.signal_set(NEW_SUB_SIGNAL);
+    subscriber->signal_set(NEW_SUB_SIGNAL);
 }
 
 bool Resource::parseSubscription(std::string& commandID, std::string& data)
@@ -151,12 +160,12 @@ int Resource::handleCommand(const char* data)
 
 void Resource::ackDone(bool status)
 {
-    subscriber.signal_set(ACK_DONE_SIGNAL);
+    subscriber->signal_set(ACK_DONE_SIGNAL);
 }
 
 void Resource::writeDone()
 {
-    subscriber.signal_set(SUB_DATA_DONE_SIGNAL);
+    subscriber->signal_set(SUB_DATA_DONE_SIGNAL);
 }
 
 void Resource::publishThread()
@@ -171,10 +180,10 @@ void Resource::publishThread()
 
 void Resource::publishDone(bool status)
 {
-    publisher.signal_set(PUBLISH_DONE_SIGNAL);
+    publisher->signal_set(PUBLISH_DONE_SIGNAL);
 }
 
 void Resource::publish()
 {
-    publisher.signal_set(NEW_PUB_SIGNAL);
+    publisher->signal_set(NEW_PUB_SIGNAL);
 }

@@ -31,6 +31,7 @@ public:
                            MessageDoneCallback doneCallback,
                            MessageDataCallback callback) = 0;
 
+    virtual void loop() = 0;
     // make non-copyable C++11 style
     IPubSub(const IPubSub& other) = delete;
     IPubSub& operator=(const IPubSub&) = delete;

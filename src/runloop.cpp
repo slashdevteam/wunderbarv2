@@ -67,6 +67,16 @@ private:
                 }
                 log.printf("Starting BLE\n");
                 ble.startOperation();
+
+                // blocks while MQTT is connected
+                mqtt.loop();
+
+                // clean-up when MQTT is disconnected
+                ble.stopOperation();
+                for(auto resource : resources.current)
+                {
+                    resource->stopAdvertise();
+                }
             }
             else
             {
@@ -79,11 +89,6 @@ private:
         {
             log.printf("Connection to %s network failed with status %d\r\n", config.wifi.ssid, status);
             return;
-        }
-
-        while(true)
-        {
-            wait(2);
         }
     }
 

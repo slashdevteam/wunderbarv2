@@ -2,11 +2,12 @@
 #include "wunderbarsensordatatypes.h"
 #include "wunderbarble.h"
 #include <limits>
+#include "randompasskey.h"
 
 WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),
-                      PassKey(defaultPass),
+                      randomPassKey(),
                       mbed::callback(this, &WbBridge::event),
                       _resources)
 {
@@ -67,6 +68,7 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
 {
     const char senseSpecFormatHead[] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -82,13 +84,14 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
                     "}"
             "},";
 
-    const char senseSpecFormatTail[] = 
+    const char senseSpecFormatTail[] =
         "]"
     "}";
 
     size_t sizeWritten = snprintf(dst,
                                   maxLen,
                                   senseSpecFormatHead,
+                                  config.name.c_str(),
                                   config.name.c_str(),
                                   BRIDGE_PAYLOAD_SIZE);
 
@@ -105,6 +108,7 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
 {
     const char actuateSpecFormat[] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -121,10 +125,11 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
             "}"
         "]"
     "}";
-     
+
     return snprintf(dst,
                     maxLen,
                     actuateSpecFormat,
+                    config.name.c_str(),
                     config.name.c_str(),
                     BRIDGE_PAYLOAD_SIZE);
 }

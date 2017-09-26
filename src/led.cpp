@@ -30,6 +30,12 @@ void Led::advertise(IPubSub* _proto)
     pubTick.attach(mbed::callback(this, &Led::readAndPub), 10.0);
 }
 
+void Led::stopAdvertise()
+{
+    pubTick.detach();
+    Resource::stopAdvertise();
+}
+
 int Led::handleCommand(const char* data)
 {
     int retCode = 400; // Bad Request
@@ -86,6 +92,7 @@ size_t Led::getSenseSpec(char* dst, size_t maxLen)
 {
     const char senseSpecFormat[] = "{"
                 "\"name\":\"LED\","
+                "\"id\":\"LED\","
                 "\"data\":"
                 "["
                     "{"
@@ -106,6 +113,7 @@ size_t Led::getActuateSpec(char* dst, size_t maxLen)
 {
     const char actuaSpecFormat[] = "{"
                 "\"name\":\"LED\","
+                "\"id\":\"LED\","
                 "\"data\":"
                 "["
                     "{"

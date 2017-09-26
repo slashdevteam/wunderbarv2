@@ -1,10 +1,11 @@
 #include "wbhtu.h"
 #include "wunderbarble.h"
+#include "randompasskey.h"
 
 WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_HTU)),
-                      PassKey(defaultPass),
+                      randomPassKey(),
                       mbed::callback(this, &WbHtu::event),
                       _resources)
 {
@@ -36,6 +37,7 @@ size_t WbHtu::getSenseSpec(char* dst, size_t maxLen)
 {
     const char senseSpecFormatHead[] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -51,13 +53,14 @@ size_t WbHtu::getSenseSpec(char* dst, size_t maxLen)
                 "\"max\":100"
             "},";
 
-    const char senseSpecFormatTail[] = 
+    const char senseSpecFormatTail[] =
         "]"
     "}";
 
     size_t sizeWritten = snprintf(dst,
                                   maxLen,
                                   senseSpecFormatHead,
+                                  config.name.c_str(),
                                   config.name.c_str());
 
     sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);

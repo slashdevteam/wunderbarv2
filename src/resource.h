@@ -7,6 +7,8 @@
 
 const uint32_t MQTT_MSG_PAYLOAD_SIZE = 500;
 
+using ThreadHandle = std::unique_ptr<rtos::Thread>;
+
 class IPubSub;
 class Resources;
 
@@ -19,6 +21,7 @@ public:
     virtual ~Resource() {};
 
     virtual void advertise(IPubSub* _proto);
+    virtual void stopAdvertise();
     bool subscribe();
     void publish();
     bool acknowledge(const std::string& _command,
@@ -60,7 +63,7 @@ private:
 
     const std::string subtopic;
     const std::string pubtopic;
-    rtos::Thread subscriber;
-    rtos::Thread publisher;
+    ThreadHandle subscriber;
+    ThreadHandle publisher;
     volatile bool subscribed;
 };

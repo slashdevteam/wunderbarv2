@@ -10,6 +10,9 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 
+#include <memory>
+using SocketHandle = std::unique_ptr<TCPSocket>;
+
 class NetworkStack;
 class IStdInOut;
 
@@ -52,7 +55,8 @@ private:
 
 private:
     NetworkStack* network;
-    TCPSocket socket;
+    SocketHandle socket;
+    uint32_t socketTimeout;
     const TlsConfig& config;
     IStdInOut* log;
     char server[60];

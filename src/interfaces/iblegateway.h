@@ -8,9 +8,11 @@
 
 #include "Callback.h"
 
+constexpr size_t PASS_KEY_LEN = 8;
 using ServerName = std::string;
 using ServerGapAddress = uint8_t[6];
-using PassKey = std::array<uint8_t, 8>;
+using PassKey = std::array<uint8_t, PASS_KEY_LEN>;
+
 
 enum class BleEvent
 {
@@ -87,6 +89,7 @@ struct CharcteristicDescriptor
     }
 } __attribute__((packed));
 
+
 using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
 
 class IBleGateway
@@ -105,6 +108,7 @@ public:
                               const size_t len) = 0;
     virtual bool configure() = 0;
     virtual void startOperation() = 0;
+    virtual void stopOperation() = 0;
     virtual bool storeConfig() = 0;
 
     // make non-copyable C++11 style

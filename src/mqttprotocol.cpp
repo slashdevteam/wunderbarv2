@@ -50,18 +50,28 @@ MqttProtocol::~MqttProtocol()
     disconnect();
 }
 
+bool MqttProtocol::isConnected()
+{
+    return MQTT_STATUS::OK == error;
+}
+
+void MqttProtocol::loop()
+{
+    if(0 == error)
+    {
+        // ready to start busy polling on tcpSocket
+        dispatcher.start(mbed::callback(this, &MqttProtocol::dispatch));
+        dispatcher.join();
+    }
+}
+
 bool MqttProtocol::connect()
 {
     rtos::Thread connector(osPriorityNormal, 0x1000);
     connector.start(mbed::callback(this, &MqttProtocol::connecting));
     connector.join();
     log->printf("Connection status %d\n", error);
-    if(0 == error)
-    {
-        // ready to start busy polling on tcpSocket
-        dispatcher.start(mbed::callback(this, &MqttProtocol::dispatch));
-    }
-    else
+    if(0 != error)
     {
         transport->disconnect();
     }
@@ -212,6 +222,11 @@ void MqttProtocol::dispatch()
         {
             ping();
         }
+
+        if(!isConnected())
+        {
+            break;
+        }
     }
 }
 
@@ -282,12 +297,14 @@ void MqttProtocol::ping()
     else
     {
         log->printf("Ping FAILED!\r\n");
+        handleError();
     }
 }
 
 void MqttProtocol::handleMessageQueue()
 {
     osEvent msg = upstreamQueue.get(10);
+
     if(osEventMessage == msg.status)
     {
         MessageTuple& message = *reinterpret_cast<MessageTuple*>(msg.value.p);
@@ -324,6 +341,10 @@ void MqttProtocol::handleMessageQueue()
         if(messageOk)
         {
             resetKeepAlive();
+        }
+        else
+        {
+            handleError();
         }
         log->printf("%s\r\n", messageOk ? "OK" : "ERROR");
     }
@@ -394,6 +415,17 @@ bool MqttProtocol::sendSubscribe(const MQTTString& topic, MessageTuple& message)
 
     std::get<4>(message)(ret);
     return ret;
+}
+
+void MqttProtocol::handleError()
+{
+    // GS1500M reports an error when it's already too late
+    // so we reconnect again on new socket
+    transport->disconnect();
+    log->printf("Reconnecting to MQTT!\r\n");
+    connecting();
+
+    // if this fails, MqttProtocol::loop will end and WiFi connection will be reestablished
 }
 
 bool MqttProtocol::sendPacket(size_t length)

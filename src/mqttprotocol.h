@@ -72,7 +72,7 @@ public:
     virtual bool subscribe(const uint8_t* source,
                            MessageDoneCallback doneCallback,
                            MessageDataCallback callback) override;
-
+    virtual void loop() override;
     // MQTT specific
     void setPingPeriod(int everyMs);
 
@@ -84,7 +84,9 @@ private:
     void lock();
     void unlock();
     void connecting();
+    bool isConnected();
     void dispatch();
+    void handleError();
 
     // MQTT specific
     void handleSubscriptions();

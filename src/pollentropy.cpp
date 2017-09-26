@@ -11,10 +11,10 @@ int pollEntropy(void *,
     uint32_t rdm = 0;
 
     rdm = time(nullptr);
+    srand(rdm);
 
     for(uint16_t i = 0; i < len; ++i)
     {
-        srand(rdm);
         output[i] = rand() & 0xFF;
     }
     *olen = len;

@@ -1,10 +1,11 @@
 #include "wblightprox.h"
 #include "wunderbarble.h"
+#include "randompasskey.h"
 
 WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_LIGHT)),
-                      PassKey(defaultPass),
+                      randomPassKey(),
                       mbed::callback(this, &WbLightProx::event),
                       _resources)
 {
@@ -36,6 +37,7 @@ size_t WbLightProx::getSenseSpec(char* dst, size_t maxLen)
 {
     const char senseSpecFormatHead  [] = "{"
         "\"name\":\"%s\","
+        "\"id\":\"%s\","
         "\"data\":"
         "["
             "{"
@@ -69,13 +71,14 @@ size_t WbLightProx::getSenseSpec(char* dst, size_t maxLen)
                 "\"max\":65535"
             "},";
 
-    const char senseSpecFormatTail[] = 
+    const char senseSpecFormatTail[] =
         "]"
     "}";
 
     size_t sizeWritten = snprintf(dst,
                                   maxLen,
                                   senseSpecFormatHead,
+                                  config.name.c_str(),
                                   config.name.c_str());
 
     sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);

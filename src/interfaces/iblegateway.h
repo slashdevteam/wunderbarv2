@@ -89,6 +89,18 @@ struct CharcteristicDescriptor
     }
 } __attribute__((packed));
 
+enum class SensorAvailability : uint8_t
+{
+    NOT_CHECKED  = 0x0,
+    AVAILABLE  = 0x1,
+    NOT_AVAILABLE = 0x2,
+    IGNORE = 0x3
+};
+
+struct BleConfig
+{
+    SensorAvailability sensorAvailability[6];
+} __attribute__ ((__packed__));
 
 using BleServerCallback = mbed::Callback<void(BleEvent, const uint8_t*, size_t)>;
 
@@ -106,7 +118,9 @@ public:
                               uint16_t bleCharUuid,
                               const uint8_t* data,
                               const size_t len) = 0;
-    virtual bool configure() = 0;
+    virtual bool configure(const BleConfig& bleConfig) = 0;
+    virtual bool onboard(BleConfig& config) = 0;
+    virtual void setTimeout(uint32_t timeout) = 0;
     virtual void startOperation() = 0;
     virtual void stopOperation() = 0;
     virtual bool storeConfig() = 0;

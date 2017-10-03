@@ -39,10 +39,11 @@ static uint8_t error_in_progress = 0;
 extern "C" void error(const char* format, ...)
 {
     // Prevent recursion if error is called again
-    if (error_in_progress)
+    if(error_in_progress)
     {
         return;
     }
+    error_in_progress = 1;
     std::va_list arg;
     va_start(arg, format);
     cdcVPrintf(format, arg);

@@ -14,10 +14,13 @@ void ProgressBar::show()
 {
     while(true)
     {
-        log.printf(".");
+        if(!silent)
+        {
+            log.printf(".");
+        }
         led = !led;
-        osEvent evt = rtos::Thread::signal_wait(ProgressBar::KILL_SIG, 600);
-        if(evt.status == osOK)
+        osEvent evt = rtos::Thread::signal_wait(ProgressBar::KILL_SIG, period);
+        if(evt.status == osEventSignal)
         {
             break;
         }
@@ -47,6 +50,10 @@ bool readField(IStdInOut& log,
         {
             // echo back to terminal
             log.putc(newChar);
+        }
+        else
+        {
+            log.putc('*');
         }
         // blink led on character entry
         led = !led;
@@ -177,4 +184,50 @@ bool isCharPrintableAscii(char c)
     }
 
     return valid;
+}
+
+void waitForEnter(IStdInOut& log)
+{
+    char userInput = 0;
+    do
+    {
+        userInput = log.getc();
+    }
+    while('\n' != userInput && '\r' != userInput);
+    log.printf("\r\n");
+}
+
+bool validateDecision(char c)
+{
+    bool valid = false;
+
+    if(('Y' == c) || ('N' == c))
+    {
+        valid = true;
+    }
+
+    return valid;
+}
+
+bool agree(IStdInOut& log, mbed::DigitalOut& led)
+{
+    bool agreed = false;
+    char decision[2] = "N";
+    bool decisionValid = false;
+    while(!decisionValid)
+    {
+        decisionValid = readField(log,
+                                  decision,
+                                  1,
+                                  1,
+                                  decision,
+                                  &validateDecision,
+                                  true,
+                                  led);
+    }
+    if(0 == std::strncmp(decision, "Y", 1))
+    {
+        agreed = true;
+    }
+    return agreed;
 }

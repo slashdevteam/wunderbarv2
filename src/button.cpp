@@ -2,17 +2,38 @@
 #include "jsmn.h"
 #include "jsondecode.h"
 #include "flash.h"
+#include "loopsutil.h"
 
 extern Flash flash;
+
+const int32_t BUTTON_PRESSED = 0x1;
+const int32_t BUTTON_RELEASED = 0x2;
+const int BUTTON_RESET_TIME_MS = 5000;
 
 Button::Button(Resources* _resources, const std::string& name, PinName _pin)
     : Resource(_resources,
                name,
                name),
       counter(0),
-      buttonIrq(_pin)
+      buttonIrq(_pin),
+      buttonIrqTiming(osPriorityNormal, 0x300)
 {
-    buttonIrq.fall(mbed::callback(this, &Button::irqCounter));
+    // Threads cannot be started from IRQ callbacks, so button press timing thread
+    // needs to be started here
+    buttonIrqTiming.start(mbed::callback(this, &Button::waitForRise));
+    buttonIrq.fall(mbed::callback(this, &Button::irqFall));
+    buttonIrq.rise(mbed::callback(this, &Button::irqRise));
+}
+
+void Button::irqFall()
+{
+    buttonIrqTiming.signal_set(BUTTON_PRESSED);
+    irqCounter();
+}
+
+void Button::irqRise()
+{
+    buttonIrqTiming.signal_set(BUTTON_RELEASED);
 }
 
 void Button::irqCounter()
@@ -21,6 +42,39 @@ void Button::irqCounter()
     const char pubFormat[] = "\"count\":%u";
     snprintf(publishContent, sizeof(publishContent), pubFormat, counter);
     publish();
+}
+
+void Button::waitForRise()
+{
+    while(true)
+    {
+        // wait forever for BUTTON_PRESSED
+        rtos::Thread::signal_wait(BUTTON_PRESSED);
+
+        // wait for BUTTON_RELEASED
+        osEvent waitEvent;
+        waitEvent = rtos::Thread::signal_wait(BUTTON_RELEASED, BUTTON_RESET_TIME_MS);
+        // if button is pressed for more than BUTTON_RESET_TIME_MS
+        // indicate to user that WB is primed for clearing onboarding
+        if(osEventTimeout == waitEvent.status)
+        {
+            IStdInOut devNull;
+            mbed::DigitalOut led(LED1);
+            ProgressBar progressBar(devNull, led, true, 30);
+            progressBar.start();
+            // wait forever for BUTTON_RELEASED
+            rtos::Thread::signal_wait(BUTTON_RELEASED);
+            // clear onboarding
+            clearFlash();
+        }
+    }
+
+}
+
+void Button::clearFlash()
+{
+    flash.resetHeader();
+    NVIC_SystemReset();
 }
 
 int Button::handleCommand(const char* data)
@@ -44,21 +98,7 @@ bool Button::parseCommand(const char* data)
     if(message)
     {
         char valueBuffer[1];
-        if(message.copyTo("resetOnboarding", valueBuffer, 1))
-        {
-            int value = std::atoi(valueBuffer);
-            if(value == 1)
-            {
-                flash.resetHeader();
-                NVIC_SystemReset();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if(message.copyTo("resetCounter", valueBuffer, 1))
+        if(message.copyTo("resetCounter", valueBuffer, 1))
         {
             int value = std::atoi(valueBuffer);
             if(value == 1)
@@ -106,12 +146,6 @@ size_t Button::getActuateSpec(char* dst, size_t maxLen)
                 "["
                     "{"
                         "\"name\":\"resetCounter\","
-                        "\"type\":\"integer\","
-                        "\"min\":1,"
-                        "\"max\":1"
-                    "},"
-                    "{"
-                        "\"name\":\"resetOnboarding\","
                         "\"type\":\"integer\","
                         "\"min\":1,"
                         "\"max\":1"

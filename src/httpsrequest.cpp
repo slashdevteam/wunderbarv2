@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 HttpsRequest::HttpsRequest(ITransportLayer& _transport,
                            const char* _method,
@@ -36,6 +37,10 @@ bool HttpsRequest::send()
     bool success = false;
     if(transport.connect(server, port))
     {
+        if(body)
+        {
+            setHeader("Content-Length", std::to_string(std::strlen(body)).c_str());
+        }
         out[idx] = '\n';
         success = sendData(out, idx + HEADER_BODY_DELIM_LEN);
         if(success && body)

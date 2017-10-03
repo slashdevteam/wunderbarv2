@@ -93,7 +93,7 @@ size_t generateCapabilities(char* caps,
             spurComaLen = 1;
         }
     }
-    
+
     outLen -= spurComaLen;
 
     outLen += std::snprintf(caps + outLen,
@@ -105,7 +105,7 @@ size_t generateCapabilities(char* caps,
     for(auto resource : resources.current)
     {
         size_t resSpecLen = resource->getActuateSpec(caps + outLen, maxSize - outLen);
-            
+
         if(resSpecLen > 0)
         {
             outLen += resSpecLen;
@@ -125,61 +125,26 @@ size_t generateCapabilities(char* caps,
     return outLen;
 }
 
-#include "mbed_stats.h"
-
-bool deviceRegistration(IStdInOut& log,
-                        NetworkStack* net,
-                        MqttConfig& mqttConfig,
-                        TlsConfig& tlsConfig,
-                        RestConfig& restConfig,
-                        mbed::DigitalOut& led)
+bool getCredentials(IStdInOut& log,
+                    NetworkStack* net,
+                    const char* userName,
+                    const char* token,
+                    MqttConfig& mqttConfig,
+                    TlsConfig& tlsConfig,
+                    RestConfig& restConfig,
+                    mbed::DigitalOut& led)
 {
-    // collect username & token & device name
-    mbed_stats_heap_t heap_stats;
-    mbed_stats_heap_get(&heap_stats);
-
-    mbed_stats_stack_t stack_stats;
-    mbed_stats_stack_get(&stack_stats);
-
-    bool responseOk = false;
-    bool userNameOk = false;
-    bool tokenOk = false;
-    bool deviceNameOk = false;
-    char userName[30] = {0};
-    char token[9] = {0};
-    char deviceName[10] = {0};
-
-    while(!userNameOk)
-    {
-        log.printf("Please enter your user email:\r\n");
-        userNameOk = readField(log, userName, 5, 30, userName, &isCharPrintableAscii, true, led);
-    }
-
-    while(!tokenOk)
-    {
-        log.printf("Please enter your token:\r\n");
-        tokenOk = readField(log, token, 6, 8, token, &isCharPrintableAscii, true, led);
-    }
-
-    while(!deviceNameOk)
-    {
-        log.printf("Please enter your device name:\r\n");
-        deviceNameOk = readField(log, deviceName, 1, 10, deviceName, &isCharPrintableAscii, true, led);
-    }
-
-    restConfig.tls.caCert = reinterpret_cast<const uint8_t*>(REST_CA_CHAIN);
-    restConfig.tls.deviceCert = nullptr;
-    restConfig.tls.key = nullptr;
-    restConfig.tls.authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
-    std::memcpy(&restConfig.tls.deviceId, deviceName, sizeof(deviceName));
-    TLS tls(net, restConfig.tls, &log);
+    bool credentialsOk = false;
+    IStdInOut devNull;
+    TLS tls(net, restConfig.tls, &devNull);
     std::memcpy(&restConfig.path, REST_API_PATH, sizeof(REST_API_PATH));
     std::memcpy(&restConfig.server, REST_SERVER, sizeof(REST_SERVER));
     std::memcpy(&restConfig.token, VENDOR_TOKEN, sizeof(VENDOR_TOKEN));
     restConfig.port = REST_PORT;
     std::string registrationUrl(restConfig.path);
     registrationUrl.append("raspberry/email=").append(userName).append("/devices/getCredentials");
-    log.printf("Contacting %s\r\n", registrationUrl.c_str());
+    log.printf("\r\nRequesting MQTT credentials.");
+    log.printf("\r\nContacting %s\r\n", registrationUrl.c_str());
     HttpsRequest request(tls, "GET", restConfig.server, restConfig.port, registrationUrl.c_str(), nullptr);
     request.setHeader("X-AUTH-TOKEN", restConfig.token);
     request.setHeader("shortToken", token);
@@ -187,20 +152,17 @@ bool deviceRegistration(IStdInOut& log,
     request.setHeader("Accept-Encoding", "gzip, deflate");
     request.setHeader("Accept-Language", "en-us");
 
+
+    ProgressBar progressBar(log, led, false, 133);
+    progressBar.start();
     if(request.send())
     {
         if(request.recv(buffer, sizeof(buffer)))
         {
             HttpParser response(reinterpret_cast<const char*>(buffer));
-            log.printf("STATUS: %d\r\n", response.status);
             if(response)
             {
-                log.printf("BODY: %s\r\n", response.body);
                 char userId[40] = {0};
-                char serialNo[40] = {0};
-                uint32_t part0, part1, part2, part3;
-                getCpuId(&part0, &part1, &part2, &part3);
-                snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
                 char deviceId[30] = {0};
                 char authToken[256] = {0};
                 JsonDecode message(response.body, 16);
@@ -209,15 +171,6 @@ bool deviceRegistration(IStdInOut& log,
                     message.copyTo("userId", userId, sizeof(userId));
                     message.copyTo("deviceId", deviceId, sizeof(deviceId));
                     message.copyTo("authToken", authToken, sizeof(authToken));
-                    // generate it for user knowledge till an API for Wunderbar is available
-                    generateCapabilities(capabilities,
-                                         sizeof(capabilities),
-                                         userId,
-                                         serialNo,
-                                         deviceName,
-                                         deviceId,
-                                         authToken);
-                    log.printf("Current device capabilities: %s \r\n", capabilities);
                     // prepare configuration
                     tlsConfig.caCert = reinterpret_cast<const uint8_t*>(MQTT_CERT);
                     tlsConfig.deviceCert = nullptr;
@@ -231,29 +184,174 @@ bool deviceRegistration(IStdInOut& log,
                     std::memcpy(&mqttConfig.userId, userId, std::strlen(userId));
                     std::memcpy(&mqttConfig.password, authToken, std::strlen(authToken));
 
-                    responseOk = true;
+                    credentialsOk = true;
                 }
                 else
                 {
-                    log.printf("Invalid data from %s\r\n", REST_SERVER);
+                    log.printf("\r\nInvalid data from %s.\r\n", REST_SERVER);
                 }
             }
             else
             {
-                log.printf("Error response from %s - %d: %s\r\n", REST_SERVER, response.status, response.statusString);
+                log.printf("\r\nError response from %s - %d: %.15s.\r\n", REST_SERVER, response.status, response.statusString);
             }
         }
         else
         {
-            log.printf("No reply from %s\r\n", REST_SERVER);
+            log.printf("\r\nNo reply from %s.\r\n", REST_SERVER);
         }
     }
     else
     {
-        log.printf("Unable to connect to %s\r\n", REST_SERVER);
+        log.printf("\r\nUnable to send data to %s.\r\n", REST_SERVER);
+    }
+    progressBar.terminate();
+
+    return credentialsOk;
+}
+
+bool setDeviceDescription(IStdInOut& log,
+                          NetworkStack* net,
+                          const char* deviceName,
+                          MqttConfig& mqttConfig,
+                          RestConfig& restConfig,
+                          mbed::DigitalOut& led)
+{
+    char serialNo[40] = {0};
+    uint32_t part0, part1, part2, part3;
+    getCpuId(&part0, &part1, &part2, &part3);
+    snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
+
+    generateCapabilities(capabilities,
+                         sizeof(capabilities),
+                         mqttConfig.userId,
+                         serialNo,
+                         deviceName,
+                         mqttConfig.clientId,
+                         mqttConfig.password);
+    log.printf("\r\nUpdating device capabilities.\r\n");
+
+    bool capabilitiesOk = false;
+    IStdInOut devNull;
+    TLS tls(net, restConfig.tls, &devNull);
+    std::memcpy(&restConfig.path, REST_API_PATH, sizeof(REST_API_PATH));
+    std::memcpy(&restConfig.server, REST_SERVER, sizeof(REST_SERVER));
+    std::memcpy(&restConfig.token, VENDOR_TOKEN, sizeof(VENDOR_TOKEN));
+    restConfig.port = REST_PORT;
+    std::string registrationUrl(restConfig.path);
+    registrationUrl.append("users/email=").append(mqttConfig.userId).append("/devices/");
+    log.printf("Contacting %s\r\n", registrationUrl.c_str());
+    HttpsRequest request(tls, "PUT", restConfig.server, restConfig.port, registrationUrl.c_str(), capabilities);
+    request.setHeader("X-AUTH-TOKEN", restConfig.token);
+
+    ProgressBar progressBar(log, led, false, 133);
+    progressBar.start();
+    if(request.send())
+    {
+        if(request.recv(buffer, sizeof(buffer)))
+        {
+            HttpParser response(reinterpret_cast<const char*>(buffer));
+            if(response)
+            {
+                capabilitiesOk = true;
+            }
+            else
+            {
+                log.printf("\r\nError response from %s - %d: %.15s.\r\n", REST_SERVER, response.status, response.statusString);
+            }
+        }
+        else
+        {
+            log.printf("\r\nNo reply from %s.\r\n", REST_SERVER);
+        }
+    }
+    else
+    {
+        log.printf("\r\nUnable to send data to %s.\r\n", REST_SERVER);
+    }
+    progressBar.terminate();
+
+    return capabilitiesOk;
+}
+
+bool deviceRegistration(IStdInOut& log,
+                        NetworkStack* net,
+                        MqttConfig& mqttConfig,
+                        TlsConfig& tlsConfig,
+                        RestConfig& restConfig,
+                        mbed::DigitalOut& led)
+{
+    bool cloudOk = false;
+    // collect username & token & device name
+
+    bool userNameOk = false;
+    bool tokenOk = false;
+    bool deviceNameOk = false;
+    bool credentialsOk = false;
+    bool deviceDescriptionOk = false;
+    char userName[30] = {0};
+    char token[9] = {0};
+    char deviceName[10] = {0};
+
+    log.printf("\r\nRegistering device using your user email and token.\r\n");
+    while(!cloudOk)
+    {
+        while(!userNameOk)
+        {
+            log.printf("Please enter your user email:\r\n");
+            userNameOk = readField(log, userName, 5, 30, userName, &isCharPrintableAscii, true, led);
+        }
+
+        while(!tokenOk)
+        {
+            log.printf("Please enter your token:\r\n");
+            tokenOk = readField(log, token, 6, 8, token, &isCharPrintableAscii, true, led);
+        }
+
+        while(!deviceNameOk)
+        {
+            log.printf("Please enter your device name:\r\n");
+            deviceNameOk = readField(log, deviceName, 1, 10, deviceName, &isCharPrintableAscii, true, led);
+        }
+
+        // configure TLS for REST calls
+        restConfig.tls.caCert = reinterpret_cast<const uint8_t*>(REST_CA_CHAIN);
+        restConfig.tls.deviceCert = nullptr;
+        restConfig.tls.key = nullptr;
+        restConfig.tls.authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
+        std::memcpy(&restConfig.tls.deviceId, deviceName, sizeof(deviceName));
+
+        while(!credentialsOk)
+        {
+            credentialsOk = getCredentials(log, net, userName, token, mqttConfig, tlsConfig, restConfig, led);
+            if(!credentialsOk)
+            {
+                log.printf("Try again? (Y/N)\r\n");
+                if(!agree(log, led))
+                {
+                    return false;
+                }
+            }
+        }
+
+        while(!deviceDescriptionOk)
+        {
+            deviceDescriptionOk = setDeviceDescription(log, net, deviceName, mqttConfig, restConfig, led);
+            // this will currently fail, as it requires an FB-USER-TOKEN unknown to Wunderbar
+            if(!deviceDescriptionOk)
+            {
+                log.printf("Try again? (Y/N)\r\n");
+                if(!agree(log, led))
+                {
+                    return credentialsOk;
+                }
+            }
+        }
+
+        cloudOk = credentialsOk;
     }
 
-    return responseOk;
+    return cloudOk;
 }
 
 bool cloudWizard(NetworkStack* net,
@@ -263,30 +361,31 @@ bool cloudWizard(NetworkStack* net,
                  mbed::DigitalOut& led,
                  IStdInOut& log)
 {
-    bool cloudOk = false;
     bool mqttOk = false;
-    log.printf("\r\n\r\nNow we will setup communication with cloud.\r\n");
+    log.printf("\r\n\r\nNow we will setup communication with Conrad Connect.\r\n");
 
-    log.printf("Registering device using your user email and token\r\n");
-    while(!cloudOk)
+    if(deviceRegistration(log, net, mqttConfig, tlsConfig, restConfig, led))
     {
-        cloudOk = deviceRegistration(log, net, mqttConfig, tlsConfig, restConfig, led);
-    }
-
-    while(!mqttOk)
-    {
-        TLS tls(net, tlsConfig, &log);
-        MqttProtocol  mqtt(&tls, mqttConfig, &log);
-        mqttOk = mqtt.connect();
-        if(!mqttOk)
+        while(!mqttOk)
         {
-            log.printf("MQTT connection failed. Trying again in 1s\r\n");
-            wait(1);
-            // @TODO: maybe ask user should we continue or abort?
+            IStdInOut devNull;
+            TLS tls(net, tlsConfig, &devNull);
+            MqttProtocol  mqtt(&tls, mqttConfig, &devNull);
+            log.printf("Testing connection to MQTT.\r\n");
+            mqttOk = mqtt.connect();
+            if(!mqttOk)
+            {
+                log.printf("MQTT connection failed.\r\n");
+                log.printf("Try again? (Y/N)\r\n");
+                if(!agree(log, led))
+                {
+                    break;
+                }
+            }
         }
+        log.printf("\r\nPerfect! WunderBar successfully connected to MQTT server: %s\r\n", mqttConfig.server);
+        log.printf("Your device name is: %s\r\n", mqttConfig.clientId);
     }
-    log.printf("\r\nPerfect! WunderBar successfully connected to MQTT server: %s\r\n", mqttConfig.server);
-    log.printf("Your device name is: %s\r\n", mqttConfig.clientId);
 
-    return true;
+    return mqttOk;
 }

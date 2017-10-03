@@ -9,6 +9,8 @@
 #include "flash.h"
 #include "mbed_wait_api.h"
 
+using OnboardStep = mbed::Callback<bool(wunderbar::Configuration&)>;
+
 class Onboarder
 {
 public:
@@ -18,8 +20,14 @@ public:
           ble(_ble),
           wifi(_wifi),
           net(_net),
-          executor(osPriorityNormal, 0x6000)
-    {}
+          executor(osPriorityNormal, 0x6000),
+          steps{mbed::callback(this, &Onboarder::wifiStep),
+                mbed::callback(this, &Onboarder::bleStep),
+                mbed::callback(this, &Onboarder::cloudStep)},
+          stepStatus{false, false, false},
+          led(LED1)
+    {
+    }
 
     void run()
     {
@@ -31,30 +39,103 @@ private:
     void onboard()
     {
         // let's wait till stdio is connected
-        mbed::DigitalOut led(LED1);
-        while(-1 == log.putc('\n'))
-        {
-            wait(0.3);
-            led = !led;
-        }
+        waitForUser();
+        welcomeUser();
 
         // configuration can be big and we need heap for TLS
         wunderbar::Configuration config;
         std::memset(&config, 0, sizeof(config));
 
+        while(!stepStatus[0] || !stepStatus[1] || !stepStatus[2])
+        {
+            uint32_t step = selectStep();
+            // wizards are blocking till successful completion
+            stepStatus[step] = steps[step](config);
+        }
+
+        storeConfig(config);
+        cleanUp();
+    }
+
+    void waitForUser()
+    {
+        while(-1 == log.putc('\n'))
+        {
+            wait(0.3);
+            led = !led;
+        }
+    }
+
+    void welcomeUser()
+    {
         log.printf("Welcome to WunderBar V2 onboarding wizard!\r\n");
         log.printf("This app will guide you through the process of onboarding your device.\r\n");
         log.printf("Press ENTER to continue.\r\n");
-        log.getc();
-        // wizards are blocking till successful completion
-        wifiWizard(&wifi, config.wifi, led, log);
-        bleWizard(ble, log);
-        cloudWizard(&net, config.proto, config.tls, config.rest, led, log);
+        waitForEnter(log);
+    }
 
+    uint32_t selectStep()
+    {
+        bool stepSelection = false;
+        char stepStrIndex[2] = "1";
+        while(!stepSelection)
+        {
+            log.printf("\r\nPlease select configuration step:\r\n");
+            log.printf("1 - WiFi setup [%s]\r\n", stepStatus[0] ? "Completed" : "Pending");
+            log.printf("2 - Bluetooth setup [%s]\r\n", stepStatus[1] ? "Completed" : "Pending");
+            log.printf("3 - ConradConnect setup[%s]\r\n", stepStatus[2] ? "Completed" : "Pending");
+            stepSelection = readField(log, stepStrIndex, 1, 1, stepStrIndex, mbed::callback(this, &Onboarder::validateStep), true, led);
+        }
+        // -1 to convert selection to C++ indexing
+        return std::atoi(stepStrIndex) - 1;
+    }
+
+    bool validateStep(char c)
+    {
+        bool valid = false;
+
+        if((0x31 <= c) && (0x33 >= c))
+        {
+            valid = true;
+        }
+
+        return valid;
+    }
+
+    bool wifiStep(wunderbar::Configuration& config)
+    {
+        return wifiWizard(&wifi, config.wifi, led, log);
+    }
+
+    bool bleStep(wunderbar::Configuration& config)
+    {
+        return bleWizard(ble, config.ble, led, log);
+    }
+
+    bool cloudStep(wunderbar::Configuration& config)
+    {
+        bool cloudOk = false;
+        if(stepStatus[0])
+        {
+            cloudOk = cloudWizard(&net, config.proto, config.tls, config.rest, led, log);
+        }
+        else
+        {
+            log.printf("\r\nWiFi wizard needs to be completed before cloud setup!\r\n\r\n");
+        }
+        return cloudOk;
+    }
+
+    void storeConfig(const wunderbar::Configuration& config)
+    {
         log.printf("Now, Wunderbar will store all parameters in memory. Please be patient.\r\n");
         flash.store(config);
+    }
+
+    void cleanUp()
+    {
         wifi.disconnect();
-        log.printf("Onboarding wizard done!\r\n");
+        log.printf("Onboarding wizard done!\r\n\r\n");
     }
 
 private:
@@ -64,6 +145,9 @@ private:
     WiFiInterface& wifi;
     NetworkStack& net;
     rtos::Thread executor;
+    OnboardStep steps[3];
+    bool stepStatus[3];
+    mbed::DigitalOut led;
 };
 
 void onboardLoop(Flash& flash, IStdInOut& log, IBleGateway& ble, WiFiInterface& wifi, NetworkStack& net)

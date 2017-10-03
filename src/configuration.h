@@ -4,6 +4,7 @@
 #include "nsapi_types.h"
 #include "tls.h"
 #include "mqttprotocol.h"
+#include "iblegateway.h"
 
 struct RestConfig
 {
@@ -28,6 +29,7 @@ struct WiFiConfig
 struct Configuration
 {
     WiFiConfig wifi;
+    BleConfig ble;
     TlsConfig tls;
     MqttConfig proto;
     RestConfig rest;

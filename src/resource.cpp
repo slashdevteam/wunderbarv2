@@ -185,5 +185,8 @@ void Resource::publishDone(bool status)
 
 void Resource::publish()
 {
-    publisher->signal_set(NEW_PUB_SIGNAL);
+    if(publisher)
+    {
+        publisher->signal_set(NEW_PUB_SIGNAL);
+    }
 }

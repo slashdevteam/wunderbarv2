@@ -3,6 +3,7 @@
 #include "resource.h"
 #include "PinNames.h"
 #include "InterruptIn.h"
+#include "Thread.h"
 
 class Button : public Resource
 {
@@ -19,8 +20,13 @@ protected:
 
 private:
     void irqCounter();
+    void irqFall();
+    void irqRise();
+    void clearFlash();
+    void waitForRise();
 
 private:
     volatile size_t counter;
     mbed::InterruptIn buttonIrq;
+    rtos::Thread buttonIrqTiming;
 };

@@ -329,7 +329,7 @@ bool deviceRegistration(IStdInOut& log,
                 log.printf("Try again? (Y/N)\r\n");
                 if(!agree(log, led))
                 {
-                    break;
+                    return false;
                 }
             }
         }
@@ -343,7 +343,7 @@ bool deviceRegistration(IStdInOut& log,
                 log.printf("Try again? (Y/N)\r\n");
                 if(!agree(log, led))
                 {
-                    break;
+                    return credentialsOk;
                 }
             }
         }
@@ -383,10 +383,9 @@ bool cloudWizard(NetworkStack* net,
                 }
             }
         }
+        log.printf("\r\nPerfect! WunderBar successfully connected to MQTT server: %s\r\n", mqttConfig.server);
+        log.printf("Your device name is: %s\r\n", mqttConfig.clientId);
     }
 
-    log.printf("\r\nPerfect! WunderBar successfully connected to MQTT server: %s\r\n", mqttConfig.server);
-    log.printf("Your device name is: %s\r\n", mqttConfig.clientId);
-
-    return true;
+    return mqttOk;
 }

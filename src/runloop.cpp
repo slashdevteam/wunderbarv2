@@ -104,7 +104,7 @@ private:
         TLS restTls(&net, config.rest.tls, &devNull);
         std::string timeUrl(config.rest.path);
         timeUrl.append("time?format=s");
-        log.printf("Contacting %s\r\n", timeUrl.c_str());
+        log.printf("\r\nContacting %s\r\n", timeUrl.c_str());
         HttpsRequest request(restTls, "GET", config.rest.server, config.rest.port, timeUrl.c_str(), nullptr);
         request.setHeader("X-AUTH-TOKEN", config.rest.token);
         uint8_t httpsBuffer[512] = {0};

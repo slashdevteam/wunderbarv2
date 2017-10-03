@@ -10,7 +10,8 @@ bool bleWizard(IBleGateway& bleGate, BleConfig& config, mbed::DigitalOut& led, I
     {
         log.printf("\r\nSending base configuration to Bluetooth master\r\n");
         bleGate.setTimeout(discoveryTimeout);
-        if(bleGate.configure(config))
+        bleGate.configure(config);
+        if(bleGate.storeConfig())
         {
             uint32_t accountedForSensors = 0;
             log.printf("Now, please put all Bluetooth sensors you want to use in onboarding mode by\r\n");
@@ -46,11 +47,10 @@ bool bleWizard(IBleGateway& bleGate, BleConfig& config, mbed::DigitalOut& led, I
                         accountedForSensors++;
                     }
                 }
-                log.printf("Change timeout?\n");
                 log.printf("Try again? (Y/N)\r\n");
                 if(!agree(log, led))
                 {
-                    // BLE setup is complete if all sensors are either explicitly ignored or onboarded
+                    // BLE setup is complete if all sensors are either onboarded or explicitly ignored
                     bleDone = (accountedForSensors == WUNDERBAR_SENSORS_NUM);
                     break;
                 }

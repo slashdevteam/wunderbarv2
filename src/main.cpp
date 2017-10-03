@@ -44,7 +44,7 @@ extern IStdInOut* stdioRetarget;
 // std::move/forward and rvalue references; possibly connected to
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63707) it's impossible (with GCC,
 // clang works) to create global, variable sized list of unique_ptr in compile time in global scope.
-// Hence, each Resource is registering by itself to resources list.
+// Hence, each Resource is registering itself to resources list.
 Resources    resources;
 WbHtu        htu(ble, &resources);
 WbGyro       gyro(ble, &resources);

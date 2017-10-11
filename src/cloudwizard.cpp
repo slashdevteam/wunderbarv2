@@ -340,7 +340,7 @@ bool deviceRegistration(IStdInOut& log,
             // this will currently fail, as it requires an FB-USER-TOKEN unknown to Wunderbar
             if(!deviceDescriptionOk)
             {
-                log.printf("Try again? (Y/N)\r\n");
+                log.printf("\r\nTry again? (Y/N)\r\n");
                 if(!agree(log, led))
                 {
                     return credentialsOk;
@@ -376,7 +376,7 @@ bool cloudWizard(NetworkStack* net,
             if(!mqttOk)
             {
                 log.printf("MQTT connection failed.\r\n");
-                log.printf("Try again? (Y/N)\r\n");
+                log.printf("\r\nTry again? (Y/N)\r\n");
                 if(!agree(log, led))
                 {
                     break;

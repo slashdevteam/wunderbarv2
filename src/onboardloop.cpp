@@ -45,6 +45,7 @@ private:
         // configuration can be big and we need heap for TLS
         wunderbar::Configuration config;
         std::memset(&config, 0, sizeof(config));
+        config.wifi.security = NSAPI_SECURITY_WPA2;
 
         while(!stepStatus[0] || !stepStatus[1] || !stepStatus[2])
         {
@@ -78,8 +79,10 @@ private:
     {
         bool stepSelection = false;
         char stepStrIndex[2] = "1";
+
         while(!stepSelection)
         {
+            std::snprintf(stepStrIndex, 2, "%1ld", firstIncompleteState());
             log.printf("\r\nPlease select configuration step:\r\n");
             log.printf("1 - WiFi setup [%s]\r\n", stepStatus[0] ? "Completed" : "Pending");
             log.printf("2 - Bluetooth setup [%s]\r\n", stepStatus[1] ? "Completed" : "Pending");
@@ -136,6 +139,20 @@ private:
     {
         wifi.disconnect();
         log.printf("Onboarding wizard done!\r\n\r\n");
+    }
+
+    uint32_t firstIncompleteState()
+    {
+        uint32_t incompleteStepIdx = 1;
+        for(uint32_t step = 0; step < 3; ++step)
+        {
+            if(stepStatus[step] == false)
+            {
+                incompleteStepIdx = step + 1;
+                break;
+            }
+        }
+        return incompleteStepIdx;
     }
 
 private:

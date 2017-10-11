@@ -70,7 +70,7 @@ bool MqttProtocol::connect()
     rtos::Thread connector(osPriorityNormal, 0x1000);
     connector.start(mbed::callback(this, &MqttProtocol::connecting));
     connector.join();
-    log->printf("Connection status %d\n", error);
+    log->printf("\r\nConnection status %d\r\n", error);
     if(0 != error)
     {
         transport->disconnect();

@@ -1,4 +1,5 @@
 #include "loopsutil.h"
+#include <memory>
 
 void ProgressBar::start()
 {
@@ -43,17 +44,27 @@ bool readField(IStdInOut& log,
 
     bool gotNewline = false;
     bool fieldOk = true;
+    int32_t invalidCharacterIdx = -1;
+    char invalidCharacter = '\0';
+
     while((numCharacters <= maxCharacters))
     {
         char newChar = log.getc();
-        if(doEcho && !((0x8 == newChar) ||  (0x7F == newChar)))
+        if(!((0x8 == newChar)
+             || (0x7F == newChar)
+             || (0xA == newChar)
+             || (0xD == newChar)))
         {
             // echo back to terminal
-            log.putc(newChar);
-        }
-        else
-        {
-            log.putc('*');
+            if(doEcho)
+            {
+                log.putc(newChar);
+            }
+            else
+            {
+                log.putc('*');
+            }
+
         }
         // blink led on character entry
         led = !led;
@@ -66,10 +77,10 @@ bool readField(IStdInOut& log,
         else
         {
             // '\n' or '\r' finishes
-            if((0xA == newChar) ||  (0xD == newChar))
+            if((0xA == newChar) || (0xD == newChar))
             {
                 gotNewline = true;
-                // ensure '\0' at the end
+                // ensure '\0' at the end if
                 // user used default value
                 if(0 == numCharacters)
                 {
@@ -103,37 +114,56 @@ bool readField(IStdInOut& log,
             if(0x0 != newChar)
             {
                 // invalid character received
-                log.printf("\r\nInvalid character 0x%x!\r\n", newChar);
+                invalidCharacterIdx = numCharacters;
+                invalidCharacter = newChar;
+                // ensure '\0' at the end of valid input
+                // to avoid invalid chars in function output
+                field[numCharacters] = '\0';
                 break;
             }
         }
     }
 
     // check if any character was given
-    if(0 == numCharacters && 0 == defaultLength)
+    if(invalidCharacterIdx != -1)
+    {
+        fieldOk = false;
+        log.printf("\r\nInvalid character received: ");
+        if(doEcho)
+        {
+            log.printf("%s%c\r\n", field, invalidCharacter);
+        }
+        else
+        {
+            std::unique_ptr<char[]> maskedField = std::make_unique<char[]>(numCharacters + 1);
+            // '*' is 0x2A
+            std::memset(maskedField.get(), 0x2A, numCharacters);
+            log.printf("%s%c\r\n", maskedField.get(), invalidCharacter);
+        }
+
+        // +28 is std::strlen("Invalid character received: ")
+        log.printf("%*s\r\n", invalidCharacterIdx + 28 + 1, "^");
+    }
+    else if(0 == numCharacters && 0 == defaultLength)
     {
         fieldOk = false;
         log.printf("\r\nNo characters were given!\r\n");
     }
-    // check if password was not too long
+    // check if field was not too short
     else if(((numCharacters < minCharacters) && (defaultLength < minCharacters)) && gotNewline)
     {
         fieldOk = false;
         log.printf("\r\nEntry too short!\r\n");
     }
-    // check if password was not too long
-    else if((numCharacters == maxCharacters) && !gotNewline)
+    // check if field was not too long
+    else if((numCharacters >= maxCharacters) && !gotNewline)
     {
         fieldOk = false;
         log.printf("\r\nEntry too long!\r\n");
     }
-    // invalid character
-    else if(!gotNewline)
-    {
-        fieldOk = false;
-        log.printf("\r\nInvalid characters entered!\r\n");
-    }
 
+    // no matter the result, entry should finish with \r\n
+    log.printf("\r\n");
     return fieldOk;
 }
 
@@ -201,7 +231,8 @@ bool validateDecision(char c)
 {
     bool valid = false;
 
-    if(('Y' == c) || ('N' == c))
+    if(('Y' == c) || ('N' == c)
+      || ('y' == c) || ('n' == c))
     {
         valid = true;
     }
@@ -225,7 +256,8 @@ bool agree(IStdInOut& log, mbed::DigitalOut& led)
                                   true,
                                   led);
     }
-    if(0 == std::strncmp(decision, "Y", 1))
+    if(0 == std::strncmp(decision, "Y", 1)
+       || 0 == std::strncmp(decision, "y", 1))
     {
         agreed = true;
     }

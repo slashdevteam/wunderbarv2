@@ -47,10 +47,34 @@ bool bleWizard(IBleGateway& bleGate, BleConfig& config, mbed::DigitalOut& led, I
                         accountedForSensors++;
                     }
                 }
-                log.printf("Try again? (Y/N)\r\n");
+                // BLE setup is complete if all sensors are either onboarded or explicitly ignored
+                bleDone = (accountedForSensors == WUNDERBAR_SENSORS_NUM);
+                if(bleDone)
+                {
+                    // print overview of sensors
+                    log.printf("\r\nAll sensors configured.\r\n");
+                    log.printf("Following sensors will be available:\r\n");
+                    for(uint8_t sensorId = 0; sensorId < WUNDERBAR_SENSORS_NUM; ++sensorId)
+                    {
+                        if(config.sensorAvailability[sensorId] == SensorAvailability::AVAILABLE)
+                        {
+                            log.printf("- %s\r\n", WunderbarSensorNames(sensorId).c_str());
+                        }
+                    }
+                    log.printf("Following sensors will be ignored:\r\n");
+                    for(uint8_t sensorId = 0; sensorId < WUNDERBAR_SENSORS_NUM; ++sensorId)
+                    {
+                        if(config.sensorAvailability[sensorId] == SensorAvailability::IGNORE)
+                        {
+                            log.printf("- %s\r\n", WunderbarSensorNames(sensorId).c_str());
+                        }
+                    }
+                    log.printf("Bluetooth setup can be safely completed.\r\n");
+                }
+
+                log.printf("\r\nTry again? (Y/N)\r\n");
                 if(!agree(log, led))
                 {
-                    // BLE setup is complete if all sensors are either onboarded or explicitly ignored
                     bleDone = (accountedForSensors == WUNDERBAR_SENSORS_NUM);
                     break;
                 }

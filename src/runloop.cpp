@@ -50,15 +50,22 @@ private:
 
         if(status == NSAPI_ERROR_OK)
         {
-            time_t currentTime = getTime();
+            time_t currentTime = getTime(led);
             set_time(currentTime);
 
-            TLS              tls(&net, config.tls, &log);
+            // by default TLS is not logging, to enable pass &log to TLS constructor instead of &devnull
+            IStdInOut devNull;
+            TLS              tls(&net, config.tls, &devNull);
             MqttProtocol     mqtt(&tls, config.proto, &log);
 
-            log.printf("Connected to %s network.\r\n", config.wifi.ssid);
+            log.printf("\r\nConnected to %s network.\r\n", config.wifi.ssid);
             log.printf("Creating connection over %s to %s:%d.\r\n", mqtt.name, config.proto.server, config.proto.port);
-            if(mqtt.connect())
+
+            ProgressBar progressBar(log, led, false, 600);
+            progressBar.start();
+            bool mqttConnected = mqtt.connect();
+            progressBar.terminate();
+            if(mqttConnected)
             {
                 log.printf("%s connected to %s:%d.\r\n", mqtt.name, config.proto.server, config.proto.port);
                 mqtt.setPingPeriod(30000);
@@ -97,7 +104,7 @@ private:
         }
     }
 
-    time_t getTime()
+    time_t getTime(mbed::DigitalOut& led)
     {
         time_t currentTime = 0;
         IStdInOut devNull;
@@ -108,7 +115,11 @@ private:
         HttpsRequest request(restTls, "GET", config.rest.server, config.rest.port, timeUrl.c_str(), nullptr);
         request.setHeader("X-AUTH-TOKEN", config.rest.token);
         uint8_t httpsBuffer[512] = {0};
-        if(request.send())
+        ProgressBar progressBar(log, led, false, 600);
+        progressBar.start();
+        bool sendStatus = request.send();
+        progressBar.terminate();
+        if(sendStatus)
         {
             if(request.recv(httpsBuffer, sizeof(httpsBuffer)))
             {

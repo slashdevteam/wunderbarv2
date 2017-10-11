@@ -4,6 +4,9 @@
 #include "WiFiInterface.h"
 using mbed::DigitalOut;
 
+const size_t WEP_KEY_SHORT_LEN = 10;
+const size_t WEP_KEY_LONG_LEN = 24;
+
 bool validateSecurity(char c)
 {
     bool valid = false;
@@ -39,10 +42,13 @@ bool validateWepKeyLength(IStdInOut& log, const char* wepKey)
 {
     bool valid = true;
     size_t keyLength = std::strlen(wepKey);
-    if(((keyLength != 10) && (keyLength != 24)))
+    if(((keyLength != WEP_KEY_SHORT_LEN) && (keyLength != WEP_KEY_LONG_LEN)))
     {
         valid = false;
-        log.printf("WEP key has wrong length: %d! Allowed length are: 10 or 24.\r\n", keyLength);
+        log.printf("WEP key has wrong length: %d! Allowed length are: %d or %d.\r\n",
+                   WEP_KEY_SHORT_LEN,
+                   WEP_KEY_LONG_LEN,
+                   keyLength);
     }
     return valid;
 }
@@ -50,7 +56,6 @@ bool validateWepKeyLength(IStdInOut& log, const char* wepKey)
 bool selectSecurity(IStdInOut& log, nsapi_security_t& security, DigitalOut& led)
 {
     bool securityOK = false;
-    // security = NSAPI_SECURITY_WPA2;
     log.printf("Please select one of the following:\r\n");
     log.printf("0 - for open network\r\n");
     log.printf("1 - for WEP network (Open Authentication only)\r\n");
@@ -79,7 +84,7 @@ void validCharactersBanner(IStdInOut& log, const char* fieldName, const size_t m
 
 void wepValidCharactersBanner(IStdInOut& log)
 {
-    log.printf("\r\nWEP password must either 10 or 24 characters, and can contain only:\r\n");
+    log.printf("\r\nWEP password must either %d or %d characters, and can contain only:\r\n", WEP_KEY_SHORT_LEN, WEP_KEY_LONG_LEN);
     log.printf(" - digits from 0 to 9\r\n");
     log.printf(" - upper case letters from A to F\r\n");
 }
@@ -120,8 +125,8 @@ bool wifiWizard(WiFiInterface* net, wunderbar::WiFiConfig& config, DigitalOut& l
                 {
                     case NSAPI_SECURITY_WEP: // WEP (Open only)
                         wepValidCharactersBanner(log);
-                        passOk = readField(log, config.pass, 10, 24, defaultPassword, &validateWepKeyPart, false, led);
-                        // second step for WEP to ensure 10 or 24 characters
+                        passOk = readField(log, config.pass, WEP_KEY_SHORT_LEN, WEP_KEY_LONG_LEN, defaultPassword, &validateWepKeyPart, false, led);
+                        // second step for WEP to ensure key length
                         if(passOk)
                         {
                             passOk = validateWepKeyLength(log, config.pass);

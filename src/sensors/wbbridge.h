@@ -26,8 +26,17 @@ public:
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
+    virtual void advertise(IPubSub* _proto) override;
+
+protected:
+    virtual int handleCommand(const char* command) override;
+    bool parseCommand(const char* data);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
     int dataToJson(char* outputString, size_t maxLen, const sensor_bridge_data_t& data);
+
+private:
+    sensor_bridge_data_t dataDown;
+    uint8_t relayState;
 };

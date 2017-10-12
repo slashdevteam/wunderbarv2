@@ -58,7 +58,7 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
 
 void WunderbarSensor::event(BleEvent _event, const uint8_t* data, size_t len)
 {
-    if (registrationOk)
+    if(registrationOk)
     {
         // handle common events
         switch(_event)
@@ -93,7 +93,7 @@ void WunderbarSensor::event(BleEvent _event, const uint8_t* data, size_t len)
         }
 
         // handle sensor-specific events
-        if (userCallback)
+        if(userCallback)
         {
             userCallback(_event, data, len);
         }
@@ -171,7 +171,7 @@ size_t WunderbarSensor::getSenseSpec(char* dst, size_t maxLen)
         "\"name\":\"manufacturer\","
         "\"type\":\"String\""
     "}";
- 
+
     return snprintf(dst,
                     maxLen,
                     sensSpecFormat);

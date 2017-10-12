@@ -11,6 +11,8 @@ public:
               BleServerCallback _callback);
     virtual ~BleServer();
 
+    bool sendToServer(uint16_t bleCharUuid, const uint8_t* data, size_t len);
+
 private:
     void bleServerEvent(BleEvent event, const uint8_t* data, size_t len);
 

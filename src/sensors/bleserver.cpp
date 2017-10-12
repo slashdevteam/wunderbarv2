@@ -21,9 +21,14 @@ BleServer::~BleServer()
 {
 }
 
+bool BleServer::sendToServer(uint16_t bleCharUuid, const uint8_t* data, size_t len)
+{
+    return gateway.requestWrite(config, bleCharUuid, data, len);
+}
+
 void BleServer::bleServerEvent(BleEvent event, const uint8_t* data, size_t len)
 {
-    switch (event)
+    switch(event)
     {
         case BleEvent::DISCOVERY_COMPLETE:
             discoveryOk = true;
@@ -38,7 +43,7 @@ void BleServer::bleServerEvent(BleEvent event, const uint8_t* data, size_t len)
             break;
     }
 
-    if (externalCallback)
+    if(externalCallback)
     {
         externalCallback(event, data, len);
     }

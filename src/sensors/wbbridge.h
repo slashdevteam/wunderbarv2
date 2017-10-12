@@ -34,7 +34,6 @@ protected:
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
-    int dataToJson(char* outputString, size_t maxLen, const sensor_bridge_data_t& data);
 
 private:
     sensor_bridge_data_t dataDown;

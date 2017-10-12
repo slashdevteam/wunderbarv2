@@ -50,6 +50,7 @@ private:
 
         if(status == NSAPI_ERROR_OK)
         {
+            log.printf("Connected to %s network.\r\n", config.wifi.ssid);
             time_t currentTime = getTime(led);
             set_time(currentTime);
 
@@ -58,9 +59,7 @@ private:
             TLS              tls(&net, config.tls, &devNull);
             MqttProtocol     mqtt(&tls, config.proto, &log);
 
-            log.printf("\r\nConnected to %s network.\r\n", config.wifi.ssid);
             log.printf("Creating connection over %s to %s:%d.\r\n", mqtt.name, config.proto.server, config.proto.port);
-
             ProgressBar progressBar(log, led, false, 600);
             progressBar.start();
             bool mqttConnected = mqtt.connect();
@@ -87,7 +86,7 @@ private:
                 ble.stopOperation();
                 for(auto resource : resources.current)
                 {
-                    resource->stopAdvertise();
+                    resource->revoke();
                 }
             }
             else

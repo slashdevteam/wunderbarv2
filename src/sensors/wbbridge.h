@@ -23,6 +23,7 @@ struct config_t
 
 public:
     WbBridge(IBleGateway& _gateway, Resources* _resources);
+    virtual ~WbBridge() = default;
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;

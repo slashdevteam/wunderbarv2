@@ -47,7 +47,9 @@ const char* jsonFormat = "\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"pr
 
 public:
     WbLightProx(IBleGateway& _gateway, Resources* _resources);
+    virtual ~WbLightProx() = default;
 
+    virtual void advertise(IPubSub* _proto) override;
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
 
 private:

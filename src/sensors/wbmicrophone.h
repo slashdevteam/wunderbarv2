@@ -20,7 +20,9 @@ const char* jsonFormat = "\"snd_level\":%d";
 
 public:
     WbMicrophone(IBleGateway& _gateway, Resources* _resources);
+    virtual ~WbMicrophone() = default;
 
+    virtual void advertise(IPubSub* _proto) override;
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
 
 private:

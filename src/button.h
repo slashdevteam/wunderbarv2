@@ -11,6 +11,7 @@ public:
     Button(Resources* _resources, const std::string& name, PinName _pin);
     virtual ~Button() {};
 
+    virtual void advertise(IPubSub* _proto) override;
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 

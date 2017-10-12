@@ -30,7 +30,9 @@ const char* jsonFormat = "\"temp\":%5d,\"hum\":%5d";
 
 public:
     WbHtu(IBleGateway& _gateway, Resources* _resources);
+    virtual ~WbHtu() = default;
 
+    virtual void advertise(IPubSub* _proto) override;
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
 
 private:

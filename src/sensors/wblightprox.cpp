@@ -9,7 +9,14 @@ WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources)
                       mbed::callback(this, &WbLightProx::event),
                       _resources)
 {
-};
+}
+
+void WbLightProx::advertise(IPubSub* _proto)
+{
+    Resource::advertise(_proto);
+    Resource::startPublisher();
+}
+
 
 void WbLightProx::event(BleEvent _event, const uint8_t* data, size_t len)
 {

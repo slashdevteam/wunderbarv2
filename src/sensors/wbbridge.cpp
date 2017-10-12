@@ -13,11 +13,12 @@ WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
                       _resources),
     relayState(0)
 {
-};
+}
 
 void WbBridge::advertise(IPubSub* _proto)
 {
-    Resource::subscribe();
+    Resource::advertise(_proto);
+    Resource::startSubscriber();
 }
 
 void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)

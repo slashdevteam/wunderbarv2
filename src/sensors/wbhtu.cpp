@@ -11,6 +11,12 @@ WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources)
 {
 }
 
+void WbHtu::advertise(IPubSub* _proto)
+{
+    Resource::advertise(_proto);
+    Resource::startPublisher();
+}
+
 void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
 {
     switch(_event)

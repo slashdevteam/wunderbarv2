@@ -25,6 +25,12 @@ Button::Button(Resources* _resources, const std::string& name, PinName _pin)
     buttonIrq.rise(mbed::callback(this, &Button::irqRise));
 }
 
+void Button::advertise(IPubSub* _proto)
+{
+    Resource::advertise(_proto);
+    Resource::startPublisher();
+}
+
 void Button::irqFall()
 {
     buttonIrqTiming.signal_set(BUTTON_PRESSED);

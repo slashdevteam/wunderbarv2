@@ -11,6 +11,11 @@ Led::Led(Resources* _resources, const std::string& name, PinName _pin)
 {
 }
 
+Led::~Led()
+{
+    pubTick.detach();
+}
+
 int32_t Led::read()
 {
     return ledPin.read();
@@ -26,14 +31,15 @@ void Led::readAndPub()
 void Led::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
-    Resource::subscribe();
+    Resource::startPublisher();
+    Resource::startSubscriber();
     pubTick.attach(mbed::callback(this, &Led::readAndPub), 10.0);
 }
 
-void Led::stopAdvertise()
+void Led::revoke()
 {
     pubTick.detach();
-    Resource::stopAdvertise();
+    Resource::revoke();
 }
 
 int Led::handleCommand(const char* data)

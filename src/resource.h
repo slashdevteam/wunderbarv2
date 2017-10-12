@@ -18,21 +18,22 @@ public:
     Resource(Resources* resources,
              const std::string& _subtopic,
              const std::string& _pubtopic);
-    virtual ~Resource() {};
+    virtual ~Resource();
 
     virtual void advertise(IPubSub* _proto);
-    virtual void stopAdvertise();
-    bool subscribe();
-    void publish();
-    bool acknowledge(const std::string& _command,
-                     int _code,
-                     MessageDoneCallback doneCallback);
-    void writeDone();
+    virtual void revoke();
     virtual size_t getSenseSpec(char* dst, size_t maxLen) = 0;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) = 0;
 
 protected:
     virtual int handleCommand(const char* command);
+    bool startSubscriber();
+    bool startPublisher();
+    void publish();
+    bool acknowledge(const std::string& _command,
+                     int _code,
+                     MessageDoneCallback doneCallback);
+    void writeDone();
 
 
 private:

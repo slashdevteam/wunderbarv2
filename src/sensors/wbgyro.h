@@ -58,7 +58,9 @@ const char* jsonFormat = "\"gyro\":{\"x\":%5ld,\"y\":%5ld,\"z\":%5ld},\"accel\":
 
 public:
     WbGyro(IBleGateway& _gateway, Resources* _resources);
+    virtual ~WbGyro() = default;
 
+    virtual void advertise(IPubSub* _proto) override;
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
 
 private:

@@ -41,18 +41,45 @@ Resource::Resource(Resources* resources,
     resources->registerResource(this);
 }
 
+Resource::~Resource()
+{
+    revoke();
+}
+
 void Resource::advertise(IPubSub* _proto)
 {
     proto = _proto;
-    publisher = std::make_unique<rtos::Thread>(osPriorityNormal, 0x400);
-    publisher->start(mbed::callback(this, &Resource::publishThread));
 }
 
-void Resource::stopAdvertise()
+void Resource::revoke()
 {
     publisher.reset(nullptr);
     subscriber.reset(nullptr);
     proto = nullptr;
+}
+
+bool Resource::startPublisher()
+{
+    bool publisherStarted = false;
+    if(proto)
+    {
+        publisher = std::make_unique<rtos::Thread>(osPriorityNormal, 0x400, nullptr, pubtopic.c_str());
+        publisher->start(mbed::callback(this, &Resource::publishThread));
+        publisherStarted = true;
+    }
+    return publisherStarted;
+}
+
+bool Resource::startSubscriber()
+{
+    bool subscriberStarted = false;
+    if(proto)
+    {
+        subscriberStarted = proto->subscribe(reinterpret_cast<const uint8_t*>(subtopic.c_str()),
+                                             mbed::callback(this, &Resource::subscribeDone),
+                                             mbed::callback(this, &Resource::subscribeCallback));
+    }
+    return subscriberStarted;
 }
 
 bool Resource::publish(const std::string& topic, const char* data, MessageDoneCallback doneCallback)
@@ -85,17 +112,12 @@ bool Resource::acknowledge(const std::string& _command, int _code, MessageDoneCa
                           doneCallback);
 }
 
-bool Resource::subscribe()
-{
-    return proto->subscribe(reinterpret_cast<const uint8_t*>(subtopic.c_str()),
-                            mbed::callback(this, &Resource::subscribeDone),
-                            mbed::callback(this, &Resource::subscribeCallback));
-}
+
 
 void Resource::subscribeDone(bool status)
 {
     subscribed = status;
-    subscriber = std::make_unique<rtos::Thread>(osPriorityNormal, 0x400);
+    subscriber = std::make_unique<rtos::Thread>(osPriorityNormal, 0x600, nullptr, subtopic.c_str());
     subscriber->start(mbed::callback(this, &Resource::subscribeThread));
 }
 

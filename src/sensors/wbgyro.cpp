@@ -9,7 +9,13 @@ WbGyro::WbGyro(IBleGateway& _gateway, Resources* _resources)
                       mbed::callback(this, &WbGyro::event),
                       _resources)
 {
-};
+}
+
+void WbGyro::advertise(IPubSub* _proto)
+{
+    Resource::advertise(_proto);
+    Resource::startPublisher();
+}
 
 void WbGyro::event(BleEvent _event, const uint8_t* data, size_t len)
 {

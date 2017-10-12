@@ -3,65 +3,89 @@
 #include "wunderbarble.h"
 #include <limits>
 #include "randompasskey.h"
+#include "jsondecode.h"
 
 WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),
                       randomPassKey(),
                       mbed::callback(this, &WbBridge::event),
-                      _resources)
+                      _resources),
+    relayState(0)
 {
 };
+
+void WbBridge::advertise(IPubSub* _proto)
+{
+    Resource::subscribe();
+}
 
 void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
 {
     switch(_event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
-            dataToJson(publishContent, MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_bridge_data_t*>(data));
-            publish();
+            // bridge as relay has no data
             break;
         case BleEvent::DATA_SENSOR_CONFIG:
-                // not used yet
+            // not used yet
             break;
         default:
             break;
     }
 }
 
-int WbBridge::dataToJson(char* outputString, size_t maxLen, const sensor_bridge_data_t& data)
+int WbBridge::handleCommand(const char* data)
 {
-    const char* jsonFormatBegin = "{\"up_ch_payload\":[";
-    const char* jsonFormatEnd   = "]}";
-    size_t totLen = snprintf(outputString, maxLen, jsonFormatBegin);
-
-    for (auto dataChar = 0; (dataChar < data.payload_length && totLen < maxLen); ++dataChar)
+    int retCode = 400; // Bad Request
+    if(parseCommand(data))
     {
-        // try to write at the end of last write, for the remaining available len
-        size_t lenWritten = snprintf(outputString + totLen,
-                                     maxLen - totLen,
-                                     "%d,",
-                                     static_cast<int>(data.payload[dataChar]));
+        retCode = 200; // OK
+    }
+    else
+    {
+        retCode = 405; // Method Not Allowed
+    }
+    return retCode;
+}
 
-        if (0 < lenWritten)
+bool WbBridge::parseCommand(const char* data)
+{
+    bool commandOk = false;
+    JsonDecode message(data, 16);
+
+    if(message)
+    {
+        char valueBuffer[1];
+        if(message.copyTo("setState", valueBuffer, 1))
         {
-            totLen += lenWritten;
+            int value = std::atoi(valueBuffer);
+            if(value == 0 || value == 1)
+            {
+                relayState = value;
+                commandOk = true;
+            }
         }
-        else
+        else if(message.copyTo("toggleState", valueBuffer, 1))
         {
-            //error
-            return totLen;
+            int value = std::atoi(valueBuffer);
+            if(value == 1)
+            {
+                relayState = !relayState;
+                commandOk = true;
+            }
         }
     }
 
-    // remove last coma and finish the string
-    size_t lenWritten = snprintf(outputString + totLen - 1, maxLen - totLen + 1, jsonFormatEnd);
-    if (0 < lenWritten)
+    if(commandOk)
     {
-        totLen += lenWritten - 1;
+        dataDown.payload[0] = relayState;
+        commandOk = sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                                 reinterpret_cast<uint8_t*>(&dataDown),
+                                 sizeof(dataDown));
     }
 
-    return totLen;
+    return commandOk;
 }
 
 size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
@@ -70,19 +94,7 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
         "\"name\":\"%s\","
         "\"id\":\"%s\","
         "\"data\":"
-        "["
-            "{"
-                "\"name\":\"upstream\","
-                "\"type\": {"
-                    "\"type\" : \"array\","
-                    "\"maxItems\" : %ld,"
-                    "\"items\": {"
-                        "\"type\":\"integer\","
-                        "\"min\":0,"
-                        "\"max\":255"
-                            "}"
-                    "}"
-            "},";
+        "[";
 
     const char senseSpecFormatTail[] =
         "]"
@@ -92,8 +104,7 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
                                   maxLen,
                                   senseSpecFormatHead,
                                   config.name.c_str(),
-                                  config.name.c_str(),
-                                  BRIDGE_PAYLOAD_SIZE);
+                                  config.name.c_str());
 
     sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
 
@@ -112,16 +123,14 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
         "\"data\":"
         "["
             "{"
-                "\"name\":\"downstream\","
-                "\"type\" : {"
-                    "\"type\" : \"array\","
-                    "\"maxItems\" : %ld,"
-                    "\"items\": {"
-                        "\"type\":\"integer\","
-                        "\"min\":0,"
-                        "\"max\":255"
-                            "}"
-                    "}"
+                "\"name\":\"setState\","
+                "\"type\":\"integer\","
+                "\"min\":0,"
+                "\"max\":1"
+            "},"
+            "{"
+                "\"name\":\"toggleState\","
+                "\"type\":\"boolean\""
             "}"
         "]"
     "}";
@@ -130,6 +139,5 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
                     maxLen,
                     actuateSpecFormat,
                     config.name.c_str(),
-                    config.name.c_str(),
-                    BRIDGE_PAYLOAD_SIZE);
+                    config.name.c_str());
 }

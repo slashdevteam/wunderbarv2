@@ -26,11 +26,6 @@ struct MqttMessage
     int payloadlen;
 };
 
-using MessageTuple = std::tuple<msgTypes, const uint8_t*, const uint8_t*, size_t, MessageDoneCallback, MessageDataCallback>;
-using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 64>;
-using MessageTupleQueue = rtos::Queue<MessageTuple, 64>;
-using Subscribers = std::unordered_map<std::string, MessageDataCallback>;
-
 // 256 bytes are for authToken alone
 const int MAX_MQTT_PACKET_SIZE = 500;
 
@@ -58,6 +53,12 @@ enum MQTT_STATUS : int32_t
 
 class MqttProtocol : public IPubSub
 {
+
+using MessageTuple = std::tuple<msgTypes, const uint8_t*, const uint8_t*, size_t, MessageDoneCallback, MessageDataCallback>;
+using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 64>;
+using MessageTupleQueue = rtos::Queue<MessageTuple, 64>;
+using Subscribers = std::unordered_map<std::string, MessageDataCallback>;
+
 public:
     MqttProtocol(ITransportLayer* _transport, const MqttConfig& _config, IStdInOut* _log);
     virtual ~MqttProtocol();

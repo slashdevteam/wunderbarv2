@@ -7,8 +7,10 @@ Led::Led(Resources* _resources, const std::string& name, PinName _pin)
                name,
                name),
       state(0),
-      ledPin(_pin)
+      ledPin(_pin),
+      publisher(osPriorityNormal, 0x200, nullptr, "LED_PUBLISHER")
 {
+    publisher.start(mbed::callback(this, &Led::readAndPub));
 }
 
 Led::~Led()
@@ -21,19 +23,31 @@ int32_t Led::read()
     return ledPin.read();
 }
 
+void Led::pingPub()
+{
+    publisher.signal_set(READ_AND_PUB);
+}
+
 void Led::readAndPub()
 {
+    while(1)
+    {
+        rtos::Thread::signal_wait(READ_AND_PUB);
+        publish(mbed::callback(this, &Led::toJson), nullptr);
+    }
+}
+
+size_t Led::toJson(char* outputString, size_t maxLen, const uint8_t* data)
+{
     const char pubFormat[] = "\"state\":%ld";
-    snprintf(publishContent, sizeof(publishContent), pubFormat, read());
-    publish();
+    return std::snprintf(outputString, maxLen, pubFormat, read());
 }
 
 void Led::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
-    Resource::startPublisher();
-    Resource::startSubscriber();
-    pubTick.attach(mbed::callback(this, &Led::readAndPub), 10.0);
+    Resource::subscribe();
+    pubTick.attach(mbed::callback(this, &Led::pingPub), 10.0);
 }
 
 void Led::revoke()
@@ -42,7 +56,7 @@ void Led::revoke()
     Resource::revoke();
 }
 
-int Led::handleCommand(const char* data)
+void Led::handleCommand(const char* id, const char* data)
 {
     int retCode = 400; // Bad Request
     if(parseCommand(data))
@@ -53,11 +67,13 @@ int Led::handleCommand(const char* data)
     {
         retCode = 405; // Method Not Allowed
     }
-    return retCode;
+
+    acknowledge(id, retCode);
 }
 
 bool Led::parseCommand(const char* data)
 {
+    bool commandOk = false;
     JsonDecode message(data, 16);
 
     if(message)
@@ -69,29 +85,17 @@ bool Led::parseCommand(const char* data)
             if(value == 0 || value == 1)
             {
                 ledPin = value;
-                return true;
-            }
-            else
-            {
-                return false;
+                commandOk = true;
             }
         }
-        else if(message.copyTo("toggleState", valueBuffer, 1))
+        else if(message.isField("toggleState"))
         {
-            int value = std::atoi(valueBuffer);
-            if(value == 1)
-            {
-                ledPin = !ledPin;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            ledPin = !ledPin;
+            commandOk = true;
         }
     }
 
-    return false;
+    return commandOk;
 }
 
 size_t Led::getSenseSpec(char* dst, size_t maxLen)
@@ -117,23 +121,27 @@ size_t Led::getSenseSpec(char* dst, size_t maxLen)
 
 size_t Led::getActuateSpec(char* dst, size_t maxLen)
 {
-    const char actuaSpecFormat[] = "{"
-                "\"name\":\"LED\","
-                "\"id\":\"LED\","
-                "\"data\":"
-                "["
-                    "{"
-                        "\"name\":\"setState\","
-                        "\"type\":\"integer\","
-                        "\"min\":0,"
-                        "\"max\":1"
-                    "},"
-                    "{"
-                        "\"name\":\"toggleState\","
-                        "\"type\":\"boolean\""
-                    "}"
-                "]"
-           "}";
+    const char actuaSpecFormat[] =
+    "{"
+        "\"name\":\"LED\","
+        "\"id\":\"LED\","
+        "\"commands\":"
+        "["
+            "{"
+                "\"CommandName\":\"setState\","
+                "\"DataListe\":"
+                "[{"
+                    "\"ValueName\":\"state\","
+                    "\"ValueType\":\"integer\","
+                    "\"min\":0,"
+                    "\"max\":1"
+                "}]"
+            "},"
+            "{"
+                "\"CommandName\":\"toggleState\""
+            "}"
+        "]"
+    "}";
 
     return snprintf(dst,
                     maxLen,

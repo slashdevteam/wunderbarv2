@@ -4,16 +4,32 @@
 #include <memory>
 #include "ipubsub.h"
 #include "Thread.h"
+#include "MemoryPool.h"
+#include "Queue.h"
 
-const uint32_t MQTT_MSG_PAYLOAD_SIZE = 500;
+const size_t MQTT_MSG_PAYLOAD_SIZE = 500;
 
-using ThreadHandle = std::unique_ptr<rtos::Thread>;
+enum MessageType : uint8_t
+{
+    SUB_REQ = 0,
+    PUB_REQ = 1,
+    ACK_REQ = 2,
+    SUB_INCOMING = 3
+};
 
 class IPubSub;
 class Resources;
 
 class Resource
 {
+
+using ThreadHandle = std::unique_ptr<rtos::Thread>;
+using Message = std::array<char, MQTT_MSG_PAYLOAD_SIZE>;
+using MessageTuple = std::tuple<MessageType, Message, size_t>;
+using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 4>;
+using MessageTupleQueue = rtos::Queue<MessageTuple, 4>;
+using DataFiller = mbed::Callback<size_t(char*, size_t, const uint8_t*)>;
+
 public:
     Resource(Resources* resources,
              const std::string& _subtopic,
@@ -26,45 +42,32 @@ public:
     virtual size_t getActuateSpec(char* dst, size_t maxLen) = 0;
 
 protected:
-    virtual int handleCommand(const char* command);
-    bool startSubscriber();
-    bool startPublisher();
-    void publish();
-    bool acknowledge(const std::string& _command,
-                     int _code,
-                     MessageDoneCallback doneCallback);
-    void writeDone();
-
+    virtual void handleCommand(const char* id, const char* data);
+    void publish(DataFiller fillData, const uint8_t* extData);
+    void subscribe();
+    void acknowledge(const char* commandId, int code);
 
 private:
-    bool publish(const std::string& topic,
-                 const char* data,
-                 MessageDoneCallback doneCallback);
-    void publishThread();
+    void pubSubThread();
     void publishDone(bool status);
-    void subscribeThread();
     void subscribeCallback(const uint8_t* data, size_t len);
     void subscribeDone(bool status);
     void ackDone(bool status);
-    bool parseSubscription(std::string& commandID, std::string& data);
-
-protected:
-    char publishContent[MQTT_MSG_PAYLOAD_SIZE];
-    char subscribeContent[MQTT_MSG_PAYLOAD_SIZE];
+    void handleSubscription(MessageTuple& subMsg);
+    bool parseSubscription(const char* subscribeContent, std::string& commandID, std::string& data);
 
 private:
-    const int32_t NEW_SUB_SIGNAL       = 0x1;
     const int32_t ACK_DONE_SIGNAL      = 0x2;
-    const int32_t NEW_PUB_SIGNAL       = 0x4;
     const int32_t PUBLISH_DONE_SIGNAL  = 0x8;
     const int32_t SUB_DATA_DONE_SIGNAL = 0x10;
+    const int32_t SUB_ACK_SIGNAL = 0x20;
 
-    std::string message;
     IPubSub* proto;
 
+    MessageTupleStorage msgStorage;
+    MessageTupleQueue msgQueue;
     const std::string subtopic;
     const std::string pubtopic;
-    ThreadHandle subscriber;
-    ThreadHandle publisher;
+    ThreadHandle pubSub;
     volatile bool subscribed;
 };

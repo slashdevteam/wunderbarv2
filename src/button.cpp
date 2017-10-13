@@ -28,7 +28,6 @@ Button::Button(Resources* _resources, const std::string& name, PinName _pin)
 void Button::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
-    Resource::startPublisher();
 }
 
 void Button::irqFall()
@@ -45,9 +44,13 @@ void Button::irqRise()
 void Button::irqCounter()
 {
     counter++;
+    publish(mbed::callback(this, &Button::toJson), nullptr);
+}
+
+size_t Button::toJson(char* outputString, size_t maxLen, const uint8_t* data)
+{
     const char pubFormat[] = "\"count\":%u";
-    snprintf(publishContent, sizeof(publishContent), pubFormat, counter);
-    publish();
+    return std::snprintf(outputString, maxLen, pubFormat, counter);
 }
 
 void Button::waitForRise()
@@ -70,11 +73,10 @@ void Button::waitForRise()
             progressBar.start();
             // wait forever for BUTTON_RELEASED
             rtos::Thread::signal_wait(BUTTON_RELEASED);
-            // clear onboarding
+            // clear onboarding - Wunderbar will reset!
             clearFlash();
         }
     }
-
 }
 
 void Button::clearFlash()
@@ -83,7 +85,7 @@ void Button::clearFlash()
     NVIC_SystemReset();
 }
 
-int Button::handleCommand(const char* data)
+void Button::handleCommand(const char* id, const char* data)
 {
     int retCode = 400; // Bad Request
     if(parseCommand(data))
@@ -94,7 +96,7 @@ int Button::handleCommand(const char* data)
     {
         retCode = 405; // Method Not Allowed
     }
-    return retCode;
+    acknowledge(id, retCode);
 }
 
 bool Button::parseCommand(const char* data)

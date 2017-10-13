@@ -26,6 +26,11 @@ bool BleServer::sendToServer(uint16_t bleCharUuid, const uint8_t* data, size_t l
     return gateway.requestWrite(config, bleCharUuid, data, len);
 }
 
+bool BleServer::readFromServer(uint16_t bleCharUuid)
+{
+    return gateway.requestRead(config, bleCharUuid);
+}
+
 void BleServer::bleServerEvent(BleEvent event, const uint8_t* data, size_t len)
 {
     switch(event)

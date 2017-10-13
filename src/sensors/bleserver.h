@@ -12,6 +12,7 @@ public:
     virtual ~BleServer();
 
     bool sendToServer(uint16_t bleCharUuid, const uint8_t* data, size_t len);
+    bool readFromServer(uint16_t bleCharUuid);
 
 private:
     void bleServerEvent(BleEvent event, const uint8_t* data, size_t len);

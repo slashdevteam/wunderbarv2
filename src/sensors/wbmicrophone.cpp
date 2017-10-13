@@ -11,19 +11,12 @@ WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources)
 {
 }
 
-void WbMicrophone::advertise(IPubSub* _proto)
-{
-    Resource::advertise(_proto);
-    Resource::startPublisher();
-}
-
 void WbMicrophone::event(BleEvent _event, const uint8_t* data, size_t len)
 {
     switch(_event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
-            dataToJson(publishContent, MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_microphone_data_t*>(data));
-            publish();
+            publish(mbed::callback(this, &WbMicrophone::dataToJson), data);
             break;
         case BleEvent::DATA_SENSOR_FREQUENCY:
             // not used yet
@@ -65,6 +58,34 @@ size_t WbMicrophone::getSenseSpec(char* dst, size_t maxLen)
     sizeWritten += snprintf(dst + sizeWritten,
                             maxLen - sizeWritten,
                             senseSpecFormatTail);
+
+    return sizeWritten;
+}
+
+size_t WbMicrophone::getActuateSpec(char* dst, size_t maxLen)
+{
+    const char actuateSpecFormatHead[] =
+    "{"
+        "\"name\":\"%s\","
+        "\"id\":\"%s\","
+        "\"commands\":"
+        "[";
+
+    const char actuateSpecFormatTail[] =
+        "]"
+    "}";
+
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  actuateSpecFormatHead,
+                                  config.name.c_str(),
+                                  config.name.c_str());
+
+    sizeWritten += WunderbarSensor::getActuateSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            actuateSpecFormatTail);
 
     return sizeWritten;
 }

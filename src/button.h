@@ -16,7 +16,7 @@ public:
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
 protected:
-    virtual int handleCommand(const char* command) override;
+    virtual void handleCommand(const char* id, const char* data) override;
     bool parseCommand(const char* data);
 
 private:
@@ -25,6 +25,7 @@ private:
     void irqRise();
     void clearFlash();
     void waitForRise();
+    size_t toJson(char* outputString, size_t maxLen, const uint8_t* data);
 
 private:
     volatile size_t counter;

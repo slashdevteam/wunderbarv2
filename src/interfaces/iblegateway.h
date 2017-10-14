@@ -112,7 +112,6 @@ public:
 
     virtual bool registerServer(BleServerConfig& config, BleServerCallback incomingCallback) = 0;
     virtual void serverDiscoveryComlpete(BleServerConfig& config) = 0;
-    virtual bool sendToServer(const BleServerConfig& config, BleServerCallback doneCallback) = 0;
     virtual bool requestRead(const BleServerConfig& server, uint16_t bleCharUuid) = 0;
     virtual bool requestWrite(const BleServerConfig& server,
                               uint16_t bleCharUuid,

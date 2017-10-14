@@ -1,57 +1,60 @@
 #include "button.h"
 #include "jsmn.h"
 #include "jsondecode.h"
-#include "flash.h"
 #include "loopsutil.h"
 
-extern Flash flash;
-
-const int32_t BUTTON_PRESSED = 0x1;
-const int32_t BUTTON_RELEASED = 0x2;
-const int BUTTON_RESET_TIME_MS = 5000;
-
-Button::Button(Resources* _resources, const std::string& name, PinName _pin)
+Button::Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin)
     : Resource(_resources,
                name,
                name),
+      flash(_flash),
+      publishing(false),
       counter(0),
       buttonIrq(_pin),
-      buttonIrqTiming(osPriorityNormal, 0x300)
+      buttonIrqTiming(osPriorityHigh, 0x600, nullptr, "BUTTON_TIMING")
 {
     // Threads cannot be started from IRQ callbacks, so button press timing thread
     // needs to be started here
     buttonIrqTiming.start(mbed::callback(this, &Button::waitForRise));
+    // button can generate spurious 'clicks' so attaching only one edge at a time
     buttonIrq.fall(mbed::callback(this, &Button::irqFall));
-    buttonIrq.rise(mbed::callback(this, &Button::irqRise));
 }
 
 void Button::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
+    publishing = true;
+}
+
+void Button::revoke()
+{
+    publishing = false;
+    Resource::revoke();
 }
 
 void Button::irqFall()
 {
+    counter++;
+    // falling edge registered so switch edge detection to rising
+    buttonIrq.fall(mbed::Callback<void()>());
+    buttonIrq.rise(mbed::callback(this, &Button::irqRise));
     buttonIrqTiming.signal_set(BUTTON_PRESSED);
-    irqCounter();
+
 }
 
 void Button::irqRise()
 {
+    // rising edge registered so switch edge detection to falling
+    buttonIrq.rise(mbed::Callback<void()>());
+    buttonIrq.fall(mbed::callback(this, &Button::irqFall));
     buttonIrqTiming.signal_set(BUTTON_RELEASED);
-}
-
-void Button::irqCounter()
-{
-    counter++;
-    publish(mbed::callback(this, &Button::toJson), nullptr);
 }
 
 size_t Button::toJson(char* outputString, size_t maxLen, const uint8_t* data)
 {
-    const char pubFormat[] = "\"count\":%u";
-    return std::snprintf(outputString, maxLen, pubFormat, counter);
+    return std::snprintf(outputString, maxLen, "\"count\":%u", counter);
 }
+
 
 void Button::waitForRise()
 {
@@ -59,7 +62,10 @@ void Button::waitForRise()
     {
         // wait forever for BUTTON_PRESSED
         rtos::Thread::signal_wait(BUTTON_PRESSED);
-
+        if(publishing)
+        {
+            publish(mbed::callback(this, &Button::toJson), nullptr);
+        }
         // wait for BUTTON_RELEASED
         osEvent waitEvent;
         waitEvent = rtos::Thread::signal_wait(BUTTON_RELEASED, BUTTON_RESET_TIME_MS);

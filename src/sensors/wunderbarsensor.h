@@ -31,8 +31,8 @@ private:
     size_t hwRevToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t manufacturerToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t sensorIdToJson(char* outputString, size_t maxLen, const uint8_t* data);
-    size_t beaconFreqToJson(char* outputString, size_t maxLen, const uint8_t* dataa);
-    void terminateRawString(char* data);
+    size_t beaconFreqToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    size_t stringLength(const uint8_t* data);
 
     // commands
     bool findUuid(const char* data, uint16_t& uuid);

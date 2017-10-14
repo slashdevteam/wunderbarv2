@@ -54,7 +54,7 @@ struct sensor_gyro_data_t
     accCoordinates_t  acc;
 } __attribute__((packed));
 
-const char* jsonFormat = "\"gyro\":{\"x\":%5ld,\"y\":%5ld,\"z\":%5ld},\"accel\":{\"x\":%5d,\"y\":%5d,\"z\":%5d}";
+const char* jsonFormat = "\"gyro\":{\"x\":%ld,\"y\":%ld,\"z\":%ld},\"accel\":{\"x\":%d,\"y\":%d,\"z\":%d}";
 
 public:
     WbGyro(IBleGateway& _gateway, Resources* _resources);

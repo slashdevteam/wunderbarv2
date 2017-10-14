@@ -8,7 +8,7 @@ Led::Led(Resources* _resources, const std::string& name, PinName _pin)
                name),
       state(0),
       ledPin(_pin),
-      publisher(osPriorityNormal, 0x200, nullptr, "LED_PUBLISHER")
+      publisher(osPriorityNormal, 0x400, nullptr, "LED_PUBLISHER")
 {
     publisher.start(mbed::callback(this, &Led::readAndPub));
 }

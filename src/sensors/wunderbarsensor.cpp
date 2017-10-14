@@ -242,37 +242,36 @@ bool WunderbarSensor::handleReadUuidRequest(const char* data)
 
 size_t WunderbarSensor::batteryToJson(char* outputString, size_t maxLen, const uint8_t* data)
 {
-    const char* jsonBattLevel = "\"batteryLevel\":%d";
     return std::snprintf(outputString,
                          maxLen,
-                         jsonBattLevel,
+                         "\"batteryLevel\":%d",
                          static_cast<int>(data[0]));
 }
 
 size_t WunderbarSensor::fwRevToJson(char* outputString, size_t maxLen, const uint8_t* data)
 {
-    const char* jsonSensorFwRev = "\"firmware\":\"%s\"";
     return std::snprintf(outputString,
                          maxLen,
-                         jsonSensorFwRev,
+                         "\"firmware\":\"%.*s\"",
+                         stringLength(data),
                          reinterpret_cast<const char*>(data));
 }
 
 size_t WunderbarSensor::hwRevToJson(char* outputString, size_t maxLen, const uint8_t* data)
 {
-    const char* jsonSensorHwRev = "\"hardware\":\"%s\"";
     return std::snprintf(outputString,
                          maxLen,
-                         jsonSensorHwRev,
+                         "\"hardware\":\"%.*s\"",
+                         stringLength(data),
                          reinterpret_cast<const char*>(data));
 }
 
 size_t WunderbarSensor::manufacturerToJson(char* outputString, size_t maxLen, const uint8_t* data)
 {
-    const char* jsonSensorManufacturer = "\"manufacturer\":\"%s\"";
     return std::snprintf(outputString,
                          maxLen,
-                         jsonSensorManufacturer,
+                         "\"manufacturer\":\"%.*s\"",
+                         stringLength(data),
                          reinterpret_cast<const char*>(data));
 }
 
@@ -280,7 +279,7 @@ size_t WunderbarSensor::sensorIdToJson(char* outputString, size_t maxLen, const 
 {
     const size_t SENSOR_ID_LEN = 16;
     const char* jsonSensorIdStart = "\"sensorId\":\"";
-    size_t written = std::snprintf(outputString, maxLen, "%s", jsonSensorIdStart);
+    size_t written = std::snprintf(outputString, maxLen, jsonSensorIdStart);
 
     for(size_t idPart = 0; idPart < SENSOR_ID_LEN; ++idPart)
     {
@@ -290,15 +289,30 @@ size_t WunderbarSensor::sensorIdToJson(char* outputString, size_t maxLen, const 
                                  *(data + idPart));
     }
 
-    return std::snprintf(outputString + written, maxLen - written, "%s", "\"");
+    written += std::snprintf(outputString + written, maxLen - written, "\"");
+    return written;
 }
 
 size_t WunderbarSensor::beaconFreqToJson(char* outputString, size_t maxLen, const uint8_t* data)
 {
-    const char* jsonBeaconFreq = "\"beaconFreq\":%d";
-    return snprintf(outputString,
-                    maxLen, jsonBeaconFreq,
-                    static_cast<int>(data[0]));
+    return std::snprintf(outputString,
+                         maxLen,
+                         "\"beaconFreq\":%d",
+                         static_cast<int>(data[0]));
+}
+
+size_t WunderbarSensor::stringLength(const uint8_t* data)
+{
+    size_t length = 0;
+    for(size_t nChar = 0; nChar < MAX_SENSOR_PAYLOAD_LEN; ++nChar)
+    {
+        if(0xFF == data[nChar])
+        {
+            length = nChar;
+            break;
+        }
+    }
+    return length;
 }
 
 size_t WunderbarSensor::getSenseSpec(char* dst, size_t maxLen)

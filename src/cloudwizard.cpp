@@ -45,6 +45,7 @@ bool validateOnboardChoice(char c)
 
 size_t generateCapabilities(char* caps,
                             size_t maxSize,
+                            const Resources& resources,
                             const char* userId,
                             const char* serialNo,
                             const char* name,
@@ -215,7 +216,8 @@ bool setDeviceDescription(IStdInOut& log,
                           const char* deviceName,
                           MqttConfig& mqttConfig,
                           RestConfig& restConfig,
-                          mbed::DigitalOut& led)
+                          mbed::DigitalOut& led,
+                          const Resources& resources)
 {
     char serialNo[40] = {0};
     uint32_t part0, part1, part2, part3;
@@ -224,6 +226,7 @@ bool setDeviceDescription(IStdInOut& log,
 
     generateCapabilities(capabilities,
                          sizeof(capabilities),
+                         resources,
                          mqttConfig.userId,
                          serialNo,
                          deviceName,
@@ -279,7 +282,8 @@ bool deviceRegistration(IStdInOut& log,
                         MqttConfig& mqttConfig,
                         TlsConfig& tlsConfig,
                         RestConfig& restConfig,
-                        mbed::DigitalOut& led)
+                        mbed::DigitalOut& led,
+                        const Resources& resources)
 {
     bool cloudOk = false;
     // collect username & token & device name
@@ -336,7 +340,7 @@ bool deviceRegistration(IStdInOut& log,
 
         while(!deviceDescriptionOk)
         {
-            deviceDescriptionOk = setDeviceDescription(log, net, deviceName, mqttConfig, restConfig, led);
+            deviceDescriptionOk = setDeviceDescription(log, net, deviceName, mqttConfig, restConfig, led, resources);
             // this will currently fail, as it requires an FB-USER-TOKEN unknown to Wunderbar
             if(!deviceDescriptionOk)
             {
@@ -359,12 +363,13 @@ bool cloudWizard(NetworkStack* net,
                  TlsConfig& tlsConfig,
                  RestConfig& restConfig,
                  mbed::DigitalOut& led,
-                 IStdInOut& log)
+                 IStdInOut& log,
+                 const Resources& resources)
 {
     bool mqttOk = false;
     log.printf("\r\n\r\nNow we will setup communication with Conrad Connect.\r\n");
 
-    if(deviceRegistration(log, net, mqttConfig, tlsConfig, restConfig, led))
+    if(deviceRegistration(log, net, mqttConfig, tlsConfig, restConfig, led, resources))
     {
         while(!mqttOk)
         {
@@ -372,7 +377,10 @@ bool cloudWizard(NetworkStack* net,
             TLS tls(net, tlsConfig, &devNull);
             MqttProtocol  mqtt(&tls, mqttConfig, &devNull);
             log.printf("Testing connection to MQTT.\r\n");
+            ProgressBar progressBar(log, led, false, 133);
+            progressBar.start();
             mqttOk = mqtt.connect();
+            progressBar.terminate();
             if(!mqttOk)
             {
                 log.printf("MQTT connection failed.\r\n");

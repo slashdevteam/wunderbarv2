@@ -11,11 +11,16 @@ void onboardLoop(Flash& flash,
                  IStdInOut& log,
                  IBleGateway& ble,
                  WiFiInterface& wifi,
-                 NetworkStack& net);
+                 NetworkStack& net,
+                 const Resources& resources,
+                 uint8_t* loopStack,
+                 size_t loopStackSize);
 
 void runLoop(const wunderbar::Configuration& config,
              IStdInOut& log,
              IBleGateway& ble,
              WiFiInterface& wifi,
              NetworkStack& net,
-             const Resources& resources);
+             const Resources& resources,
+             uint8_t* loopStack,
+             size_t loopStackSize);

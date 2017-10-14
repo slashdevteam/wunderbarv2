@@ -19,14 +19,16 @@ public:
                IBleGateway& _ble,
                WiFiInterface& _wifi,
                NetworkStack& _net,
-               const Resources& _resources)
+               const Resources& _resources,
+               uint8_t* loopStack,
+               size_t loopStackSize)
         : config(_config),
           log(_log),
           ble(_ble),
           wifi(_wifi),
           net(_net),
           resources(_resources),
-          executor(osPriorityNormal, 0x7500)
+          executor(osPriorityNormal, loopStackSize, loopStack, "MAIN_LOOPER")
     {}
 
     void run()
@@ -160,11 +162,20 @@ void runLoop(const wunderbar::Configuration& config,
              IBleGateway& ble,
              WiFiInterface& wifi,
              NetworkStack& net,
-             const Resources& resources)
+             const Resources& resources,
+             uint8_t* loopStack,
+             size_t loopStackSize)
 {
     // mbed does not provide alternative for std::bind
     // so emulating it with thin wrapper with necessary pointers
-    // around onboarding thread
-    MainLooper mainLooper(config, log, ble, wifi, net, resources);
+    // around run thread
+    MainLooper mainLooper(config,
+                          log,
+                          ble,
+                          wifi,
+                          net,
+                          resources,
+                          loopStack,
+                          loopStackSize);
     mainLooper.run();
 }

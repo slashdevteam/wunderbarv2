@@ -38,6 +38,9 @@ Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
 
 // defined in nouartfix.cpp, needed for global IO retarget
 extern IStdInOut* stdioRetarget;
+// allocate run/onboard loops stack in m_data RAM to avoid issues with new allocator
+uint8_t LOOP_STACK[0x7500] __attribute__((section (".hugestack")));
+
 // Dependency is reversed here - normally resources should not know/care
 // that they need to be on some kind of list, but due to spurious copy ctors
 // that GCC includes for initializer lists (even with perfect forwarding with
@@ -52,13 +55,14 @@ WbLightProx  light(ble, &resources);
 WbMicrophone mic(ble, &resources);
 WbInfraRed   ir(ble, &resources);
 WbBridge     bridge(ble, &resources);
-Button       sw2(&resources, "button1", SW2);
+Button       sw2(flash, &resources, "button1", SW2);
 Led          led(&resources, "LED", LED1);
 
 int main(int argc, char **argv)
 {
     stdioRetarget = &cdc;
     mbedtls_platform_set_printf(&cdcPrintfRetarget);
+
     cdc.printf("Welcome to WunderBar v2 mbed OS firmware\n");
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
@@ -67,11 +71,25 @@ int main(int argc, char **argv)
         if(!flash.isOnboarded())
         {
             // blocking call
-            onboardLoop(flash, cdc, ble, wifiConnection, wifiConnection);
+            onboardLoop(flash,
+                        cdc,
+                        ble,
+                        wifiConnection,
+                        wifiConnection,
+                        resources,
+                        LOOP_STACK,
+                        sizeof(LOOP_STACK));
         }
         else
         {
-            runLoop(flash.getConfig(), cdc, ble, wifiConnection, wifiConnection, resources);
+            runLoop(flash.getConfig(),
+                    cdc,
+                    ble,
+                    wifiConnection,
+                    wifiConnection,
+                    resources,
+                    LOOP_STACK,
+                    sizeof(LOOP_STACK));
         }
         wait(2);
     }

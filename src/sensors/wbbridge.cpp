@@ -37,39 +37,45 @@ void WbBridge::handleCommand(const char* id, const char* data)
 {
     bool commandOk = false;
     retCode = 400;
-    std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
-    JsonDecode message(data, 16);
+    // first do a pass on common commands
+    WunderbarSensor::handleCommand(id, data);
 
-    if(message)
+    // if common returned 400 check bridge specific
+    if(400 == retCode)
     {
-        char valueBuffer[1];
-        if(message.copyTo("setState", valueBuffer, 1))
+        std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
+        JsonDecode message(data, 16);
+
+        if(message)
         {
-            int value = std::atoi(valueBuffer);
-            if(value == 0 || value == 1)
+            char valueBuffer[1];
+            if(message.copyTo("setState", valueBuffer, 1))
             {
-                relayState = value;
+                int value = std::atoi(valueBuffer);
+                if(value == 0 || value == 1)
+                {
+                    relayState = value;
+                    commandOk = true;
+                }
+            }
+            else if(message.isField("toggleState"))
+            {
+                relayState = !relayState;
                 commandOk = true;
             }
         }
-        else if(message.isField("toggleState"))
+
+        if(commandOk)
         {
-            relayState = !relayState;
-            commandOk = true;
+            dataDown.payload[0] = relayState;
+            if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                                     reinterpret_cast<uint8_t*>(&dataDown),
+                                     sizeof(dataDown)))
+            {
+                retCode = 200;
+            }
         }
     }
-
-    if(commandOk)
-    {
-        dataDown.payload[0] = relayState;
-        if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
-                                 reinterpret_cast<uint8_t*>(&dataDown),
-                                 sizeof(dataDown)))
-        {
-            retCode = 200;
-        }
-    }
-
 }
 
 size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)

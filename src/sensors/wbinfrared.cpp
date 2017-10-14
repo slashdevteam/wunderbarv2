@@ -25,23 +25,30 @@ void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
 void WbInfraRed::handleCommand(const char* id, const char* data)
 {
     retCode = 400;
-    std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
-    JsonDecode message(data, 16);
+    // first do a pass on common commands
+    WunderbarSensor::handleCommand(id, data);
 
-    if(message)
+    // if common returned 400 check bridge specific
+    if(400 == retCode)
     {
-        char valueBuffer[1];
-        if(message.copyTo("TX", valueBuffer, 1))
+        std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
+        JsonDecode message(data, 16);
+
+        if(message)
         {
-            int value = std::atoi(valueBuffer);
-            if(value >= 0 || value <= 255)
+            char valueBuffer[1];
+            if(message.copyTo("TX", valueBuffer, 1))
             {
-                dataDown = value;
-                if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
-                                 reinterpret_cast<uint8_t*>(&dataDown),
-                                 sizeof(dataDown)))
+                int value = std::atoi(valueBuffer);
+                if(value >= 0 || value <= 255)
                 {
-                    retCode = 200;
+                    dataDown = value;
+                    if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                                     reinterpret_cast<uint8_t*>(&dataDown),
+                                     sizeof(dataDown)))
+                    {
+                        retCode = 200;
+                    }
                 }
             }
         }

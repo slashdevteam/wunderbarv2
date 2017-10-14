@@ -152,7 +152,7 @@ bool wifiWizard(WiFiInterface* net, wunderbar::WiFiConfig& config, DigitalOut& l
         log.printf("\r\n\r\nOk! WunderBar will now try to connect to WiFi: %s\r\n", config.ssid);
         log.printf("Please be patient - this might take a while!\r\n");
 
-        ProgressBar progressBar(log, led, false, 600);
+        ProgressBar progressBar(log, led, false, 500);
         progressBar.start();
         int status = net->connect(config.ssid,
                                   config.pass,

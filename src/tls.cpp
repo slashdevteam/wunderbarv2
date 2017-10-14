@@ -13,6 +13,8 @@
 #include "pollentropy.h"
 
 const int32_t DEFAULT_SOCKET_TIMEOUT = 3000;
+// allocate run/onboard loops stack in m_data RAM to avoid issues with new allocator
+uint8_t CONNECTOR_STACK[0x2000] __attribute__((section (".hugestack")));
 
 #include "nouartfix.h"
 static void tlsdebugprint(void *ctx, int level, const char *file, int line,
@@ -153,7 +155,7 @@ bool TLS::connect(const char* _server, size_t _port)
     if(error == 0)
     {
         // Connection uses _a lot_ of stack for AES/CRT
-        rtos::Thread connector(osPriorityNormal, 0x2000);
+        rtos::Thread connector(osPriorityNormal, sizeof(CONNECTOR_STACK), CONNECTOR_STACK, "TLS_CONNECTOR");
         // copy parameters to members as mbed callbacks do not allow type erasure as std::bind
         std::strncpy(server, _server, sizeof(server));
         port = _port;

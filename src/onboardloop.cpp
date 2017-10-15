@@ -70,8 +70,17 @@ private:
     {
         while(-1 == log.putc('\n'))
         {
-            wait(0.3);
-            led = !led;
+            for(uint32_t shortBlink = 0; shortBlink < 4; ++shortBlink)
+            {
+                wait(0.133);
+                led = !led;
+            }
+
+            for(uint32_t longBlink = 0; longBlink < 4; ++longBlink)
+            {
+                wait(0.45);
+                led = !led;
+            }
         }
     }
 

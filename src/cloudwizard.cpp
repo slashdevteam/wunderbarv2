@@ -232,7 +232,7 @@ bool setDeviceDescription(IStdInOut& log,
                          deviceName,
                          mqttConfig.clientId,
                          mqttConfig.password);
-    log.printf("\r\nUpdating device capabilities: %s\r\n", capabilities);
+    log.printf("\r\nUpdating device capabilities\r\n");
 
     bool capabilitiesOk = false;
     IStdInOut devNull;

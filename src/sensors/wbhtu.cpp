@@ -91,14 +91,13 @@ void WbHtu::handleCommand(const char* id, const char* data)
                     threshold_t thresholds;
                     // need to conserve stack, so char buffer is reused
                     message.copyTo("tempSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                    // sbl is 32 bit unsigned so need to use std::stol
-                    thresholds.temp.sbl = static_cast<uint32_t>(std::atoi(thresholdBuffer));
+                    thresholds.temp.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
 
                     message.copyTo("tempLow", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.temp.low = static_cast<int32_t>(std::atoi(thresholdBuffer));
+                    thresholds.temp.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
 
                     message.copyTo("tempHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.temp.high = static_cast<int32_t>(std::atoi(thresholdBuffer));
+                    thresholds.temp.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
 
                     message.copyTo("humSbl", thresholdBuffer, sizeof(thresholdBuffer));
                     thresholds.hum.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));

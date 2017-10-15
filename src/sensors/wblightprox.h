@@ -46,7 +46,7 @@ struct sensor_lightprox_data_t
 const char* jsonFormat = "\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d";
 
 public:
-    WbLightProx(IBleGateway& _gateway, Resources* _resources);
+    WbLightProx(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
     virtual ~WbLightProx() = default;
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;

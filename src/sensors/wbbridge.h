@@ -22,7 +22,7 @@ struct config_t
 } __attribute__((packed));
 
 public:
-    WbBridge(IBleGateway& _gateway, Resources* _resources);
+    WbBridge(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
     virtual ~WbBridge() = default;
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;

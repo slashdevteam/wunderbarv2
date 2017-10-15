@@ -44,14 +44,16 @@ WunderbarSensor::WunderbarSensor(IBleGateway& _gateway,
                                  ServerName&& _name,
                                  PassKey&& _passKey,
                                  BleServerCallback _callback,
-                                 Resources* _resources)
+                                 Resources* _resources,
+                                 IStdInOut& _log)
     : BleServer(_gateway,
                 std::forward<ServerName>(_name),
                 std::forward<PassKey>(_passKey),
                 mbed::callback(this, &WunderbarSensor::event)),
       Resource(_resources,
                _name,
-               _name),
+               _name,
+               _log),
       retCode(400),
       userCallback(_callback)
 {}

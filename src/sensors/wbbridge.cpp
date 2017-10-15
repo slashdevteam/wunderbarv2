@@ -5,12 +5,16 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
-WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
+#include "istdinout.h"
+extern IStdInOut* stdioRetarget;
+
+WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),
                       randomPassKey(),
                       mbed::callback(this, &WbBridge::event),
-                      _resources),
+                      _resources,
+                      _log),
     relayState(0)
 {
 }

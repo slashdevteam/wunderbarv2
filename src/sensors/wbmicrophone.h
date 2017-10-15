@@ -19,7 +19,7 @@ struct sensor_microphone_data_t
 const char* jsonFormat = "\"snd_level\":%d";
 
 public:
-    WbMicrophone(IBleGateway& _gateway, Resources* _resources);
+    WbMicrophone(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
     virtual ~WbMicrophone() = default;
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;

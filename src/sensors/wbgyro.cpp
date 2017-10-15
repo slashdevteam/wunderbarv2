@@ -2,12 +2,13 @@
 #include "wunderbarble.h"
 #include "randompasskey.h"
 
-WbGyro::WbGyro(IBleGateway& _gateway, Resources* _resources)
+WbGyro::WbGyro(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_GYRO)),
                       randomPassKey(),
                       mbed::callback(this, &WbGyro::event),
-                      _resources)
+                      _resources,
+                      _log)
 {
 }
 

@@ -3,10 +3,11 @@
 #include "jsondecode.h"
 #include "loopsutil.h"
 
-Button::Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin)
+Button::Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin, IStdInOut& _log)
     : Resource(_resources,
                name,
-               name),
+               name,
+               _log),
       flash(_flash),
       publishing(false),
       counter(0),

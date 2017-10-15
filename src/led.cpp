@@ -2,10 +2,11 @@
 
 #include "jsondecode.h"
 
-Led::Led(Resources* _resources, const std::string& name, PinName _pin)
+Led::Led(Resources* _resources, const std::string& name, PinName _pin, IStdInOut& _log)
     : Resource(_resources,
                name,
-               name),
+               name,
+               _log),
       state(0),
       ledPin(_pin),
       publisher(osPriorityNormal, 0x400, nullptr, "LED_PUBLISHER")

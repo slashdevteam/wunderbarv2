@@ -57,7 +57,7 @@ struct sensor_gyro_data_t
 const char* jsonFormat = "\"gyro\":{\"x\":%ld,\"y\":%ld,\"z\":%ld},\"accel\":{\"x\":%d,\"y\":%d,\"z\":%d}";
 
 public:
-    WbGyro(IBleGateway& _gateway, Resources* _resources);
+    WbGyro(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
     virtual ~WbGyro() = default;
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;

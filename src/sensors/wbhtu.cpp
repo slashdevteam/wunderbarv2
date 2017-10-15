@@ -2,12 +2,13 @@
 #include "wunderbarble.h"
 #include "randompasskey.h"
 
-WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources)
+WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_HTU)),
                       randomPassKey(),
                       mbed::callback(this, &WbHtu::event),
-                      _resources)
+                      _resources,
+                      _log)
 {
 }
 

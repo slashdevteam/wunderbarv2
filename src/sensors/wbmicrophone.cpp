@@ -2,12 +2,13 @@
 #include "wunderbarble.h"
 #include "randompasskey.h"
 
-WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources)
+WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_SOUND)),
                       randomPassKey(),
                       mbed::callback(this, &WbMicrophone::event),
-                      _resources)
+                      _resources,
+                      _log)
 {
 }
 

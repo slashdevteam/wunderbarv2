@@ -2,12 +2,13 @@
 #include "wunderbarble.h"
 #include "randompasskey.h"
 
-WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources)
+WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_LIGHT)),
                       randomPassKey(),
                       mbed::callback(this, &WbLightProx::event),
-                      _resources)
+                      _resources,
+                      _log)
 {
 }
 

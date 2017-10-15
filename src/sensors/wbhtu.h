@@ -29,7 +29,7 @@ enum sensor_htu_config_t
 const char* jsonFormat = "\"temp\":%d,\"hum\":%d";
 
 public:
-    WbHtu(IBleGateway& _gateway, Resources* _resources);
+    WbHtu(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
     virtual ~WbHtu() = default;
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;

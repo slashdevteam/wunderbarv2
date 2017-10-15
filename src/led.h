@@ -5,11 +5,12 @@
 #include "DigitalOut.h"
 #include "Ticker.h"
 #include "Thread.h"
+#include "istdinout.h"
 
 class Led : public Resource
 {
 public:
-    Led(Resources* _resources, const std::string& _topic, PinName _pin);
+    Led(Resources* _resources, const std::string& _topic, PinName _pin, IStdInOut& _log);
     virtual ~Led();
 
     virtual void advertise(IPubSub* _proto) override;

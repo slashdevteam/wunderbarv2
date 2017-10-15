@@ -9,7 +9,7 @@ class WbLightProx : public WunderbarSensor
 struct threshold_t
 {
     threshold_int16_t white;
-    threshold_int16_t proximity;
+    threshold_int16_t prox;
 } __attribute__((packed));
 
 enum rgbc_gain_t
@@ -43,7 +43,7 @@ struct sensor_lightprox_data_t
     uint16_t proximity;
 } __attribute__((packed));
 
-const char* jsonFormat = "\"light\":%d,\"clr\":{\"r\":%d,\"g\":%d,\"b\":%d},\"prox\":%d";
+const char* jsonFormat = "\"light\":%d,\"clr\":[%d,%d,%d],\"prox\":%d";
 
 public:
     WbLightProx(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
@@ -52,8 +52,16 @@ public:
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
+protected:
+    virtual void handleCommand(const char* id, const char* data) override;
+
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
+    bool isRgbcGainAllowed(int scale);
+    bool isProxDriveAllowed(int scale);
+    size_t configToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    size_t thresholdToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    size_t frequencyToJson(char* outputString, size_t maxLen, const uint8_t* data);
     inline size_t dataToJson(char* outputString, size_t maxLen, const uint8_t* data)
     {
         const sensor_lightprox_data_t& reading = *reinterpret_cast<const sensor_lightprox_data_t*>(data);

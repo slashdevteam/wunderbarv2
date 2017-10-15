@@ -23,7 +23,7 @@ void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
             // bridge as relay has no data
             break;
         case BleEvent::DATA_SENSOR_CONFIG:
-            // not used yet
+            publish(mbed::callback(this, &WbBridge::configToJson), data);
             break;
         default:
             break;
@@ -32,7 +32,6 @@ void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
 
 void WbBridge::handleCommand(const char* id, const char* data)
 {
-    bool commandOk = false;
     retCode = 400;
     // first do a pass on common commands
     WunderbarSensor::handleCommand(id, data);
@@ -52,27 +51,91 @@ void WbBridge::handleCommand(const char* id, const char* data)
                 if(value == 0 || value == 1)
                 {
                     relayState = value;
-                    commandOk = true;
+                    dataDown.payload[0] = relayState;
+                    if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                                             reinterpret_cast<uint8_t*>(&dataDown),
+                                             sizeof(dataDown)))
+                    {
+                        retCode = 200;
+                    }
                 }
             }
             else if(message.isField("toggleState"))
             {
                 relayState = !relayState;
-                commandOk = true;
+                dataDown.payload[0] = relayState;
+                if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                                         reinterpret_cast<uint8_t*>(&dataDown),
+                                         sizeof(dataDown)))
+                {
+                    retCode = 200;
+                }
             }
-        }
-
-        if(commandOk)
-        {
-            dataDown.payload[0] = relayState;
-            if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
-                                     reinterpret_cast<uint8_t*>(&dataDown),
-                                     sizeof(dataDown)))
+            else if(message.isField("getConfig"))
             {
-                retCode = 200;
+                if(readFromServer(wunderbar::characteristics::sensor::CONFIG))
+                {
+                    retCode = 200;
+                    acknowledge(id, retCode);
+                }
+            }
+            else if(message.isField("setConfig"))
+            {
+                char baudRateBuffer[11];
+                if(message.copyTo("baudRate", baudRateBuffer, 1))
+                {
+                    int value = std::atoi(baudRateBuffer);
+                    if(isBaudrateAllowed(value))
+                    {
+                        if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
+                                        reinterpret_cast<uint8_t*>(&value),
+                                        sizeof(value)))
+                        {
+                            retCode = 200;
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+size_t WbBridge::configToJson(char* outputString, size_t maxLen, const uint8_t* data)
+{
+    return std::snprintf(outputString,
+                         maxLen,
+                         "\"baudrate\":%d",
+                         static_cast<int>(data[0]));
+}
+
+bool WbBridge::isBaudrateAllowed(int baudRate)
+{
+    bool allowed = true;
+
+    switch(baudRate)
+    {
+        case 1200:   // intentional fall-through
+        case 2400:   // intentional fall-through
+        case 4800:   // intentional fall-through
+        case 9600:   // intentional fall-through
+        case 14400:  // intentional fall-through
+        case 19200:  // intentional fall-through
+        case 28800:  // intentional fall-through
+        case 38400:  // intentional fall-through
+        case 57600:  // intentional fall-through
+        case 76800:  // intentional fall-through
+        case 115200: // intentional fall-through
+        case 230400: // intentional fall-through
+        case 250000: // intentional fall-through
+        case 460800: // intentional fall-through
+        case 921600:
+            allowed = true;
+            break;
+        default:
+            allowed = false;
+            break;
+    }
+    return allowed;
 }
 
 size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
@@ -81,7 +144,13 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
         "\"name\":\"%s\","
         "\"id\":\"%s\","
         "\"data\":"
-        "[";
+        "["
+            "{"
+                "\"name\":\"baudrate\","
+                "\"type\":\"integer\","
+                "\"min\":1200,"
+                "\"max\":921600"
+            "},";
 
     const char senseSpecFormatTail[] =
         "]"
@@ -118,6 +187,19 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
                     "\"ValueType\":\"integer\","
                     "\"min\":0,"
                     "\"max\":1"
+                "}]"
+            "},"
+            "{"
+                "\"CommandName\":\"getConfig\""
+            "},"
+            "{"
+                "\"CommandName\":\"setConfig\""
+                "\"DataListe\":"
+                "[{"
+                    "\"ValueName\":\"baudRate\","
+                    "\"ValueType\":\"integer\","
+                    "\"min\":1200,"
+                    "\"max\":921600"
                 "}]"
             "},"
             "{"

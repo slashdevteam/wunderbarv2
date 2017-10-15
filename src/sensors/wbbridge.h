@@ -33,6 +33,8 @@ protected:
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
+    size_t configToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    bool isBaudrateAllowed(int baudRate);
 
 private:
     sensor_bridge_data_t dataDown;

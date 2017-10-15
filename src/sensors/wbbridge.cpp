@@ -85,7 +85,7 @@ void WbBridge::handleCommand(const char* id, const char* data)
             }
             else if(message.isField("setConfig"))
             {
-                char baudRateBuffer[11];
+                char baudRateBuffer[11]; // enough for 4294967295 + '\0'
                 if(message.copyTo("baudRate", baudRateBuffer, sizeof(baudRateBuffer)))
                 {
                     int value = std::atoi(baudRateBuffer);

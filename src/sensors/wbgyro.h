@@ -54,7 +54,7 @@ struct sensor_gyro_data_t
     accCoordinates_t  acc;
 } __attribute__((packed));
 
-const char* jsonFormat = "\"gyro\":{\"x\":%ld,\"y\":%ld,\"z\":%ld},\"accel\":{\"x\":%d,\"y\":%d,\"z\":%d}";
+const char* jsonFormat = "\"gyro\":[%ld,%ld,%ld],\"accel\":[%d,%d,%d]";
 
 public:
     WbGyro(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
@@ -63,8 +63,16 @@ public:
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
+protected:
+    virtual void handleCommand(const char* id, const char* data) override;
+
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
+    bool isGyroScaleAllowed(int scale);
+    bool isAccScaleAllowed(int scale);
+    size_t configToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    size_t thresholdToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    size_t frequencyToJson(char* outputString, size_t maxLen, const uint8_t* data);
     inline size_t dataToJson(char* outputString, size_t maxLen, const uint8_t* data)
     {
         const sensor_gyro_data_t& reading = *reinterpret_cast<const sensor_gyro_data_t*>(data);

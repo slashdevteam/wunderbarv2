@@ -40,7 +40,7 @@ void WbLightProx::handleCommand(const char* id, const char* data)
     // first do a pass on common commands
     WunderbarSensor::handleCommand(id, data);
 
-    // if common returned 400 check bridge specific
+    // if common returned 400 check light/prox specific
     if(400 == retCode)
     {
         std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);

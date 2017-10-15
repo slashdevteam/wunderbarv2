@@ -86,7 +86,7 @@ void WbBridge::handleCommand(const char* id, const char* data)
             else if(message.isField("setConfig"))
             {
                 char baudRateBuffer[11];
-                if(message.copyTo("baudRate", baudRateBuffer, 1))
+                if(message.copyTo("baudRate", baudRateBuffer, sizeof(baudRateBuffer)))
                 {
                     int value = std::atoi(baudRateBuffer);
                     if(isBaudrateAllowed(value))

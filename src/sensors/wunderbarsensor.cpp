@@ -435,7 +435,7 @@ size_t WunderbarSensor::getActuateSpec(char* dst, size_t maxLen)
         "\"CommandName\":\"getBeaconFreq\""
     "},"
     "{"
-        "\"CommandName\":\"blinkLed\","
+        "\"CommandName\":\"blinkLed\""
     "},"
     "{"
         "\"CommandName\":\"readUUID\","

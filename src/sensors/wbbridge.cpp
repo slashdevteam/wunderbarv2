@@ -197,7 +197,7 @@ size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
                 "\"CommandName\":\"getConfig\""
             "},"
             "{"
-                "\"CommandName\":\"setConfig\""
+                "\"CommandName\":\"setConfig\","
                 "\"DataListe\":"
                 "[{"
                     "\"ValueName\":\"baudRate\","

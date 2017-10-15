@@ -19,7 +19,8 @@ void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
     switch(_event)
     {
         default:
-          break;
+            // IR transmitter has no events
+            break;
     }
 }
 

@@ -14,8 +14,8 @@ struct sensor_htu_data_t
 
 struct threshold_t
 {
-    threshold_int16_t  temperature;
-    threshold_int16_t  humidity;
+    threshold_int16_t  temp;
+    threshold_int16_t  hum;
 } __attribute__((packed));
 
 enum sensor_htu_config_t
@@ -35,8 +35,15 @@ public:
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
+protected:
+    virtual void handleCommand(const char* id, const char* data) override;
+
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
+    bool isConfigAllowed(int config);
+    size_t configToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    size_t thresholdToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    size_t frequencyToJson(char* outputString, size_t maxLen, const uint8_t* data);
     inline size_t dataToJson(char* outputString, size_t maxLen, const uint8_t* data)
     {
         const sensor_htu_data_t& reading = *reinterpret_cast<const sensor_htu_data_t*>(data);

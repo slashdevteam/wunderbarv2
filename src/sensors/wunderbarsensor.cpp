@@ -8,54 +8,32 @@
 #include "jsondecode.h"
 
 // List of all available characteristics for sensor types
-using CharDesc = CharcteristicDescriptor;
-using namespace wunderbar;
 using namespace wunderbar::characteristics::sensor;
-
+using namespace wunderbar::characteristics::ble;
 using AM = AccessMode;
 
 const uint16_t INVALID_UUID = 0xFFFF;
 
-const std::list<uint16_t>& wbSensorChars(DataId sensor)
-{
-    static const std::unordered_map<uint8_t, std::list<uint16_t>> sensorChars =
-    {
-        {sensors::DATA_ID_DEV_HTU,    {ID, BEACON_FREQ, LED_STATE,
-                                       FREQUENCY, THRESHOLD, CONFIG,
-                                       DATA_R} },
-
-        {sensors::DATA_ID_DEV_GYRO,   {ID, BEACON_FREQ, LED_STATE,
-                                       FREQUENCY, THRESHOLD, CONFIG,
-                                       DATA_R} },
-
-        {sensors::DATA_ID_DEV_LIGHT,  {ID, BEACON_FREQ, LED_STATE,
-                                       FREQUENCY, THRESHOLD, CONFIG,
-                                       DATA_R} },
-
-        {sensors::DATA_ID_DEV_SOUND,  {ID, BEACON_FREQ, LED_STATE,
-                                       FREQUENCY, THRESHOLD, DATA_R} },
-
-        {sensors::DATA_ID_DEV_BRIDGE, {ID, BEACON_FREQ, LED_STATE,
-                                       FREQUENCY, CONFIG, DATA_R, DATA_W } },
-
-        {sensors::DATA_ID_DEV_IR    , {ID, BEACON_FREQ, LED_STATE,
-                                       FREQUENCY, DATA_W} }
-    };
-    return sensorChars.at(static_cast<uint8_t>(sensor));
-}
-
-bool sensorHasCharacteristic(const ServerName& name, uint16_t uuid)
+bool sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
 {
     bool uuidFound = false;
-    DataId sensor = ServerNamesToDataId(name);
-    const std::list<uint16_t>& availableChars = wbSensorChars(sensor);
-
-    for(auto charUuid : availableChars)
+    static const std::list<CharcteristicDescriptor> commonSensorChars = {{ID, AM::READ},
+                                                                         {BEACON_FREQ, AM::RW},
+                                                                         {LED_STATE, AM::WRITE},
+                                                                         {BATTERY_LEVEL, AM::READ},
+                                                                         {MANUFACTURER_NAME, AM::READ},
+                                                                         {HARDWARE_REVISION, AM::READ},
+                                                                         {FIRMWARE_REVISION, AM::READ}};
+    if(AM::NONE != requestedMode)
     {
-        if(charUuid == uuid)
+        for(auto& characteristic : commonSensorChars)
         {
-            uuidFound = true;
-            break;
+            if((characteristic.uuid == uuid)
+                && ((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW)))
+            {
+                uuidFound = true;
+                break;
+            }
         }
     }
 
@@ -135,10 +113,59 @@ void WunderbarSensor::handleCommand(const char* id, const char* data)
     {
         if(message.isField("getBatteryLevel"))
         {
-            if(handleBatteryLevelRequest())
+            if(readFromServer(wunderbar::characteristics::ble::BATTERY_LEVEL))
             {
                 retCode = 200;
                 sendAckImmediately = true;
+            }
+        }
+        else if(message.isField("getManufacturer"))
+        {
+            if(readFromServer(wunderbar::characteristics::ble::MANUFACTURER_NAME))
+            {
+                retCode = 200;
+                sendAckImmediately = true;
+            }
+        }
+        else if(message.isField("getFirmware"))
+        {
+            if(readFromServer(wunderbar::characteristics::ble::FIRMWARE_REVISION))
+            {
+                retCode = 200;
+                sendAckImmediately = true;
+            }
+        }
+        else if(message.isField("getHardware"))
+        {
+            if(readFromServer(wunderbar::characteristics::ble::HARDWARE_REVISION))
+            {
+                retCode = 200;
+                sendAckImmediately = true;
+            }
+        }
+        else if(message.isField("getBeaconFreq"))
+        {
+            if(readFromServer(wunderbar::characteristics::sensor::BEACON_FREQ))
+            {
+                retCode = 200;
+                sendAckImmediately = true;
+            }
+        }
+        else if(message.isField("getSensorId"))
+        {
+            if(readFromServer(wunderbar::characteristics::sensor::ID))
+            {
+                retCode = 200;
+                sendAckImmediately = true;
+            }
+        }
+        else if(message.isField("blinkLed"))
+        {
+            uint8_t value = 1;
+            if(sendToServer(wunderbar::characteristics::sensor::LED_STATE, &value, 1))
+            {
+                retCode = 200;
+                sendAckImmediately = false;
             }
         }
         else if(message.isField("readUUID"))
@@ -153,6 +180,18 @@ void WunderbarSensor::handleCommand(const char* id, const char* data)
                 }
             }
         }
+        else if(message.isField("writeUUID"))
+        {
+            char writeRequestBuffer[50];
+            if(message.copyTo("writeUUID", writeRequestBuffer, sizeof(writeRequestBuffer)))
+            {
+                if(handleWriteUuidRequest(writeRequestBuffer))
+                {
+                    retCode = 200;
+                    sendAckImmediately = false;
+                }
+            }
+        }
     }
     if(sendAckImmediately)
     {
@@ -160,7 +199,7 @@ void WunderbarSensor::handleCommand(const char* id, const char* data)
     }
 }
 
-bool WunderbarSensor::findUuid(const char* data, uint16_t& uuid)
+bool WunderbarSensor::findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode)
 {
     uuid = INVALID_UUID;
     JsonDecode uuidData(data, 8);
@@ -175,7 +214,7 @@ bool WunderbarSensor::findUuid(const char* data, uint16_t& uuid)
             {
                 uint16_t uuidNumber = INVALID_UUID;
                 std::sscanf(uuidName, "0x%hx", &uuidNumber);
-                if(sensorHasCharacteristic(config.name, uuidNumber))
+                if(sensorHasCharacteristic(uuidNumber, requestedMode))
                 {
                     uuid = uuidNumber;
                 }
@@ -183,26 +222,30 @@ bool WunderbarSensor::findUuid(const char* data, uint16_t& uuid)
             else if(0 == std::strncmp(uuidNameType, "integer", 7))
             {
                 uint16_t uuidNumber = std::atoi(uuidName);
-                if(sensorHasCharacteristic(config.name, uuidNumber))
+                if(sensorHasCharacteristic(uuidNumber, requestedMode))
                 {
                     uuid = uuidNumber;
                 }
             }
             else if(0 == std::strncmp(uuidNameType, "name", 4))
             {
-                if(0 == std::strncmp(uuidName, "batteryLevel", 12))
+                if(0 == std::strncmp(uuidName, "batteryLevel", 12)
+                   && requestedMode == AM::READ)
                 {
                     uuid = wunderbar::characteristics::ble::BATTERY_LEVEL;
                 }
-                else if(0 == std::strncmp(uuidName, "firmware", 8))
+                else if(0 == std::strncmp(uuidName, "firmware", 8)
+                        && requestedMode == AM::READ)
                 {
                     uuid = wunderbar::characteristics::ble::FIRMWARE_REVISION;
                 }
-                else if(0 == std::strncmp(uuidName, "hardware", 8))
+                else if(0 == std::strncmp(uuidName, "hardware", 8)
+                        && requestedMode == AM::READ)
                 {
                     uuid = wunderbar::characteristics::ble::HARDWARE_REVISION;
                 }
-                else if(0 == std::strncmp(uuidName, "manufacturer", 12))
+                else if(0 == std::strncmp(uuidName, "manufacturer", 12)
+                        && requestedMode == AM::READ)
                 {
                     uuid = wunderbar::characteristics::ble::MANUFACTURER_NAME;
                 }
@@ -221,22 +264,41 @@ bool WunderbarSensor::findUuid(const char* data, uint16_t& uuid)
     return (uuid != INVALID_UUID);
 }
 
-bool WunderbarSensor::handleBatteryLevelRequest()
-{
-    return readFromServer(wunderbar::characteristics::ble::BATTERY_LEVEL);
-}
-
 bool WunderbarSensor::handleReadUuidRequest(const char* data)
 {
     bool readOk = false;
     uint16_t uuid = INVALID_UUID;
 
-    if(findUuid(data, uuid))
+    if(findUuid(data, uuid, AM::READ))
     {
         readOk = readFromServer(uuid);
     }
 
     return readOk;
+}
+
+bool WunderbarSensor::handleWriteUuidRequest(const char* data)
+{
+    bool writeOk = false;
+    uint16_t uuid = INVALID_UUID;
+
+    if(findUuid(data, uuid, AM::WRITE))
+    {
+        JsonDecode writeRequest(data, 8);
+        if(writeRequest)
+        {
+            char writeValue[20];
+            if(writeRequest.copyTo("value", writeValue, sizeof(writeValue)))
+            {
+                writeOk = sendToServer(uuid,
+                                       reinterpret_cast<uint8_t*>(writeValue),
+                                       std::strlen(writeValue));
+            }
+        }
+
+    }
+
+    return writeOk;
 }
 
 size_t WunderbarSensor::batteryToJson(char* outputString, size_t maxLen, const uint8_t* data)
@@ -332,10 +394,6 @@ size_t WunderbarSensor::getSenseSpec(char* dst, size_t maxLen)
         "\"type\":\"integer\""
     "},"
     "{"
-        "\"name\":\"led\","
-        "\"type\":\"boolean\""
-    "},"
-    "{"
         "\"name\":\"firmware\","
         "\"type\":\"String\""
     "},"
@@ -360,6 +418,24 @@ size_t WunderbarSensor::getActuateSpec(char* dst, size_t maxLen)
         "\"CommandName\":\"getBatteryLevel\""
     "},"
     "{"
+        "\"CommandName\":\"getFirmware\""
+    "},"
+    "{"
+        "\"CommandName\":\"getHardware\""
+    "},"
+    "{"
+        "\"CommandName\":\"getManufacturer\""
+    "},"
+    "{"
+        "\"CommandName\":\"getSensorId\""
+    "},"
+    "{"
+        "\"CommandName\":\"getBeaconFreq\""
+    "},"
+    "{"
+        "\"CommandName\":\"blinkLed\","
+    "},"
+    "{"
         "\"CommandName\":\"readUUID\","
         "\"DataListe\":"
         "[{"
@@ -373,17 +449,7 @@ size_t WunderbarSensor::getActuateSpec(char* dst, size_t maxLen)
         "}]"
     "},"
     "{"
-        "\"CommandName\":\"setLed\","
-        "\"DataListe\":"
-        "[{"
-            "\"ValueName\":\"state\","
-            "\"ValueType\":\"integer\","
-            "\"min\":0,"
-            "\"max\":1"
-        "}]"
-    "},"
-    "{"
-        "\"CommandName\":\"setUUID\","
+        "\"CommandName\":\"writeUUID\","
         "\"DataListe\":"
         "[{"
             "\"ValueName\":\"uuid\","

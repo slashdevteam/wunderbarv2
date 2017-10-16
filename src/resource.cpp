@@ -48,7 +48,7 @@ Resource::~Resource()
 void Resource::advertise(IPubSub* _proto)
 {
     proto = _proto;
-    pubSub = std::make_unique<rtos::Thread>(osPriorityNormal, 0x800, nullptr, pubtopic.c_str());
+    pubSub = std::make_unique<rtos::Thread>(osPriorityNormal, 0xA00, nullptr, pubtopic.c_str());
     pubSub->start(mbed::callback(this, &Resource::pubSubThread));
 }
 

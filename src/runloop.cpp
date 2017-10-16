@@ -42,7 +42,7 @@ private:
     {
         log.printf("Connecting to %s network\r\n", config.wifi.ssid);
         mbed::DigitalOut led(LED1);
-        ProgressBar progressBar(log, led, false, 600);
+        ProgressBar progressBar(log, led, false, 450);
         progressBar.start();
         int status = wifi.connect(config.wifi.ssid,
                                   config.wifi.pass,
@@ -62,7 +62,7 @@ private:
             MqttProtocol     mqtt(&tls, config.proto, &log);
 
             log.printf("Creating connection over %s to %s:%d.\r\n", mqtt.name, config.proto.server, config.proto.port);
-            ProgressBar progressBar(log, led, false, 600);
+            ProgressBar progressBar(log, led, false, 133);
             progressBar.start();
             bool mqttConnected = mqtt.connect();
             progressBar.terminate();
@@ -116,7 +116,7 @@ private:
         HttpsRequest request(restTls, "GET", config.rest.server, config.rest.port, timeUrl.c_str(), nullptr);
         request.setHeader("X-AUTH-TOKEN", config.rest.token);
         uint8_t httpsBuffer[512] = {0};
-        ProgressBar progressBar(log, led, false, 600);
+        ProgressBar progressBar(log, led, false, 133);
         progressBar.start();
         bool sendStatus = request.send();
         progressBar.terminate();

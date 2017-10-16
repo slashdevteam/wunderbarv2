@@ -35,9 +35,9 @@ private:
     size_t stringLength(const uint8_t* data);
 
     // commands
-    bool findUuid(const char* data, uint16_t& uuid);
-    bool handleBatteryLevelRequest();
+    bool findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
     bool handleReadUuidRequest(const char* data);
+    bool handleWriteUuidRequest(const char* data);
 
 protected:
     int retCode;

@@ -5,9 +5,6 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
-#include "istdinout.h"
-extern IStdInOut* stdioRetarget;
-
 WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),

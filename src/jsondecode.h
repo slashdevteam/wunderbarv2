@@ -14,7 +14,6 @@ public:
     const char* get(const char* fieldName);
     const char* get(const char* fieldName, size_t& size);
     bool isField(const char* fieldName);
-    bool isField(const char* fieldName, const char*& value, size_t& size);
     // safe method for boolean ops on object
     explicit operator bool() const;
 

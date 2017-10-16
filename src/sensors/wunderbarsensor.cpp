@@ -183,7 +183,6 @@ bool WunderbarSensor::findUuid(const char* data, uint16_t& uuid)
             else if(0 == std::strncmp(uuidNameType, "integer", 7))
             {
                 uint16_t uuidNumber = std::atoi(uuidName);
-                // first try via UUID
                 if(sensorHasCharacteristic(config.name, uuidNumber))
                 {
                     uuid = uuidNumber;

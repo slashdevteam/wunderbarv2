@@ -14,13 +14,21 @@ using OnboardStep = mbed::Callback<bool(wunderbar::Configuration&)>;
 class Onboarder
 {
 public:
-    Onboarder(Flash& _flash, IStdInOut& _log, IBleGateway& _ble, WiFiInterface& _wifi, NetworkStack& _net)
+    Onboarder(Flash& _flash,
+              IStdInOut& _log,
+              IBleGateway& _ble,
+              WiFiInterface& _wifi,
+              NetworkStack& _net,
+              const Resources& _resources,
+              uint8_t* loopStack,
+              size_t loopStackSize)
         : flash(_flash),
           log(_log),
           ble(_ble),
           wifi(_wifi),
           net(_net),
-          executor(osPriorityNormal, 0x6000),
+          resources(_resources),
+          executor(osPriorityNormal, loopStackSize, loopStack, "ONBOARD_LOOP"),
           steps{mbed::callback(this, &Onboarder::wifiStep),
                 mbed::callback(this, &Onboarder::bleStep),
                 mbed::callback(this, &Onboarder::cloudStep)},
@@ -120,7 +128,7 @@ private:
         bool cloudOk = false;
         if(stepStatus[0])
         {
-            cloudOk = cloudWizard(&net, config.proto, config.tls, config.rest, led, log);
+            cloudOk = cloudWizard(&net, config.proto, config.tls, config.rest, led, log, resources);
         }
         else
         {
@@ -161,18 +169,33 @@ private:
     IBleGateway& ble;
     WiFiInterface& wifi;
     NetworkStack& net;
+    const Resources& resources;
     rtos::Thread executor;
     OnboardStep steps[3];
     bool stepStatus[3];
     mbed::DigitalOut led;
 };
 
-void onboardLoop(Flash& flash, IStdInOut& log, IBleGateway& ble, WiFiInterface& wifi, NetworkStack& net)
+void onboardLoop(Flash& flash,
+                 IStdInOut& log,
+                 IBleGateway& ble,
+                 WiFiInterface& wifi,
+                 NetworkStack& net,
+                 const Resources& resources,
+                 uint8_t* loopStack,
+                 size_t loopStackSize)
 {
     // mbed does not provide alternative for std::bind
     // so emulating it with thin wrapper with necessary pointers
     // around onboarding thread
-    Onboarder onboarder(flash, log, ble, wifi, net);
+    Onboarder onboarder(flash,
+                        log,
+                        ble,
+                        wifi,
+                        net,
+                        resources,
+                        loopStack,
+                        loopStackSize);
     onboarder.run();
 }
 

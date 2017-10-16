@@ -15,12 +15,6 @@ WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources)
 {
 }
 
-void WbBridge::advertise(IPubSub* _proto)
-{
-    Resource::advertise(_proto);
-    Resource::startSubscriber();
-}
-
 void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
 {
     switch(_event)
@@ -36,23 +30,11 @@ void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
     }
 }
 
-int WbBridge::handleCommand(const char* data)
-{
-    int retCode = 400; // Bad Request
-    if(parseCommand(data))
-    {
-        retCode = 200; // OK
-    }
-    else
-    {
-        retCode = 405; // Method Not Allowed
-    }
-    return retCode;
-}
-
-bool WbBridge::parseCommand(const char* data)
+void WbBridge::handleCommand(const char* id, const char* data)
 {
     bool commandOk = false;
+    retCode = 400;
+    std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
     JsonDecode message(data, 16);
 
     if(message)
@@ -67,26 +49,24 @@ bool WbBridge::parseCommand(const char* data)
                 commandOk = true;
             }
         }
-        else if(message.copyTo("toggleState", valueBuffer, 1))
+        else if(message.isField("toggleState"))
         {
-            int value = std::atoi(valueBuffer);
-            if(value == 1)
-            {
-                relayState = !relayState;
-                commandOk = true;
-            }
+            relayState = !relayState;
+            commandOk = true;
         }
     }
 
     if(commandOk)
     {
         dataDown.payload[0] = relayState;
-        commandOk = sendToServer(wunderbar::characteristics::sensor::DATA_W,
+        if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
                                  reinterpret_cast<uint8_t*>(&dataDown),
-                                 sizeof(dataDown));
+                                 sizeof(dataDown)))
+        {
+            retCode = 200;
+        }
     }
 
-    return commandOk;
 }
 
 size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
@@ -118,27 +98,41 @@ size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)
 
 size_t WbBridge::getActuateSpec(char* dst, size_t maxLen)
 {
-    const char actuateSpecFormat[] = "{"
+    const char actuateSpecFormatHead[] =
+    "{"
         "\"name\":\"%s\","
         "\"id\":\"%s\","
-        "\"data\":"
+        "\"commands\":"
         "["
             "{"
-                "\"name\":\"setState\","
-                "\"type\":\"integer\","
-                "\"min\":0,"
-                "\"max\":1"
+                "\"CommandName\":\"setState\","
+                "\"DataListe\":"
+                "[{"
+                    "\"ValueName\":\"state\","
+                    "\"ValueType\":\"integer\","
+                    "\"min\":0,"
+                    "\"max\":1"
+                "}]"
             "},"
             "{"
-                "\"name\":\"toggleState\","
-                "\"type\":\"boolean\""
-            "}"
+                "\"CommandName\":\"toggleState\""
+            "},";
+
+    const char actuateSpecFormatTail[] =
         "]"
     "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    actuateSpecFormat,
-                    config.name.c_str(),
-                    config.name.c_str());
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  actuateSpecFormatHead,
+                                  config.name.c_str(),
+                                  config.name.c_str());
+
+    sizeWritten += WunderbarSensor::getActuateSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            actuateSpecFormatTail);
+
+    return sizeWritten;
 }

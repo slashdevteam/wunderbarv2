@@ -5,28 +5,28 @@
 #include "mbed.h"
 #include "jsondecode.h"
 
-const std::string PubHeader =
+const char PubHeader[] =
 "{"
 "\"data\":{";
 
-const std::string PubMiddle =
+const char PubMiddle[] =
 "},"
 "\"time\":";
 
-const std::string PubTail =
+const char PubTail[] =
 "}";
 
-const std::string AckHeader =
+const char AckHeader[] =
 "{"
 "\"commandID\":\"";
 
-const std::string AckMiddle =
+const char AckMiddle[] =
 "\",\"code\":\"";
 
-const std::string AckTime =
+const char AckTime[] =
 "\",\"time\":";
 
-const std::string AckTail =
+const char AckTail[] =
 "}";
 
 Resource::Resource(Resources* resources,
@@ -35,8 +35,7 @@ Resource::Resource(Resources* resources,
     : proto(nullptr),
       subtopic("actuator/" + _subtopic),
       pubtopic("sensor/" + _pubtopic),
-      subscriber(nullptr),
-      publisher(nullptr)
+      pubSub(nullptr)
 {
     resources->registerResource(this);
 }
@@ -49,85 +48,138 @@ Resource::~Resource()
 void Resource::advertise(IPubSub* _proto)
 {
     proto = _proto;
+    pubSub = std::make_unique<rtos::Thread>(osPriorityNormal, 0x800, nullptr, pubtopic.c_str());
+    pubSub->start(mbed::callback(this, &Resource::pubSubThread));
 }
 
 void Resource::revoke()
 {
-    publisher.reset(nullptr);
-    subscriber.reset(nullptr);
+    pubSub.reset(nullptr);
     proto = nullptr;
 }
 
-bool Resource::startPublisher()
+void Resource::pubSubThread()
 {
-    bool publisherStarted = false;
-    if(proto)
+    while(1)
     {
-        publisher = std::make_unique<rtos::Thread>(osPriorityNormal, 0x400, nullptr, pubtopic.c_str());
-        publisher->start(mbed::callback(this, &Resource::publishThread));
-        publisherStarted = true;
+        osEvent msg = msgQueue.get();
+        if(osEventMessage == msg.status)
+        {
+            MessageTuple& message = *reinterpret_cast<MessageTuple*>(msg.value.p);
+            MessageType type = std::get<MessageType>(message);
+            switch(type)
+            {
+                case SUB_REQ:
+                    proto->subscribe(reinterpret_cast<const uint8_t*>(subtopic.c_str()),
+                                     mbed::callback(this, &Resource::subscribeDone),
+                                     mbed::callback(this, &Resource::subscribeCallback));
+                    rtos::Thread::signal_wait(SUB_ACK_SIGNAL);
+                    break;
+                case PUB_REQ:
+                    {
+                        proto->publish(reinterpret_cast<const uint8_t*>(pubtopic.c_str()),
+                                       reinterpret_cast<const uint8_t*>(std::get<Message>(message).data()),
+                                       std::get<size_t>(message),
+                                       mbed::callback(this, &Resource::publishDone));
+                        rtos::Thread::signal_wait(PUBLISH_DONE_SIGNAL);
+                    }
+                    break;
+                case ACK_REQ:
+                    {
+                        proto->publish(reinterpret_cast<const uint8_t*>("ack"),
+                                       reinterpret_cast<const uint8_t*>(std::get<Message>(message).data()),
+                                       std::get<size_t>(message),
+                                       mbed::callback(this, &Resource::ackDone));
+                        rtos::Thread::signal_wait(ACK_DONE_SIGNAL);
+                    }
+                    break;
+                case SUB_INCOMING:
+                    handleSubscription(message);
+                    break;
+                default:
+                    break;
+            }
+            msgStorage.free(&message);
+        }
     }
-    return publisherStarted;
 }
 
-bool Resource::startSubscriber()
+void Resource::acknowledge(const char* commandId, int code)
 {
-    bool subscriberStarted = false;
-    if(proto)
+    MessageTuple* message = msgStorage.alloc();
+    if(message)
     {
-        subscriberStarted = proto->subscribe(reinterpret_cast<const uint8_t*>(subtopic.c_str()),
-                                             mbed::callback(this, &Resource::subscribeDone),
-                                             mbed::callback(this, &Resource::subscribeCallback));
+        std::get<MessageType>(*message) = ACK_REQ;
+        char* content = std::get<Message>(*message).data();
+
+        size_t written = snprintf(content, MQTT_MSG_PAYLOAD_SIZE, AckHeader);
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, commandId);
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckMiddle);
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%d", code);
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTime);
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTail);
+        std::get<size_t>(*message) = written;
+        msgQueue.put(message);
     }
-    return subscriberStarted;
 }
 
-bool Resource::publish(const std::string& topic, const char* data, MessageDoneCallback doneCallback)
+void Resource::subscribe()
 {
-    message.clear();
-    message.append(PubHeader);
-    message.append(data);
-    message.append(PubMiddle);
-    message.append(std::to_string(time(nullptr)));
-    message.append(PubTail);
-    return proto->publish(reinterpret_cast<const uint8_t*>(topic.c_str()),
-                          reinterpret_cast<const uint8_t*>(message.c_str()),
-                          message.size(),
-                          doneCallback);
+    MessageTuple* message = msgStorage.alloc();
+    if(message)
+    {
+        std::get<MessageType>(*message) = SUB_REQ;
+        msgQueue.put(message);
+    }
 }
 
-bool Resource::acknowledge(const std::string& _command, int _code, MessageDoneCallback doneCallback)
+void Resource::publish(DataFiller fillData, const uint8_t* extData)
 {
-    message.clear();
-    message.append(AckHeader);
-    message.append(_command);
-    message.append(AckMiddle);
-    message.append(std::to_string(_code));
-    message.append(AckTime);
-    message.append(std::to_string(time(nullptr)));
-    message.append(AckTail);
-    return proto->publish(reinterpret_cast<const uint8_t*>("ack"),
-                          reinterpret_cast<const uint8_t*>(message.c_str()),
-                          message.size(),
-                          doneCallback);
+    MessageTuple* message = msgStorage.alloc();
+    if(message)
+    {
+        std::get<MessageType>(*message) = PUB_REQ;
+        char* content = std::get<Message>(*message).data();
+
+        size_t written = snprintf(content, MQTT_MSG_PAYLOAD_SIZE, PubHeader);
+        if(fillData)
+        {
+            written += fillData(content + written, MQTT_MSG_PAYLOAD_SIZE - written, extData);
+        }
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubMiddle);
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
+        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubTail);
+        std::get<size_t>(*message) = written;
+        msgQueue.put(message);
+    }
 }
-
-
 
 void Resource::subscribeDone(bool status)
 {
     subscribed = status;
-    subscriber = std::make_unique<rtos::Thread>(osPriorityNormal, 0x600, nullptr, subtopic.c_str());
-    subscriber->start(mbed::callback(this, &Resource::subscribeThread));
+    if(pubSub)
+    {
+        pubSub->signal_set(SUB_ACK_SIGNAL);
+    }
 }
 
 void Resource::subscribeCallback(const uint8_t* data, size_t len)
 {
-    std::memcpy(subscribeContent, data, len);
-    subscriber->signal_set(NEW_SUB_SIGNAL);
+    if(len <= MQTT_MSG_PAYLOAD_SIZE)
+    {
+        MessageTuple* message = msgStorage.alloc();
+        if(message)
+        {
+            std::get<MessageType>(*message) = SUB_INCOMING;
+            std::get<size_t>(*message) = len;
+            std::memcpy(std::get<Message>(*message).data(), data, len);
+            msgQueue.put(message);
+        }
+    }
 }
 
-bool Resource::parseSubscription(std::string& commandID, std::string& data)
+bool Resource::parseSubscription(const char* subscribeContent, std::string& commandID, std::string& data)
 {
     JsonDecode message(subscribeContent, 16);
     bool parseOK = false;
@@ -153,62 +205,43 @@ bool Resource::parseSubscription(std::string& commandID, std::string& data)
     return parseOK;
 }
 
-void Resource::subscribeThread()
+void Resource::handleSubscription(MessageTuple& subMsg)
 {
-    while(1)
+    if(subscribed)
     {
-        rtos::Thread::signal_wait(NEW_SUB_SIGNAL);
-        if(subscribed)
+        std::string commandID = "0";
+        std::string data = "";
+        if(parseSubscription(std::get<Message>(subMsg).data(), commandID, data))
         {
-            std::string commandID = "0";
-            std::string data = "";
-            int returnCode = 400; // Bad Request
-            if(parseSubscription(commandID, data))
-            {
-                // this can be overridden by Resource implementation
-                returnCode = handleCommand(data.c_str());
-            }
-            acknowledge(commandID, returnCode, mbed::callback(this, &Resource::ackDone));
-            rtos::Thread::signal_wait(ACK_DONE_SIGNAL);
+            // this can be overridden by Resource implementation
+            handleCommand(commandID.c_str(), data.c_str());
+        }
+        else
+        {
+            acknowledge(commandID.c_str(), 400); // Bad Request
         }
     }
 }
 
-int Resource::handleCommand(const char* data)
+void Resource::handleCommand(const char* id, const char* data)
 {
     // Resource derivatives should implement command handling in overridden handleCommand
-    return 404; // NOT_FOUND
+    // 404 - NOT_FOUND
+    acknowledge(id, 404);
 }
 
 void Resource::ackDone(bool status)
 {
-    subscriber->signal_set(ACK_DONE_SIGNAL);
-}
-
-void Resource::writeDone()
-{
-    subscriber->signal_set(SUB_DATA_DONE_SIGNAL);
-}
-
-void Resource::publishThread()
-{
-    while(1)
+    if(pubSub)
     {
-        rtos::Thread::signal_wait(NEW_PUB_SIGNAL);
-        publish(pubtopic, publishContent, mbed::callback(this, &Resource::publishDone));
-        rtos::Thread::signal_wait(PUBLISH_DONE_SIGNAL);
+        pubSub->signal_set(ACK_DONE_SIGNAL);
     }
 }
 
 void Resource::publishDone(bool status)
 {
-    publisher->signal_set(PUBLISH_DONE_SIGNAL);
-}
-
-void Resource::publish()
-{
-    if(publisher)
+    if(pubSub)
     {
-        publisher->signal_set(NEW_PUB_SIGNAL);
+        pubSub->signal_set(PUBLISH_DONE_SIGNAL);
     }
 }

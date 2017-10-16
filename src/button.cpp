@@ -1,54 +1,60 @@
 #include "button.h"
 #include "jsmn.h"
 #include "jsondecode.h"
-#include "flash.h"
 #include "loopsutil.h"
 
-extern Flash flash;
-
-const int32_t BUTTON_PRESSED = 0x1;
-const int32_t BUTTON_RELEASED = 0x2;
-const int BUTTON_RESET_TIME_MS = 5000;
-
-Button::Button(Resources* _resources, const std::string& name, PinName _pin)
+Button::Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin)
     : Resource(_resources,
                name,
                name),
+      flash(_flash),
+      publishing(false),
       counter(0),
       buttonIrq(_pin),
-      buttonIrqTiming(osPriorityNormal, 0x300)
+      buttonIrqTiming(osPriorityHigh, 0x600, nullptr, "BUTTON_TIMING")
 {
     // Threads cannot be started from IRQ callbacks, so button press timing thread
     // needs to be started here
     buttonIrqTiming.start(mbed::callback(this, &Button::waitForRise));
+    // button can generate spurious 'clicks' so attaching only one edge at a time
     buttonIrq.fall(mbed::callback(this, &Button::irqFall));
-    buttonIrq.rise(mbed::callback(this, &Button::irqRise));
 }
 
 void Button::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
-    Resource::startPublisher();
+    publishing = true;
+}
+
+void Button::revoke()
+{
+    publishing = false;
+    Resource::revoke();
 }
 
 void Button::irqFall()
 {
+    counter++;
+    // falling edge registered so switch edge detection to rising
+    buttonIrq.fall(mbed::Callback<void()>());
+    buttonIrq.rise(mbed::callback(this, &Button::irqRise));
     buttonIrqTiming.signal_set(BUTTON_PRESSED);
-    irqCounter();
+
 }
 
 void Button::irqRise()
 {
+    // rising edge registered so switch edge detection to falling
+    buttonIrq.rise(mbed::Callback<void()>());
+    buttonIrq.fall(mbed::callback(this, &Button::irqFall));
     buttonIrqTiming.signal_set(BUTTON_RELEASED);
 }
 
-void Button::irqCounter()
+size_t Button::toJson(char* outputString, size_t maxLen, const uint8_t* data)
 {
-    counter++;
-    const char pubFormat[] = "\"count\":%u";
-    snprintf(publishContent, sizeof(publishContent), pubFormat, counter);
-    publish();
+    return std::snprintf(outputString, maxLen, "\"count\":%u", counter);
 }
+
 
 void Button::waitForRise()
 {
@@ -56,7 +62,10 @@ void Button::waitForRise()
     {
         // wait forever for BUTTON_PRESSED
         rtos::Thread::signal_wait(BUTTON_PRESSED);
-
+        if(publishing)
+        {
+            publish(mbed::callback(this, &Button::toJson), nullptr);
+        }
         // wait for BUTTON_RELEASED
         osEvent waitEvent;
         waitEvent = rtos::Thread::signal_wait(BUTTON_RELEASED, BUTTON_RESET_TIME_MS);
@@ -70,11 +79,10 @@ void Button::waitForRise()
             progressBar.start();
             // wait forever for BUTTON_RELEASED
             rtos::Thread::signal_wait(BUTTON_RELEASED);
-            // clear onboarding
+            // clear onboarding - Wunderbar will reset!
             clearFlash();
         }
     }
-
 }
 
 void Button::clearFlash()
@@ -83,7 +91,7 @@ void Button::clearFlash()
     NVIC_SystemReset();
 }
 
-int Button::handleCommand(const char* data)
+void Button::handleCommand(const char* id, const char* data)
 {
     int retCode = 400; // Bad Request
     if(parseCommand(data))
@@ -94,7 +102,7 @@ int Button::handleCommand(const char* data)
     {
         retCode = 405; // Method Not Allowed
     }
-    return retCode;
+    acknowledge(id, retCode);
 }
 
 bool Button::parseCommand(const char* data)

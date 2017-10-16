@@ -11,19 +11,12 @@ WbGyro::WbGyro(IBleGateway& _gateway, Resources* _resources)
 {
 }
 
-void WbGyro::advertise(IPubSub* _proto)
-{
-    Resource::advertise(_proto);
-    Resource::startPublisher();
-}
-
 void WbGyro::event(BleEvent _event, const uint8_t* data, size_t len)
 {
     switch(_event)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
-            dataToJson(publishContent, MQTT_MSG_PAYLOAD_SIZE, *reinterpret_cast<const sensor_gyro_data_t*>(data));
-            publish();
+            publish(mbed::callback(this, &WbGyro::dataToJson), data);
             break;
         case BleEvent::DATA_SENSOR_FREQUENCY:
             // not used yet
@@ -48,29 +41,29 @@ size_t WbGyro::getSenseSpec(char* dst, size_t maxLen)
         "["
             "{"
                 "\"name\":\"gyro_xyz\","
-                "\"type\" : {"
-                    "\"type\" : \"array\","
-                    "\"maxItems\" : 3,"
-                    "\"minItems\" : 3,"
-                    "\"items\" : {"
+                "\"type\":{"
+                    "\"type\":\"array\","
+                    "\"maxItems\":3,"
+                    "\"minItems\":3,"
+                    "\"items\":{"
                         "\"type\":\"integer\","
                         "\"min\":-23768,"
                         "\"max\":32767"
-                            "}"
                     "}"
+                "}"
             "},"
             "{"
                 "\"name\":\"acc_xyz\","
-                "\"type\" : {"
-                    "\"type\" : \"array\","
-                    "\"maxItems\" : 3,"
-                    "\"minItems\" : 3,"
-                    "\"items\" : {"
+                "\"type\":{"
+                    "\"type\":\"array\","
+                    "\"maxItems\":3,"
+                    "\"minItems\":3,"
+                    "\"items\":{"
                         "\"type\":\"integer\","
                         "\"min\":-23768,"
                         "\"max\":32767"
-                            "}"
                     "}"
+                "}"
             "},";
 
     const char senseSpecFormatTail[] =
@@ -88,6 +81,34 @@ size_t WbGyro::getSenseSpec(char* dst, size_t maxLen)
     sizeWritten += snprintf(dst + sizeWritten,
                             maxLen - sizeWritten,
                             senseSpecFormatTail);
+
+    return sizeWritten;
+}
+
+size_t WbGyro::getActuateSpec(char* dst, size_t maxLen)
+{
+    const char actuateSpecFormatHead[] =
+    "{"
+        "\"name\":\"%s\","
+        "\"id\":\"%s\","
+        "\"commands\":"
+        "[";
+
+    const char actuateSpecFormatTail[] =
+        "]"
+    "}";
+
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  actuateSpecFormatHead,
+                                  config.name.c_str(),
+                                  config.name.c_str());
+
+    sizeWritten += WunderbarSensor::getActuateSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            actuateSpecFormatTail);
 
     return sizeWritten;
 }

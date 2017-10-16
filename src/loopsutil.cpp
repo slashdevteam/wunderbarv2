@@ -8,6 +8,8 @@ void ProgressBar::start()
 
 void ProgressBar::terminate()
 {
+    log.printf("\r\n");
+    led = 0;
     executor.signal_set(ProgressBar::KILL_SIG);
 }
 

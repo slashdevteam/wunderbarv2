@@ -13,7 +13,7 @@ public:
     bool copyTo(const char* fieldName, char* fieldValue, size_t maxSize);
     const char* get(const char* fieldName);
     const char* get(const char* fieldName, size_t& size);
-
+    bool isField(const char* fieldName);
     // safe method for boolean ops on object
     explicit operator bool() const;
 

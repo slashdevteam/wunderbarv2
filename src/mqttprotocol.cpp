@@ -38,7 +38,7 @@ MqttProtocol::MqttProtocol(ITransportLayer* _transport, const MqttConfig& _confi
     : IPubSub(_transport, "MQTT"),
       config(_config),
       log(_log),
-      dispatcher(osPriorityNormal, 4096),
+      dispatcher(osPriorityNormal, 4096, nullptr, "MQTT-DISPATCH"),
       error(MQTT_STATUS::NOT_CONNECTED),
       keepAliveHeartbeat(10000),
       packetId(0)

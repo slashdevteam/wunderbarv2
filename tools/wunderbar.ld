@@ -54,7 +54,7 @@ __ram_vector_table__ = 1;
 
 /* Heap 1/4 of ram and stack 1/8 */
 __stack_size__ = 0x7000;
-__heap_size__ = 0x19000;
+__heap_size__ = 0x11800;
 
 #if !defined(MBED_APP_START)
   #define MBED_APP_START 0
@@ -249,6 +249,11 @@ SECTIONS
 
     . = ALIGN(32);
     __uvisor_bss_end = .;
+  } > m_data
+
+  .hugestack (NOLOAD):
+  {
+    PROVIDE(hugeheap = .);
   } > m_data
 
   /* Heap space for the page allocator */

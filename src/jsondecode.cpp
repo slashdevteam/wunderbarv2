@@ -42,6 +42,12 @@ int JsonDecode::tokenEquals(const char* json, jsmntok_t* tok, const char* s)
     return -1;
 }
 
+bool JsonDecode::isField(const char* fieldName)
+{
+    size_t fieldSize;
+    return raw != get(fieldName, fieldSize);
+}
+
 const char* JsonDecode::get(const char* fieldName)
 {
     size_t fieldSize;

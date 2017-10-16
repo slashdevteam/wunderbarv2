@@ -49,18 +49,21 @@ public:
     WbLightProx(IBleGateway& _gateway, Resources* _resources);
     virtual ~WbLightProx() = default;
 
-    virtual void advertise(IPubSub* _proto) override;
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
+    virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
-    inline int dataToJson(char* outputString, size_t maxLen, const sensor_lightprox_data_t& data)
+    inline size_t dataToJson(char* outputString, size_t maxLen, const uint8_t* data)
     {
-        return snprintf(outputString,
-                        maxLen,
-                        jsonFormat,
-                        data.white,
-                        data.r, data.g, data.b,
-                        data.proximity);
+        const sensor_lightprox_data_t& reading = *reinterpret_cast<const sensor_lightprox_data_t*>(data);
+        return std::snprintf(outputString,
+                             maxLen,
+                             jsonFormat,
+                             reading.white,
+                             reading.r,
+                             reading.g,
+                             reading.b,
+                             reading.proximity);
     }
 };

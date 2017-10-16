@@ -13,12 +13,6 @@ WbInfraRed::WbInfraRed(IBleGateway& _gateway, Resources* _resources)
 {
 }
 
-void WbInfraRed::advertise(IPubSub* _proto)
-{
-    Resource::advertise(_proto);
-    Resource::startSubscriber();
-}
-
 void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
 {
     switch(_event)
@@ -28,23 +22,10 @@ void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
     }
 }
 
-int WbInfraRed::handleCommand(const char* data)
+void WbInfraRed::handleCommand(const char* id, const char* data)
 {
-    int retCode = 400; // Bad Request
-    if(parseCommand(data))
-    {
-        retCode = 200; // OK
-    }
-    else
-    {
-        retCode = 405; // Method Not Allowed
-    }
-    return retCode;
-}
-
-bool WbInfraRed::parseCommand(const char* data)
-{
-    bool commandOk = false;
+    retCode = 400;
+    std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
     JsonDecode message(data, 16);
 
     if(message)
@@ -56,19 +37,15 @@ bool WbInfraRed::parseCommand(const char* data)
             if(value >= 0 || value <= 255)
             {
                 dataDown = value;
-                commandOk = true;
+                if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                                 reinterpret_cast<uint8_t*>(&dataDown),
+                                 sizeof(dataDown)))
+                {
+                    retCode = 200;
+                }
             }
         }
     }
-
-    if(commandOk)
-    {
-        commandOk = sendToServer(wunderbar::characteristics::sensor::DATA_W,
-                                 reinterpret_cast<uint8_t*>(&dataDown),
-                                 sizeof(dataDown));
-    }
-
-    return commandOk;
 }
 
 size_t WbInfraRed::getSenseSpec(char* dst, size_t maxLen)
@@ -100,23 +77,38 @@ size_t WbInfraRed::getSenseSpec(char* dst, size_t maxLen)
 
 size_t WbInfraRed::getActuateSpec(char* dst, size_t maxLen)
 {
-    const char actuateSpecFormat[] = "{"
+    const char actuateSpecFormatHead[] =
+    "{"
         "\"name\":\"%s\","
         "\"id\":\"%s\","
-        "\"data\":"
+        "\"commands\":"
         "["
             "{"
-                "\"name\":\"TX\","
-                "\"type\":\"integer\","
-                "\"min\":0,"
-                "\"max\":255"
-            "}"
+                "\"CommandName\":\"TX\","
+                "\"DataListe\":"
+                "[{"
+                    "\"ValueName\":\"TX\","
+                    "\"ValueType\":\"integer\","
+                    "\"min\":0,"
+                    "\"max\":255"
+                "}]"
+            "},";
+
+    const char actuateSpecFormatTail[] =
         "]"
     "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    actuateSpecFormat,
-                    config.name.c_str(),
-                    config.name.c_str());
+    size_t sizeWritten = snprintf(dst,
+                                  maxLen,
+                                  actuateSpecFormatHead,
+                                  config.name.c_str(),
+                                  config.name.c_str());
+
+    sizeWritten += WunderbarSensor::getActuateSpec(dst + sizeWritten, maxLen - sizeWritten);
+
+    sizeWritten += snprintf(dst + sizeWritten,
+                            maxLen - sizeWritten,
+                            actuateSpecFormatTail);
+
+    return sizeWritten;
 }

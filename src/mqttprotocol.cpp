@@ -337,11 +337,7 @@ void MqttProtocol::handleMessageQueue()
                 break;
         }
         messages.free(&message);
-        if(messageOk)
-        {
-            resetKeepAlive();
-        }
-        else
+        if(!messageOk)
         {
             handleError();
         }

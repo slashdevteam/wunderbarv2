@@ -28,7 +28,7 @@ extern "C" WEAK void getCpuId(uint32_t* part0,
 
 // capabilities JSON can be humongous so creating
 // static buffer
-char capabilities[8192] = {0};
+char capabilities[13312] = {0};
 uint8_t buffer[2048] = {0};
 
 bool validateOnboardChoice(char c)

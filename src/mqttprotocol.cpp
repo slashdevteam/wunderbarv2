@@ -232,7 +232,6 @@ void MqttProtocol::dispatch()
 
 void MqttProtocol::handleSubscriptions()
 {
-    log->printf("%s\r\n", __PRETTY_FUNCTION__);
     // check if anyone is actually listening
     if(!subscribers.empty())
     {
@@ -355,14 +354,14 @@ bool MqttProtocol::sendPublish(const MQTTString& topic, MessageTuple& message)
     bool ret = true;
 
     size_t packetLen = MQTTSerialize_publish(sendbuf,
-                                       MAX_MQTT_PACKET_SIZE,
-                                       0,
-                                       0, // QoS
-                                       false,
-                                       packetId++,
-                                       topic,
-                                       std::get<2>(message),
-                                       std::get<3>(message));
+                                             MAX_MQTT_PACKET_SIZE,
+                                             0,
+                                             0, // QoS
+                                             false,
+                                             packetId++,
+                                             topic,
+                                             std::get<2>(message),
+                                             std::get<3>(message));
     if((packetLen <= 0) || (!sendPacket(packetLen)))
     {
         log->printf("Publish to topic: %s failed!\r\n", topic.cstring);

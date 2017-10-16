@@ -3,10 +3,11 @@
 #include "jsondecode.h"
 #include "loopsutil.h"
 
-Button::Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin)
+Button::Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin, IStdInOut& _log)
     : Resource(_resources,
                name,
-               name),
+               name,
+               _log),
       flash(_flash),
       publishing(false),
       counter(0),
@@ -107,23 +108,14 @@ void Button::handleCommand(const char* id, const char* data)
 
 bool Button::parseCommand(const char* data)
 {
-    JsonDecode message(data, 16);
+    JsonDecode message(data, 8);
 
     if(message)
     {
-        char valueBuffer[1];
-        if(message.copyTo("resetCounter", valueBuffer, 1))
+        if(message.isField("resetCounter"))
         {
-            int value = std::atoi(valueBuffer);
-            if(value == 1)
-            {
-                counter = 0;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            counter = 0;
+            return true;
         }
     }
 
@@ -156,13 +148,10 @@ size_t Button::getActuateSpec(char* dst, size_t maxLen)
     const char actuaSpecFormat[] =  "{"
                 "\"name\":\"BUTTON\","
                 "\"id\":\"BUTTON\","
-                "\"data\":"
+                "\"commands\":"
                 "["
                     "{"
-                        "\"name\":\"resetCounter\","
-                        "\"type\":\"integer\","
-                        "\"min\":1,"
-                        "\"max\":1"
+                        "\"CommandName\":\"resetCounter\""
                     "}"
                 "]"
            "}";

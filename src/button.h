@@ -10,7 +10,7 @@
 class Button : public Resource
 {
 public:
-    Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin);
+    Button(Flash& _flash, Resources* _resources, const std::string& name, PinName _pin, IStdInOut& _log);
     virtual ~Button() {};
 
     virtual void advertise(IPubSub* _proto) override;

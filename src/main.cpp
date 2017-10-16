@@ -49,14 +49,14 @@ uint8_t LOOP_STACK[0x7500] __attribute__((section (".hugestack")));
 // clang works) to create global, variable sized list of unique_ptr in compile time in global scope.
 // Hence, each Resource is registering itself to resources list.
 Resources    resources;
-WbHtu        htu(ble, &resources);
-WbGyro       gyro(ble, &resources);
-WbLightProx  light(ble, &resources);
-WbMicrophone mic(ble, &resources);
-WbInfraRed   ir(ble, &resources);
-WbBridge     bridge(ble, &resources);
-Button       sw2(flash, &resources, "button1", SW2);
-Led          led(&resources, "LED", LED1);
+WbHtu        htu(ble, &resources, cdc);
+WbGyro       gyro(ble, &resources, cdc);
+WbLightProx  light(ble, &resources, cdc);
+WbMicrophone mic(ble, &resources, cdc);
+WbInfraRed   ir(ble, &resources, cdc);
+WbBridge     bridge(ble, &resources, cdc);
+Button       sw2(flash, &resources, "button1", SW2, cdc);
+Led          led(&resources, "LED", LED1, cdc);
 
 int main(int argc, char **argv)
 {

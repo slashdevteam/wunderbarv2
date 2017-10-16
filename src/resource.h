@@ -6,6 +6,7 @@
 #include "Thread.h"
 #include "MemoryPool.h"
 #include "Queue.h"
+#include "istdinout.h"
 
 const size_t MQTT_MSG_PAYLOAD_SIZE = 500;
 
@@ -33,7 +34,8 @@ using DataFiller = mbed::Callback<size_t(char*, size_t, const uint8_t*)>;
 public:
     Resource(Resources* resources,
              const std::string& _subtopic,
-             const std::string& _pubtopic);
+             const std::string& _pubtopic,
+             IStdInOut& _log);
     virtual ~Resource();
 
     virtual void advertise(IPubSub* _proto);
@@ -70,4 +72,5 @@ private:
     const std::string pubtopic;
     ThreadHandle pubSub;
     volatile bool subscribed;
+    IStdInOut& log;
 };

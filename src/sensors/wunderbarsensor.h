@@ -2,6 +2,7 @@
 
 #include "bleserver.h"
 #include "resource.h"
+#include "istdinout.h"
 #include "Thread.h"
 #include <list>
 
@@ -14,7 +15,8 @@ public:
                     ServerName&& _name,
                     PassKey&& _passKey,
                     BleServerCallback _callback,
-                    Resources* _resources);
+                    Resources* _resources,
+                    IStdInOut& _log);
     virtual ~WunderbarSensor() {};
 
     virtual void advertise(IPubSub* _proto) override;

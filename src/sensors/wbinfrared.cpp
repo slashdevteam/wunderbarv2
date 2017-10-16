@@ -4,12 +4,13 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
-WbInfraRed::WbInfraRed(IBleGateway& _gateway, Resources* _resources)
+WbInfraRed::WbInfraRed(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_IR)),
                       randomPassKey(),
                       mbed::callback(this, &WbInfraRed::event),
-                      _resources)
+                      _resources,
+                      _log)
 {
 }
 
@@ -18,7 +19,8 @@ void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
     switch(_event)
     {
         default:
-          break;
+            // IR transmitter has no events
+            break;
     }
 }
 
@@ -28,7 +30,7 @@ void WbInfraRed::handleCommand(const char* id, const char* data)
     // first do a pass on common commands
     WunderbarSensor::handleCommand(id, data);
 
-    // if common returned 400 check bridge specific
+    // if common returned 400 check ir specific
     if(400 == retCode)
     {
         std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);

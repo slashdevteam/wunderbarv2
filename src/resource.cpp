@@ -31,11 +31,13 @@ const char AckTail[] =
 
 Resource::Resource(Resources* resources,
                    const std::string& _subtopic,
-                   const std::string& _pubtopic)
+                   const std::string& _pubtopic,
+                   IStdInOut& _log)
     : proto(nullptr),
       subtopic("actuator/" + _subtopic),
       pubtopic("sensor/" + _pubtopic),
-      pubSub(nullptr)
+      pubSub(nullptr),
+      log(_log)
 {
     resources->registerResource(this);
 }
@@ -121,6 +123,7 @@ void Resource::acknowledge(const char* commandId, int code)
         written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTail);
         std::get<size_t>(*message) = written;
         msgQueue.put(message);
+        log.printf("%s: commandId: %s returned code: %d\r\n", subtopic.c_str(), commandId, code);
     }
 }
 

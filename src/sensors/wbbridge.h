@@ -22,7 +22,7 @@ struct config_t
 } __attribute__((packed));
 
 public:
-    WbBridge(IBleGateway& _gateway, Resources* _resources);
+    WbBridge(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
     virtual ~WbBridge() = default;
 
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
@@ -33,6 +33,8 @@ protected:
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
+    size_t configToJson(char* outputString, size_t maxLen, const uint8_t* data);
+    bool isBaudrateAllowed(int baudRate);
 
 private:
     sensor_bridge_data_t dataDown;

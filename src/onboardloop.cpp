@@ -68,20 +68,12 @@ private:
 
     void waitForUser()
     {
+        ProgressBar progressBar(log, led, true, 300);
+        progressBar.start();
         while(-1 == log.putc('\n'))
         {
-            for(uint32_t shortBlink = 0; shortBlink < 4; ++shortBlink)
-            {
-                wait(0.133);
-                led = !led;
-            }
-
-            for(uint32_t longBlink = 0; longBlink < 4; ++longBlink)
-            {
-                wait(0.45);
-                led = !led;
-            }
         }
+        progressBar.terminate();
     }
 
     void welcomeUser()

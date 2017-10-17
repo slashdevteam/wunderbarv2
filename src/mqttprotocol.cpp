@@ -318,7 +318,7 @@ void MqttProtocol::handleMessageQueue()
                              + 1;
         std::unique_ptr<char []> fullTopic = std::make_unique<char []>(fullTopicLen);
         std::memset(fullTopic.get(), 0, fullTopicLen);
-        snprintf(fullTopic.get(), fullTopicLen, "%s/%s/%s", config.userId, config.clientId, messageTopic);
+        std::snprintf(fullTopic.get(), fullTopicLen, "%s/%s/%s", config.userId, config.clientId, messageTopic);
         MQTTString mqttTopic = MQTTString_initializer;
         mqttTopic.cstring = fullTopic.get();
 

@@ -16,16 +16,16 @@ int cdcVPrintf(const char *format, va_list args)
         // ARMCC microlib does not properly handle a size of 0.
         // As a workaround supply a dummy buffer with a size of 1.
         char dummy_buf[1];
-        len = vsnprintf(dummy_buf, sizeof(dummy_buf), format, args);
+        len = std::vsnprintf(dummy_buf, sizeof(dummy_buf), format, args);
         if(static_cast<size_t>(len) < sizeof(internalBuffer))
         {
-            vsprintf(internalBuffer, format, args);
+            std::vsprintf(internalBuffer, format, args);
             stdioRetarget->puts(internalBuffer);
         }
         else
         {
             char *temp = new char[len + 1];
-            vsprintf(temp, format, args);
+            std::vsprintf(temp, format, args);
             stdioRetarget->puts(temp);
             delete[] temp;
         }

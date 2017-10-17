@@ -115,9 +115,9 @@ size_t Led::getSenseSpec(char* dst, size_t maxLen)
                 "]"
            "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    senseSpecFormat);
+    return std::snprintf(dst,
+                         maxLen,
+                         senseSpecFormat);
 }
 
 size_t Led::getActuateSpec(char* dst, size_t maxLen)
@@ -144,7 +144,7 @@ size_t Led::getActuateSpec(char* dst, size_t maxLen)
         "]"
     "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    actuaSpecFormat);
+    return std::snprintf(dst,
+                         maxLen,
+                         actuaSpecFormat);
 }

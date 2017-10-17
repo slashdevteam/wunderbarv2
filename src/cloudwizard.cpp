@@ -222,7 +222,7 @@ bool setDeviceDescription(IStdInOut& log,
     char serialNo[40] = {0};
     uint32_t part0, part1, part2, part3;
     getCpuId(&part0, &part1, &part2, &part3);
-    snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
+    std::snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
 
     generateCapabilities(capabilities,
                          sizeof(capabilities),

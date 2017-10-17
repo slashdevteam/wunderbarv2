@@ -11,10 +11,10 @@ const char* jsonMqttWbHwRevFormat = "{\"ts\":%ld,\"hardware\":\"%s\"}";
 
 inline int createJsonKinetisFwRev(char* outputString, size_t maxLen, char* masterBleFwVerString)
 {
-    return snprintf(outputString, maxLen, jsonMqttKinetisFwRevFormat, time(NULL), KINETIS_FIRMWARE_REV, masterBleFwVerString);
+    return std::snprintf(outputString, maxLen, jsonMqttKinetisFwRevFormat, time(NULL), KINETIS_FIRMWARE_REV, masterBleFwVerString);
 }
 
 inline int createJsonWbHwRev(char* outputString, size_t maxLen)
 {
-    return snprintf(outputString, maxLen, jsonMqttWbHwRevFormat, time(NULL), MAIN_BOARD_HW_REV);
+    return std::snprintf(outputString, maxLen, jsonMqttWbHwRevFormat, time(NULL), MAIN_BOARD_HW_REV);
 }

@@ -408,9 +408,9 @@ size_t WunderbarSensor::getSenseSpec(char* dst, size_t maxLen)
         "\"type\":\"String\""
     "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    sensSpecFormat);
+    return std::snprintf(dst,
+                         maxLen,
+                         sensSpecFormat);
 }
 
 size_t WunderbarSensor::getActuateSpec(char* dst, size_t maxLen)
@@ -468,7 +468,7 @@ size_t WunderbarSensor::getActuateSpec(char* dst, size_t maxLen)
         "}]"
     "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    sensSpecFormat);
+    return std::snprintf(dst,
+                         maxLen,
+                         sensSpecFormat);
 }

@@ -5,6 +5,9 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
+using namespace wunderbar::characteristics::sensor;
+using AM = AccessMode;
+
 WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),
@@ -43,17 +46,9 @@ void WbBridge::handleCommand(const char* id, const char* data)
         char valueBuffer[1];
         if(message.copyTo("setState", valueBuffer, 1))
         {
-            int value = std::atoi(valueBuffer);
-            if(value == 0 || value == 1)
+            if(setState(valueBuffer))
             {
-                relayState = value;
-                dataDown.payload[0] = relayState;
-                if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
-                                         reinterpret_cast<uint8_t*>(&dataDown),
-                                         sizeof(dataDown)))
-                {
-                    retCode = 200;
-                }
+                retCode = 200;
             }
         }
         else if(message.isField("toggleState"))
@@ -80,15 +75,9 @@ void WbBridge::handleCommand(const char* id, const char* data)
             char baudRateBuffer[11]; // enough for 4294967295 + '\0'
             if(message.copyTo("baudRate", baudRateBuffer, sizeof(baudRateBuffer)))
             {
-                int value = std::atoi(baudRateBuffer);
-                if(isBaudrateAllowed(value))
+                if(sendConfig(baudRateBuffer))
                 {
-                    if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
-                                    reinterpret_cast<uint8_t*>(&value),
-                                    sizeof(value)))
-                    {
-                        retCode = 200;
-                    }
+                    retCode = 200;
                 }
                 else
                 {
@@ -143,6 +132,98 @@ bool WbBridge::isBaudrateAllowed(int baudRate)
             break;
     }
     return allowed;
+}
+
+CharState WbBridge::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
+{
+    CharState uuidState = CharState::WRONG_ACCESS;
+    static const std::list<CharcteristicDescriptor> bridgeCharacteristics = {{CONFIG, AM::RW},
+                                                                             {DATA_W, AM::WRITE}};
+    if(AM::NONE != requestedMode)
+    {
+        uuidState = CharState::NOT_FOUND;
+        for(auto& characteristic : bridgeCharacteristics)
+        {
+            if(characteristic.uuid == uuid)
+            {
+                uuidState = CharState::FOUND_WRONG_ACCESS;
+                if((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW))
+                {
+                    uuidState = CharState::FOUND_ACCESS_OK;
+                    break;
+                }
+            }
+        }
+        if(CharState::NOT_FOUND == uuidState)
+        {
+            uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
+        }
+    }
+
+    return uuidState;
+}
+
+bool WbBridge::handleWriteUuidRequest(uint16_t uuid, const char* data)
+{
+    bool writeOk = false;
+    JsonDecode writeRequest(data, 8);
+    if(writeRequest)
+    {
+        char writeValue[20];
+        size_t lenght = 0;
+        if(writeRequest.copyTo("value", writeValue, sizeof(writeValue)))
+        {
+            switch(uuid)
+            {
+                case DATA_W:
+                    writeOk = setState(writeValue);
+                    break;
+                case CONFIG:
+                    writeOk = sendConfig(writeValue);
+                    break;
+                default:
+                    writeOk = WunderbarSensor::handleWriteUuidRequest(uuid, data);
+                    break;
+            }
+
+            if(writeOk)
+            {
+                writeOk = sendToServer(uuid,
+                          reinterpret_cast<uint8_t*>(writeValue),
+                          lenght);
+            }
+        }
+    }
+
+    return writeOk;
+}
+
+bool WbBridge::setState(const char* data)
+{
+    bool sendOk = false;
+    int value = std::atoi(data);
+    if(value == 0 || value == 1)
+    {
+        relayState = value;
+        dataDown.payload[0] = relayState;
+        sendOk = sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                              reinterpret_cast<uint8_t*>(&dataDown),
+                              sizeof(dataDown));
+    }
+    return sendOk;
+}
+
+bool WbBridge::sendConfig(const char* data)
+{
+    bool sendOk = false;
+    int value = std::atoi(data);
+    if(isBaudrateAllowed(value))
+    {
+        sendOk = sendToServer(wunderbar::characteristics::sensor::CONFIG,
+                              reinterpret_cast<uint8_t*>(&value),
+                              sizeof(value));
+    }
+    return sendOk;
 }
 
 size_t WbBridge::getSenseSpec(char* dst, size_t maxLen)

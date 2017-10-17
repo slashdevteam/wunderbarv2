@@ -30,12 +30,15 @@ public:
 
 protected:
     virtual void handleCommand(const char* id, const char* data) override;
+    virtual CharState sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode) override;
+    virtual bool handleWriteUuidRequest(uint16_t uuid, const char* data);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
     size_t configToJson(char* outputString, size_t maxLen, const uint8_t* data);
     bool isBaudrateAllowed(int baudRate);
-
+    bool setState(const char* data);
+    bool sendConfig(const char* data);
 private:
     sensor_bridge_data_t dataDown;
     uint8_t relayState;

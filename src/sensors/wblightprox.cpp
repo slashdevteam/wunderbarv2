@@ -3,6 +3,9 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
+using namespace wunderbar::characteristics::sensor;
+using AM = AccessMode;
+
 WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_LIGHT)),
@@ -53,17 +56,9 @@ void WbLightProx::handleCommand(const char* id, const char* data)
         }
         else if(message.isField("setFrequency"))
         {
-            char frequencyBuffer[12]; // enough for 4294967295 + '\0'
-            if(message.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+            if(setFrequency(message.get("setFrequency")))
             {
-                // frequency is 32 bit unsigned so need to use std::stol
-                uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
-                if(sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
-                                reinterpret_cast<uint8_t*>(&frequency),
-                                sizeof(frequency)))
-                {
-                    retCode = 200;
-                }
+                retCode = 200;
             }
         }
         else if(message.isField("getThreshold"))
@@ -74,42 +69,12 @@ void WbLightProx::handleCommand(const char* id, const char* data)
                 acknowledge(id, retCode);
             }
         }
-        else if(message.isField("setThreshold")
-                && message.isField("whiteSbl")
-                && message.isField("whiteLow")
-                && message.isField("whiteHigh")
-                && message.isField("proxSbl")
-                && message.isField("proxLow")
-                && message.isField("proxHigh"))
+        else if(message.isField("setThreshold"))
         {
-                char thresholdBuffer[12]; // enough for -2147483648 + '\0'
-                threshold_t thresholds;
-                // need to conserve stack, so char buffer is reused
-                message.copyTo("whiteSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.white.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
-
-                message.copyTo("whiteLow", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.white.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                message.copyTo("whiteHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.white.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-
-                message.copyTo("proxSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.prox.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
-
-                message.copyTo("proxLow", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.prox.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                message.copyTo("proxHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.prox.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                if(sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
-                            reinterpret_cast<uint8_t*>(&thresholds),
-                            sizeof(thresholds)))
-                {
-                    retCode = 200;
-                }
+            if(setThreshold(message.get("setThreshold")))
+            {
+                retCode = 200;
+            }
         }
         else if(message.isField("getConfig"))
         {
@@ -121,26 +86,9 @@ void WbLightProx::handleCommand(const char* id, const char* data)
         }
         else if(message.isField("setConfig"))
         {
-            char rgbcGainBuffer[2];
-            char proxDriveBuffer[3];
-
-            if(message.copyTo("rgbcGain", rgbcGainBuffer, 2)
-               && message.copyTo("proxDrive", proxDriveBuffer, 3))
+            if(sendConfig(message.get("setConfig")))
             {
-                int rgbcGain = std::atoi(rgbcGainBuffer);
-                int proxDrive = std::atoi(proxDriveBuffer);
-                if(isRgbcGainAllowed(rgbcGain) && isProxDriveAllowed(proxDrive))
-                {
-                    sensor_lightprox_config_t config;
-                    config.rgbc_gain = static_cast<rgbc_gain_t>(rgbcGain);
-                    config.prox_drive = static_cast<prox_drive_t>(proxDrive);
-                    if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
-                                    reinterpret_cast<uint8_t*>(&config),
-                                    sizeof(config)))
-                    {
-                        retCode = 200;
-                    }
-                }
+                retCode = 200;
             }
         }
         else
@@ -221,6 +169,169 @@ bool WbLightProx::isProxDriveAllowed(int drive)
             break;
     }
     return allowed;
+}
+
+CharState WbLightProx::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
+{
+    CharState uuidState = CharState::WRONG_ACCESS;
+    static const std::list<CharcteristicDescriptor> bridgeCharacteristics = {{CONFIG, AM::RW},
+                                                                             {FREQUENCY, AM::RW},
+                                                                             {THRESHOLD, AM::RW}};
+    if(AM::NONE != requestedMode)
+    {
+        uuidState = CharState::NOT_FOUND;
+        for(auto& characteristic : bridgeCharacteristics)
+        {
+            if(characteristic.uuid == uuid)
+            {
+                uuidState = CharState::FOUND_WRONG_ACCESS;
+                if((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW))
+                {
+                    uuidState = CharState::FOUND_ACCESS_OK;
+                    break;
+                }
+            }
+        }
+        if(CharState::NOT_FOUND == uuidState)
+        {
+            uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
+        }
+    }
+
+    return uuidState;
+}
+
+bool WbLightProx::handleWriteUuidRequest(uint16_t uuid, const char* data)
+{
+    bool writeOk = false;
+    JsonDecode writeRequest(data, 8);
+
+    if(writeRequest)
+    {
+        char writeValue[20];
+        size_t lenght = 0;
+        if(writeRequest.copyTo("value", writeValue, sizeof(writeValue)))
+        {
+            switch(uuid)
+            {
+                case CONFIG:
+                    writeOk = sendConfig(writeValue);
+                    break;
+                case FREQUENCY:
+                    writeOk = setFrequency(writeValue);
+                    break;
+                case THRESHOLD:
+                    writeOk = setThreshold(writeValue);
+                    break;
+                default:
+                    writeOk = WunderbarSensor::handleWriteUuidRequest(uuid, data);
+                    break;
+            }
+
+            if(writeOk)
+            {
+                writeOk = sendToServer(uuid,
+                          reinterpret_cast<uint8_t*>(writeValue),
+                          lenght);
+            }
+        }
+    }
+
+    return writeOk;
+}
+
+bool WbLightProx::sendConfig(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode config(data, 8);
+
+    if(config)
+    {
+        char rgbcGainBuffer[2];
+        char proxDriveBuffer[3];
+
+        if(config.copyTo("rgbcGain", rgbcGainBuffer, 2)
+           && config.copyTo("proxDrive", proxDriveBuffer, 3))
+        {
+            int rgbcGain = std::atoi(rgbcGainBuffer);
+            int proxDrive = std::atoi(proxDriveBuffer);
+            if(isRgbcGainAllowed(rgbcGain) && isProxDriveAllowed(proxDrive))
+            {
+                sensor_lightprox_config_t lpConfig;
+                lpConfig.rgbc_gain = static_cast<rgbc_gain_t>(rgbcGain);
+                lpConfig.prox_drive = static_cast<prox_drive_t>(proxDrive);
+                sendOk = sendToServer(wunderbar::characteristics::sensor::CONFIG,
+                                      reinterpret_cast<uint8_t*>(&lpConfig),
+                                      sizeof(lpConfig));
+
+            }
+        }
+    }
+    return sendOk;
+}
+
+bool WbLightProx::setFrequency(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode frequency(data, 8);
+
+    if(frequency)
+    {
+        char frequencyBuffer[12]; // enough for 4294967295 + '\0'
+        if(frequency.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+        {
+            // frequency is 32 bit unsigned so need to use std::stol
+            uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
+            sendOk = sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
+                                  reinterpret_cast<uint8_t*>(&frequency),
+                                  sizeof(frequency));
+        }
+    }
+    return sendOk;
+}
+
+bool WbLightProx::setThreshold(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode threshold(data, 16);
+
+    if(threshold)
+    {
+        if(threshold.isField("whiteSbl")
+           && threshold.isField("whiteLow")
+           && threshold.isField("whiteHigh")
+           && threshold.isField("proxSbl")
+           && threshold.isField("proxLow")
+           && threshold.isField("proxHigh"))
+        {
+            char thresholdBuffer[12]; // enough for -2147483648 + '\0'
+            threshold_t thresholds;
+            // need to conserve stack, so char buffer is reused
+            threshold.copyTo("whiteSbl", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.white.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("whiteLow", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.white.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("whiteHigh", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.white.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+
+            threshold.copyTo("proxSbl", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.prox.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("proxLow", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.prox.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("proxHigh", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.prox.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            sendOk = sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
+                                  reinterpret_cast<uint8_t*>(&thresholds),
+                                  sizeof(thresholds));
+        }
+    }
+    return sendOk;
 }
 
 size_t WbLightProx::getSenseSpec(char* dst, size_t maxLen)

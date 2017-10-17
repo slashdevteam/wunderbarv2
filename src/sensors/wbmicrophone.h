@@ -27,9 +27,13 @@ public:
 
 protected:
     virtual void handleCommand(const char* id, const char* data) override;
+    virtual CharState sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode) override;
+    virtual bool handleWriteUuidRequest(uint16_t uuid, const char* data);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
+    bool setFrequency(const char* data);
+    bool setThreshold(const char* data);
     size_t thresholdToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t frequencyToJson(char* outputString, size_t maxLen, const uint8_t* data);
     inline size_t dataToJson(char* outputString, size_t maxLen, const uint8_t* data)

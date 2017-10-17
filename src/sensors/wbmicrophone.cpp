@@ -3,6 +3,9 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
+using namespace wunderbar::characteristics::sensor;
+using AM = AccessMode;
+
 WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_SOUND)),
@@ -50,17 +53,9 @@ void WbMicrophone::handleCommand(const char* id, const char* data)
         }
         else if(message.isField("setFrequency"))
         {
-            char frequencyBuffer[12]; // enough for 4294967295 + '\0'
-            if(message.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+            if(setFrequency(message.get("setFrequency")))
             {
-                // frequency is 32 bit unsigned so need to use std::stol
-                uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
-                if(sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
-                                reinterpret_cast<uint8_t*>(&frequency),
-                                sizeof(frequency)))
-                {
-                    retCode = 200;
-                }
+                retCode = 200;
             }
         }
         else if(message.isField("getThreshold"))
@@ -71,26 +66,9 @@ void WbMicrophone::handleCommand(const char* id, const char* data)
                 acknowledge(id, retCode);
             }
         }
-        else if(message.isField("setThreshold")
-                && message.isField("sbl")
-                && message.isField("low")
-                && message.isField("high"))
+        else if(message.isField("setThreshold"))
         {
-            char thresholdBuffer[12]; // enough for -2147483648 + '\0'
-            threshold_t thresholds;
-            message.copyTo("sbl", thresholdBuffer, sizeof(thresholdBuffer));
-            // sbl is unsigned, but only 16 bits, so std::atoi is enough
-            thresholds.mic_level.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
-
-            message.copyTo("low", thresholdBuffer, sizeof(thresholdBuffer));
-            thresholds.mic_level.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-            message.copyTo("high", thresholdBuffer, sizeof(thresholdBuffer));
-            thresholds.mic_level.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-            if(sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
-                        reinterpret_cast<uint8_t*>(&thresholds),
-                        sizeof(thresholds)))
+            if(setThreshold(message.get("setThreshold")))
             {
                 retCode = 200;
             }
@@ -123,6 +101,122 @@ size_t WbMicrophone::frequencyToJson(char* outputString, size_t maxLen, const ui
                          maxLen,
                          "\"frequency\":%d",
                          static_cast<int>(data[0]));
+}
+
+CharState WbMicrophone::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
+{
+    CharState uuidState = CharState::WRONG_ACCESS;
+    static const std::list<CharcteristicDescriptor> bridgeCharacteristics = {{FREQUENCY, AM::RW},
+                                                                             {THRESHOLD, AM::RW}};
+    if(AM::NONE != requestedMode)
+    {
+        uuidState = CharState::NOT_FOUND;
+        for(auto& characteristic : bridgeCharacteristics)
+        {
+            if(characteristic.uuid == uuid)
+            {
+                uuidState = CharState::FOUND_WRONG_ACCESS;
+                if((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW))
+                {
+                    uuidState = CharState::FOUND_ACCESS_OK;
+                    break;
+                }
+            }
+        }
+        if(CharState::NOT_FOUND == uuidState)
+        {
+            uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
+        }
+    }
+
+    return uuidState;
+}
+
+bool WbMicrophone::handleWriteUuidRequest(uint16_t uuid, const char* data)
+{
+    bool writeOk = false;
+    JsonDecode writeRequest(data, 8);
+
+    if(writeRequest)
+    {
+        char writeValue[20];
+        size_t lenght = 0;
+        if(writeRequest.copyTo("value", writeValue, sizeof(writeValue)))
+        {
+            switch(uuid)
+            {
+                case FREQUENCY:
+                    writeOk = setFrequency(writeValue);
+                    break;
+                case THRESHOLD:
+                    writeOk = setThreshold(writeValue);
+                    break;
+                default:
+                    writeOk = WunderbarSensor::handleWriteUuidRequest(uuid, data);
+                    break;
+            }
+
+            if(writeOk)
+            {
+                writeOk = sendToServer(uuid,
+                          reinterpret_cast<uint8_t*>(writeValue),
+                          lenght);
+            }
+        }
+    }
+
+    return writeOk;
+}
+
+bool WbMicrophone::setFrequency(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode frequency(data, 8);
+
+    if(frequency)
+    {
+        char frequencyBuffer[12]; // enough for 4294967295 + '\0'
+        if(frequency.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+        {
+            // frequency is 32 bit unsigned so need to use std::stol
+            uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
+            sendOk = sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
+                                  reinterpret_cast<uint8_t*>(&frequency),
+                                  sizeof(frequency));
+        }
+    }
+    return sendOk;
+}
+
+bool WbMicrophone::setThreshold(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode threshold(data, 16);
+
+    if(threshold)
+    {
+        if(threshold.isField("sbl")
+          && threshold.isField("low")
+          && threshold.isField("high"))
+        {
+            char thresholdBuffer[12]; // enough for -2147483648 + '\0'
+            threshold_t thresholds;
+            threshold.copyTo("sbl", thresholdBuffer, sizeof(thresholdBuffer));
+            // sbl is unsigned, but only 16 bits, so std::atoi is enough
+            thresholds.mic_level.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("low", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.mic_level.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("high", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.mic_level.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            sendOk = sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
+                                  reinterpret_cast<uint8_t*>(&thresholds),
+                                  sizeof(thresholds));
+        }
+    }
+    return sendOk;
 }
 
 size_t WbMicrophone::getSenseSpec(char* dst, size_t maxLen)

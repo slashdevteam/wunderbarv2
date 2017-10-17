@@ -8,6 +8,14 @@
 
 const size_t MAX_COMMAND_ID_LEN = 20;
 
+enum class CharState : uint8_t
+{
+    FOUND_ACCESS_OK = 0,
+    FOUND_WRONG_ACCESS = 1,
+    NOT_FOUND = 2,
+    WRONG_ACCESS = 3
+};
+
 class WunderbarSensor : public BleServer, public Resource
 {
 public:
@@ -25,6 +33,7 @@ public:
 
 protected:
     virtual void handleCommand(const char* id, const char* data) override;
+    virtual CharState sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode);
     void event(BleEvent _event, const uint8_t* data, size_t len);
 
 private:
@@ -37,9 +46,8 @@ private:
     size_t stringLength(const uint8_t* data);
 
     // commands
-    bool findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
-    bool handleReadUuidRequest(const char* data);
-    bool handleWriteUuidRequest(const char* data);
+    CharState findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
+    bool handleWriteUuidRequest(uint16_t uuid, const char* data);
 
 protected:
     int retCode;

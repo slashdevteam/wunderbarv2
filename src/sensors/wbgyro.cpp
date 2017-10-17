@@ -37,120 +37,122 @@ void WbGyro::event(BleEvent _event, const uint8_t* data, size_t len)
 void WbGyro::handleCommand(const char* id, const char* data)
 {
     retCode = 400;
-    // first do a pass on common commands
-    WunderbarSensor::handleCommand(id, data);
 
-    // if common returned 400 check gyro specific
-    if(400 == retCode)
+    std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
+    JsonDecode message(data, 16);
+
+    if(message)
     {
-        std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
-        JsonDecode message(data, 16);
-
-        if(message)
+        if(message.isField("getFrequency"))
         {
-            if(message.isField("getFrequency"))
+            if(readFromServer(wunderbar::characteristics::sensor::FREQUENCY))
             {
-                if(readFromServer(wunderbar::characteristics::sensor::FREQUENCY))
+                retCode = 200;
+                acknowledge(id, retCode);
+            }
+        }
+        else if(message.isField("setFrequency"))
+        {
+            char frequencyBuffer[12]; // enough for 4294967295 + '\0'
+            if(message.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+            {
+                // frequency is 32 bit unsigned so need to use std::stol
+                uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
+                if(sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
+                                reinterpret_cast<uint8_t*>(&frequency),
+                                sizeof(frequency)))
                 {
                     retCode = 200;
-                    acknowledge(id, retCode);
                 }
             }
-            else if(message.isField("setFrequency"))
+        }
+        else if(message.isField("getThreshold"))
+        {
+            if(readFromServer(wunderbar::characteristics::sensor::THRESHOLD))
             {
-                char frequencyBuffer[12]; // enough for 4294967295 + '\0'
-                if(message.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+                retCode = 200;
+                acknowledge(id, retCode);
+            }
+        }
+        else if(message.isField("setThreshold")
+                && message.isField("gyroSbl")
+                && message.isField("gyroLow")
+                && message.isField("gyroHigh")
+                && message.isField("accSbl")
+                && message.isField("accLow")
+                && message.isField("accHigh"))
+        {
+                char thresholdBuffer[12]; // enough for -2147483648 + '\0'
+                threshold_t thresholds;
+                // need to conserve stack, so char buffer is reused
+                message.copyTo("gyroSbl", thresholdBuffer, sizeof(thresholdBuffer));
+                // sbl is 32 bit unsigned so need to use std::stol
+                thresholds.gyro.sbl = static_cast<uint32_t>(std::atol(thresholdBuffer));
+
+                message.copyTo("gyroLow", thresholdBuffer, sizeof(thresholdBuffer));
+                thresholds.gyro.low = static_cast<int32_t>(std::atoi(thresholdBuffer));
+
+                message.copyTo("gyroHigh", thresholdBuffer, sizeof(thresholdBuffer));
+                thresholds.gyro.high = static_cast<int32_t>(std::atoi(thresholdBuffer));
+
+
+                message.copyTo("accSbl", thresholdBuffer, sizeof(thresholdBuffer));
+                // sbl is unsigned, but only 16 bits, so std::atoi is enough
+                thresholds.acc.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
+
+                message.copyTo("accLow", thresholdBuffer, sizeof(thresholdBuffer));
+                thresholds.acc.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+                message.copyTo("accHigh", thresholdBuffer, sizeof(thresholdBuffer));
+                thresholds.acc.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+                if(sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
+                            reinterpret_cast<uint8_t*>(&thresholds),
+                            sizeof(thresholds)))
                 {
-                    // frequency is 32 bit unsigned so need to use std::stol
-                    uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
-                    if(sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
-                                    reinterpret_cast<uint8_t*>(&frequency),
-                                    sizeof(frequency)))
+                    retCode = 200;
+                }
+        }
+        else if(message.isField("getConfig"))
+        {
+            if(readFromServer(wunderbar::characteristics::sensor::CONFIG))
+            {
+                retCode = 200;
+                acknowledge(id, retCode);
+            }
+        }
+        else if(message.isField("setConfig"))
+        {
+            char gyroScaleBuffer[1];
+            char accScaleBuffer[1];
+
+            if(message.copyTo("gyroScale", gyroScaleBuffer, 1)
+               && message.copyTo("accScale", accScaleBuffer, 1))
+            {
+                int gyroScale = std::atoi(gyroScaleBuffer);
+                int accScale = std::atoi(accScaleBuffer);
+                if(isGyroScaleAllowed(gyroScale) && isAccScaleAllowed(accScale))
+                {
+                    config_t scales;
+                    scales.gyro_full_scale = static_cast<gyroFullScale_t>(gyroScale);
+                    scales.acc_full_scale = static_cast<accFullScale_t>(accScale);
+                    if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
+                                    reinterpret_cast<uint8_t*>(&scales),
+                                    sizeof(scales)))
                     {
                         retCode = 200;
-                    }
-                }
-            }
-            else if(message.isField("getThreshold"))
-            {
-                if(readFromServer(wunderbar::characteristics::sensor::THRESHOLD))
-                {
-                    retCode = 200;
-                    acknowledge(id, retCode);
-                }
-            }
-            else if(message.isField("setThreshold")
-                    && message.isField("gyroSbl")
-                    && message.isField("gyroLow")
-                    && message.isField("gyroHigh")
-                    && message.isField("accSbl")
-                    && message.isField("accLow")
-                    && message.isField("accHigh"))
-            {
-                    char thresholdBuffer[12]; // enough for -2147483648 + '\0'
-                    threshold_t thresholds;
-                    // need to conserve stack, so char buffer is reused
-                    message.copyTo("gyroSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                    // sbl is 32 bit unsigned so need to use std::stol
-                    thresholds.gyro.sbl = static_cast<uint32_t>(std::atol(thresholdBuffer));
-
-                    message.copyTo("gyroLow", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.gyro.low = static_cast<int32_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("gyroHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.gyro.high = static_cast<int32_t>(std::atoi(thresholdBuffer));
-
-
-                    message.copyTo("accSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                    // sbl is unsigned, but only 16 bits, so std::atoi is enough
-                    thresholds.acc.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("accLow", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.acc.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("accHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.acc.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                    if(sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
-                                reinterpret_cast<uint8_t*>(&thresholds),
-                                sizeof(thresholds)))
-                    {
-                        retCode = 200;
-                    }
-            }
-            else if(message.isField("getConfig"))
-            {
-                if(readFromServer(wunderbar::characteristics::sensor::CONFIG))
-                {
-                    retCode = 200;
-                    acknowledge(id, retCode);
-                }
-            }
-            else if(message.isField("setConfig"))
-            {
-                char gyroScaleBuffer[1];
-                char accScaleBuffer[1];
-
-                if(message.copyTo("gyroScale", gyroScaleBuffer, 1)
-                   && message.copyTo("accScale", accScaleBuffer, 1))
-                {
-                    int gyroScale = std::atoi(gyroScaleBuffer);
-                    int accScale = std::atoi(accScaleBuffer);
-                    if(isGyroScaleAllowed(gyroScale) && isAccScaleAllowed(accScale))
-                    {
-                        config_t scales;
-                        scales.gyro_full_scale = static_cast<gyroFullScale_t>(gyroScale);
-                        scales.acc_full_scale = static_cast<accFullScale_t>(accScale);
-                        if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
-                                        reinterpret_cast<uint8_t*>(&scales),
-                                        sizeof(scales)))
-                        {
-                            retCode = 200;
-                        }
                     }
                 }
             }
         }
+        else
+        {
+            WunderbarSensor::handleCommand(id, data);
+        }
+    }
+    else
+    {
+        acknowledge(id, 400);
     }
 }
 

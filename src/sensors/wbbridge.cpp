@@ -34,36 +34,19 @@ void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
 void WbBridge::handleCommand(const char* id, const char* data)
 {
     retCode = 400;
-    // first do a pass on common commands
-    WunderbarSensor::handleCommand(id, data);
 
-    // if common returned 400 check bridge specific
-    if(400 == retCode)
+    std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
+    JsonDecode message(data, 16);
+
+    if(message)
     {
-        std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
-        JsonDecode message(data, 16);
-
-        if(message)
+        char valueBuffer[1];
+        if(message.copyTo("setState", valueBuffer, 1))
         {
-            char valueBuffer[1];
-            if(message.copyTo("setState", valueBuffer, 1))
+            int value = std::atoi(valueBuffer);
+            if(value == 0 || value == 1)
             {
-                int value = std::atoi(valueBuffer);
-                if(value == 0 || value == 1)
-                {
-                    relayState = value;
-                    dataDown.payload[0] = relayState;
-                    if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
-                                             reinterpret_cast<uint8_t*>(&dataDown),
-                                             sizeof(dataDown)))
-                    {
-                        retCode = 200;
-                    }
-                }
-            }
-            else if(message.isField("toggleState"))
-            {
-                relayState = !relayState;
+                relayState = value;
                 dataDown.payload[0] = relayState;
                 if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
                                          reinterpret_cast<uint8_t*>(&dataDown),
@@ -72,32 +55,55 @@ void WbBridge::handleCommand(const char* id, const char* data)
                     retCode = 200;
                 }
             }
-            else if(message.isField("getConfig"))
+        }
+        else if(message.isField("toggleState"))
+        {
+            relayState = !relayState;
+            dataDown.payload[0] = relayState;
+            if(sendToServer(wunderbar::characteristics::sensor::DATA_W,
+                                     reinterpret_cast<uint8_t*>(&dataDown),
+                                     sizeof(dataDown)))
             {
-                if(readFromServer(wunderbar::characteristics::sensor::CONFIG))
-                {
-                    retCode = 200;
-                    acknowledge(id, retCode);
-                }
+                retCode = 200;
             }
-            else if(message.isField("setConfig"))
+        }
+        else if(message.isField("getConfig"))
+        {
+            if(readFromServer(wunderbar::characteristics::sensor::CONFIG))
             {
-                char baudRateBuffer[11]; // enough for 4294967295 + '\0'
-                if(message.copyTo("baudRate", baudRateBuffer, sizeof(baudRateBuffer)))
+                retCode = 200;
+                acknowledge(id, retCode);
+            }
+        }
+        else if(message.isField("setConfig"))
+        {
+            char baudRateBuffer[11]; // enough for 4294967295 + '\0'
+            if(message.copyTo("baudRate", baudRateBuffer, sizeof(baudRateBuffer)))
+            {
+                int value = std::atoi(baudRateBuffer);
+                if(isBaudrateAllowed(value))
                 {
-                    int value = std::atoi(baudRateBuffer);
-                    if(isBaudrateAllowed(value))
+                    if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
+                                    reinterpret_cast<uint8_t*>(&value),
+                                    sizeof(value)))
                     {
-                        if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
-                                        reinterpret_cast<uint8_t*>(&value),
-                                        sizeof(value)))
-                        {
-                            retCode = 200;
-                        }
+                        retCode = 200;
                     }
+                }
+                else
+                {
+                    acknowledge(id, 403);
                 }
             }
         }
+        else
+        {
+            WunderbarSensor::handleCommand(id, data);
+        }
+    }
+    else
+    {
+        acknowledge(id, 400);
     }
 }
 

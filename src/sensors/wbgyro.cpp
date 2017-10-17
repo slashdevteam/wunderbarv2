@@ -3,6 +3,9 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
+using namespace wunderbar::characteristics::sensor;
+using AM = AccessMode;
+
 WbGyro::WbGyro(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_GYRO)),
@@ -53,17 +56,9 @@ void WbGyro::handleCommand(const char* id, const char* data)
         }
         else if(message.isField("setFrequency"))
         {
-            char frequencyBuffer[12]; // enough for 4294967295 + '\0'
-            if(message.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+            if(setFrequency(message.get("setFrequency")))
             {
-                // frequency is 32 bit unsigned so need to use std::stol
-                uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
-                if(sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
-                                reinterpret_cast<uint8_t*>(&frequency),
-                                sizeof(frequency)))
-                {
-                    retCode = 200;
-                }
+                retCode = 200;
             }
         }
         else if(message.isField("getThreshold"))
@@ -74,44 +69,12 @@ void WbGyro::handleCommand(const char* id, const char* data)
                 acknowledge(id, retCode);
             }
         }
-        else if(message.isField("setThreshold")
-                && message.isField("gyroSbl")
-                && message.isField("gyroLow")
-                && message.isField("gyroHigh")
-                && message.isField("accSbl")
-                && message.isField("accLow")
-                && message.isField("accHigh"))
+        else if(message.isField("setThreshold"))
         {
-                char thresholdBuffer[12]; // enough for -2147483648 + '\0'
-                threshold_t thresholds;
-                // need to conserve stack, so char buffer is reused
-                message.copyTo("gyroSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                // sbl is 32 bit unsigned so need to use std::stol
-                thresholds.gyro.sbl = static_cast<uint32_t>(std::atol(thresholdBuffer));
-
-                message.copyTo("gyroLow", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.gyro.low = static_cast<int32_t>(std::atoi(thresholdBuffer));
-
-                message.copyTo("gyroHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.gyro.high = static_cast<int32_t>(std::atoi(thresholdBuffer));
-
-
-                message.copyTo("accSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                // sbl is unsigned, but only 16 bits, so std::atoi is enough
-                thresholds.acc.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
-
-                message.copyTo("accLow", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.acc.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                message.copyTo("accHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                thresholds.acc.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                if(sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
-                            reinterpret_cast<uint8_t*>(&thresholds),
-                            sizeof(thresholds)))
-                {
-                    retCode = 200;
-                }
+            if(setThreshold(message.get("setThreshold")))
+            {
+                retCode = 200;
+            }
         }
         else if(message.isField("getConfig"))
         {
@@ -123,26 +86,9 @@ void WbGyro::handleCommand(const char* id, const char* data)
         }
         else if(message.isField("setConfig"))
         {
-            char gyroScaleBuffer[1];
-            char accScaleBuffer[1];
-
-            if(message.copyTo("gyroScale", gyroScaleBuffer, 1)
-               && message.copyTo("accScale", accScaleBuffer, 1))
+            if(sendConfig(message.get("setConfig")))
             {
-                int gyroScale = std::atoi(gyroScaleBuffer);
-                int accScale = std::atoi(accScaleBuffer);
-                if(isGyroScaleAllowed(gyroScale) && isAccScaleAllowed(accScale))
-                {
-                    config_t scales;
-                    scales.gyro_full_scale = static_cast<gyroFullScale_t>(gyroScale);
-                    scales.acc_full_scale = static_cast<accFullScale_t>(accScale);
-                    if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
-                                    reinterpret_cast<uint8_t*>(&scales),
-                                    sizeof(scales)))
-                    {
-                        retCode = 200;
-                    }
-                }
+                retCode = 200;
             }
         }
         else
@@ -223,6 +169,170 @@ bool WbGyro::isAccScaleAllowed(int scale)
             break;
     }
     return allowed;
+}
+
+CharState WbGyro::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
+{
+    CharState uuidState = CharState::WRONG_ACCESS;
+    static const std::list<CharcteristicDescriptor> bridgeCharacteristics = {{CONFIG, AM::RW},
+                                                                             {FREQUENCY, AM::RW},
+                                                                             {THRESHOLD, AM::RW}};
+    if(AM::NONE != requestedMode)
+    {
+        uuidState = CharState::NOT_FOUND;
+        for(auto& characteristic : bridgeCharacteristics)
+        {
+            if(characteristic.uuid == uuid)
+            {
+                uuidState = CharState::FOUND_WRONG_ACCESS;
+                if((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW))
+                {
+                    uuidState = CharState::FOUND_ACCESS_OK;
+                    break;
+                }
+            }
+        }
+        if(CharState::NOT_FOUND == uuidState)
+        {
+            uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
+        }
+    }
+
+    return uuidState;
+}
+
+bool WbGyro::handleWriteUuidRequest(uint16_t uuid, const char* data)
+{
+    bool writeOk = false;
+    JsonDecode writeRequest(data, 8);
+
+    if(writeRequest)
+    {
+        char writeValue[20];
+        size_t lenght = 0;
+        if(writeRequest.copyTo("value", writeValue, sizeof(writeValue)))
+        {
+            switch(uuid)
+            {
+                case CONFIG:
+                    writeOk = sendConfig(writeValue);
+                    break;
+                case FREQUENCY:
+                    writeOk = setFrequency(writeValue);
+                    break;
+                case THRESHOLD:
+                    writeOk = setThreshold(writeValue);
+                    break;
+                default:
+                    writeOk = WunderbarSensor::handleWriteUuidRequest(uuid, data);
+                    break;
+            }
+
+            if(writeOk)
+            {
+                writeOk = sendToServer(uuid,
+                          reinterpret_cast<uint8_t*>(writeValue),
+                          lenght);
+            }
+        }
+    }
+
+    return writeOk;
+}
+
+bool WbGyro::sendConfig(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode config(data, 8);
+
+    if(config)
+    {
+        char gyroScaleBuffer[1];
+        char accScaleBuffer[1];
+        if(config.copyTo("gyroScale", gyroScaleBuffer, 1)
+           && config.copyTo("accScale", accScaleBuffer, 1))
+        {
+            int gyroScale = std::atoi(gyroScaleBuffer);
+            int accScale = std::atoi(accScaleBuffer);
+            if(isGyroScaleAllowed(gyroScale) && isAccScaleAllowed(accScale))
+            {
+                config_t scales;
+                scales.gyro_full_scale = static_cast<gyroFullScale_t>(gyroScale);
+                scales.acc_full_scale = static_cast<accFullScale_t>(accScale);
+                sendOk = sendToServer(wunderbar::characteristics::sensor::CONFIG,
+                                      reinterpret_cast<uint8_t*>(&scales),
+                                      sizeof(scales));
+
+            }
+        }
+    }
+    return sendOk;
+}
+
+bool WbGyro::setFrequency(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode frequency(data, 8);
+
+    if(frequency)
+    {
+        char frequencyBuffer[12]; // enough for 4294967295 + '\0'
+        if(frequency.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+        {
+            // frequency is 32 bit unsigned so need to use std::stol
+            uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
+            sendOk = sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
+                                  reinterpret_cast<uint8_t*>(&frequency),
+                                  sizeof(frequency));
+        }
+    }
+    return sendOk;
+}
+
+bool WbGyro::setThreshold(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode threshold(data, 16);
+
+    if(threshold)
+    {
+        if(threshold.isField("gyroSbl")
+           && threshold.isField("gyroLow")
+           && threshold.isField("gyroHigh")
+           && threshold.isField("accSbl")
+           && threshold.isField("accLow")
+           && threshold.isField("accHigh"))
+        {
+            char thresholdBuffer[12]; // enough for -2147483648 + '\0'
+            threshold_t thresholds;
+            // need to conserve stack, so char buffer is reused
+            threshold.copyTo("gyroSbl", thresholdBuffer, sizeof(thresholdBuffer));
+            // sbl is 32 bit unsigned so need to use std::stol
+            thresholds.gyro.sbl = static_cast<uint32_t>(std::atol(thresholdBuffer));
+
+            threshold.copyTo("gyroLow", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.gyro.low = static_cast<int32_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("gyroHigh", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.gyro.high = static_cast<int32_t>(std::atoi(thresholdBuffer));
+
+
+            threshold.copyTo("accSbl", thresholdBuffer, sizeof(thresholdBuffer));
+            // sbl is unsigned, but only 16 bits, so std::atoi is enough
+            thresholds.acc.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("accLow", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.acc.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("accHigh", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.acc.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            sendOk = sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
+                                  reinterpret_cast<uint8_t*>(&thresholds),
+                                  sizeof(thresholds));
+        }
+    }
+    return sendOk;
 }
 
 size_t WbGyro::getSenseSpec(char* dst, size_t maxLen)

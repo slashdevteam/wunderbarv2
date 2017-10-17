@@ -32,11 +32,16 @@ public:
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
 protected:
+    // resource command handling
     virtual void handleCommand(const char* id, const char* data) override;
+    // WB command handling
     virtual CharState sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode);
-    void event(BleEvent _event, const uint8_t* data, size_t len);
+    virtual bool handleWriteUuidRequest(uint16_t uuid, const char* data);
+    virtual CharState findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
+
 
 private:
+    void event(BleEvent _event, const uint8_t* data, size_t len);
     size_t batteryToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t fwRevToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t hwRevToJson(char* outputString, size_t maxLen, const uint8_t* data);
@@ -45,9 +50,8 @@ private:
     size_t beaconFreqToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t stringLength(const uint8_t* data);
 
-    // commands
-    CharState findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
-    bool handleWriteUuidRequest(uint16_t uuid, const char* data);
+
+
 
 protected:
     int retCode;

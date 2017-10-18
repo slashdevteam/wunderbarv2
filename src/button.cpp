@@ -24,6 +24,7 @@ Button::Button(Flash& _flash, Resources* _resources, const std::string& name, Pi
 void Button::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
+    Resource::subscribe();
     publishing = true;
 }
 

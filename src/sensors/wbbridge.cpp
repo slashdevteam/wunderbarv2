@@ -12,7 +12,6 @@ WbBridge::WbBridge(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_BRIDGE)),
                       randomPassKey(),
-                      mbed::callback(this, &WbBridge::event),
                       _resources,
                       _log),
     relayState(0)
@@ -30,6 +29,7 @@ void WbBridge::event(BleEvent _event, const uint8_t* data, size_t len)
             publish(mbed::callback(this, &WbBridge::configToJson), data);
             break;
         default:
+            WunderbarSensor::event(_event, data, len);
             break;
     }
 }

@@ -8,20 +8,9 @@ WbInfraRed::WbInfraRed(IBleGateway& _gateway, Resources* _resources, IStdInOut& 
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_IR)),
                       randomPassKey(),
-                      mbed::callback(this, &WbInfraRed::event),
                       _resources,
                       _log)
 {
-}
-
-void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
-{
-    switch(_event)
-    {
-        default:
-            // IR transmitter has no events
-            break;
-    }
 }
 
 void WbInfraRed::handleCommand(const char* id, const char* data)

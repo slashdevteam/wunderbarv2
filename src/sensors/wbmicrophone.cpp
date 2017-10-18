@@ -10,7 +10,6 @@ WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources, IStdInO
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_SOUND)),
                       randomPassKey(),
-                      mbed::callback(this, &WbMicrophone::event),
                       _resources,
                       _log)
 {
@@ -30,6 +29,7 @@ void WbMicrophone::event(BleEvent _event, const uint8_t* data, size_t len)
             publish(mbed::callback(this, &WbMicrophone::thresholdToJson), data);
             break;
         default:
+            WunderbarSensor::event(_event, data, len);
             break;
     }
 }

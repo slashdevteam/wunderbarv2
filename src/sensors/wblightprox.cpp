@@ -10,7 +10,6 @@ WbLightProx::WbLightProx(IBleGateway& _gateway, Resources* _resources, IStdInOut
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_LIGHT)),
                       randomPassKey(),
-                      mbed::callback(this, &WbLightProx::event),
                       _resources,
                       _log)
 {
@@ -33,6 +32,7 @@ void WbLightProx::event(BleEvent _event, const uint8_t* data, size_t len)
             publish(mbed::callback(this, &WbLightProx::configToJson), data);
             break;
         default:
+            WunderbarSensor::event(_event, data, len);
             break;
     }
 }

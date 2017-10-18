@@ -10,7 +10,6 @@ WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_HTU)),
                       randomPassKey(),
-                      mbed::callback(this, &WbHtu::event),
                       _resources,
                       _log)
 {
@@ -33,6 +32,7 @@ void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
             publish(mbed::callback(this, &WbHtu::configToJson), data);
             break;
         default:
+            WunderbarSensor::event(_event, data, len);
             break;
     }
 }

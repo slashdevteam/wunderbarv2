@@ -178,7 +178,7 @@ bool WbMicrophone::setFrequency(const char* data)
         char frequencyBuffer[12]; // enough for 4294967295 + '\0'
         if(frequency.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
         {
-            // frequency is 32 bit unsigned so need to use std::stol
+            // frequency is 32 bit unsigned so need to use std::atol
             uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
             sendOk = sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
                                   reinterpret_cast<uint8_t*>(&frequency),

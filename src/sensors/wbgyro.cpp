@@ -279,7 +279,7 @@ bool WbGyro::setFrequency(const char* data)
         char frequencyBuffer[12]; // enough for 4294967295 + '\0'
         if(frequency.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
         {
-            // frequency is 32 bit unsigned so need to use std::stol
+            // frequency is 32 bit unsigned so need to use std::atol
             uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
             sendOk = sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
                                   reinterpret_cast<uint8_t*>(&frequency),
@@ -307,7 +307,7 @@ bool WbGyro::setThreshold(const char* data)
             threshold_t thresholds;
             // need to conserve stack, so char buffer is reused
             threshold.copyTo("gyroSbl", thresholdBuffer, sizeof(thresholdBuffer));
-            // sbl is 32 bit unsigned so need to use std::stol
+            // sbl is 32 bit unsigned so need to use std::atol
             thresholds.gyro.sbl = static_cast<uint32_t>(std::atol(thresholdBuffer));
 
             threshold.copyTo("gyroLow", thresholdBuffer, sizeof(thresholdBuffer));

@@ -24,6 +24,7 @@ Button::Button(Flash& _flash, Resources* _resources, const std::string& name, Pi
 void Button::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
+    Resource::subscribe();
     publishing = true;
 }
 
@@ -138,9 +139,9 @@ size_t Button::getSenseSpec(char* dst, size_t maxLen)
                 "]"
            "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    senseSpecFormat);
+    return std::snprintf(dst,
+                         maxLen,
+                         senseSpecFormat);
 }
 
 size_t Button::getActuateSpec(char* dst, size_t maxLen)
@@ -156,7 +157,7 @@ size_t Button::getActuateSpec(char* dst, size_t maxLen)
                 "]"
            "}";
 
-    return snprintf(dst,
-                    maxLen,
-                    actuaSpecFormat);
+    return std::snprintf(dst,
+                         maxLen,
+                         actuaSpecFormat);
 }

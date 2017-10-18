@@ -8,20 +8,9 @@ WbInfraRed::WbInfraRed(IBleGateway& _gateway, Resources* _resources, IStdInOut& 
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_IR)),
                       randomPassKey(),
-                      mbed::callback(this, &WbInfraRed::event),
                       _resources,
                       _log)
 {
-}
-
-void WbInfraRed::event(BleEvent _event, const uint8_t* data, size_t len)
-{
-    switch(_event)
-    {
-        default:
-            // IR transmitter has no events
-            break;
-    }
 }
 
 void WbInfraRed::handleCommand(const char* id, const char* data)
@@ -69,17 +58,17 @@ size_t WbInfraRed::getSenseSpec(char* dst, size_t maxLen)
         "]"
     "}";
 
-    size_t sizeWritten = snprintf(dst,
-                                  maxLen,
-                                  senseSpecFormatHead,
-                                  config.name.c_str(),
-                                  config.name.c_str());
+    size_t sizeWritten = std::snprintf(dst,
+                                       maxLen,
+                                       senseSpecFormatHead,
+                                       config.name.c_str(),
+                                       config.name.c_str());
 
     sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
 
-    sizeWritten += snprintf(dst + sizeWritten,
-                            maxLen - sizeWritten,
-                            senseSpecFormatTail);
+    sizeWritten += std::snprintf(dst + sizeWritten,
+                                 maxLen - sizeWritten,
+                                 senseSpecFormatTail);
 
     return sizeWritten;
 }
@@ -107,17 +96,17 @@ size_t WbInfraRed::getActuateSpec(char* dst, size_t maxLen)
         "]"
     "}";
 
-    size_t sizeWritten = snprintf(dst,
-                                  maxLen,
-                                  actuateSpecFormatHead,
-                                  config.name.c_str(),
-                                  config.name.c_str());
+    size_t sizeWritten = std::snprintf(dst,
+                                       maxLen,
+                                       actuateSpecFormatHead,
+                                       config.name.c_str(),
+                                       config.name.c_str());
 
     sizeWritten += WunderbarSensor::getActuateSpec(dst + sizeWritten, maxLen - sizeWritten);
 
-    sizeWritten += snprintf(dst + sizeWritten,
-                            maxLen - sizeWritten,
-                            actuateSpecFormatTail);
+    sizeWritten += std::snprintf(dst + sizeWritten,
+                                 maxLen - sizeWritten,
+                                 actuateSpecFormatTail);
 
     return sizeWritten;
 }

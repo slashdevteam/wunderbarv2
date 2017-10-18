@@ -34,6 +34,8 @@ Resource::Resource(Resources* resources,
                    const std::string& _pubtopic,
                    IStdInOut& _log)
     : proto(nullptr),
+      msgStorage(nullptr),
+      msgQueue(nullptr),
       subtopic("actuator/" + _subtopic),
       pubtopic("sensor/" + _pubtopic),
       pubSub(nullptr),
@@ -50,13 +52,18 @@ Resource::~Resource()
 void Resource::advertise(IPubSub* _proto)
 {
     proto = _proto;
-    pubSub = std::make_unique<rtos::Thread>(osPriorityNormal, 0xA00, nullptr, pubtopic.c_str());
+    // prepare clean queue and message storage
+    msgStorage = std::make_unique<MessageTupleStorage>();
+    msgQueue = std::make_unique<MessageTupleQueue>();
+    pubSub = std::make_unique<rtos::Thread>(osPriorityNormal, 0xC00, nullptr, pubtopic.c_str());
     pubSub->start(mbed::callback(this, &Resource::pubSubThread));
 }
 
 void Resource::revoke()
 {
     pubSub.reset(nullptr);
+    msgStorage.reset(nullptr);
+    msgQueue.reset(nullptr);
     proto = nullptr;
 }
 
@@ -64,7 +71,7 @@ void Resource::pubSubThread()
 {
     while(1)
     {
-        osEvent msg = msgQueue.get();
+        osEvent msg = msgQueue->get();
         if(osEventMessage == msg.status)
         {
             MessageTuple& message = *reinterpret_cast<MessageTuple*>(msg.value.p);
@@ -101,60 +108,60 @@ void Resource::pubSubThread()
                 default:
                     break;
             }
-            msgStorage.free(&message);
+            msgStorage->free(&message);
         }
     }
 }
 
 void Resource::acknowledge(const char* commandId, int code)
 {
-    MessageTuple* message = msgStorage.alloc();
+    MessageTuple* message = msgStorage->alloc();
     if(message)
     {
         std::get<MessageType>(*message) = ACK_REQ;
         char* content = std::get<Message>(*message).data();
 
-        size_t written = snprintf(content, MQTT_MSG_PAYLOAD_SIZE, AckHeader);
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, commandId);
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckMiddle);
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%d", code);
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTime);
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTail);
+        size_t written = std::snprintf(content, MQTT_MSG_PAYLOAD_SIZE, AckHeader);
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, commandId);
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckMiddle);
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%d", code);
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTime);
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTail);
         std::get<size_t>(*message) = written;
-        msgQueue.put(message);
+        msgQueue->put(message);
         log.printf("%s: commandId: %s returned code: %d\r\n", subtopic.c_str(), commandId, code);
     }
 }
 
 void Resource::subscribe()
 {
-    MessageTuple* message = msgStorage.alloc();
+    MessageTuple* message = msgStorage->alloc();
     if(message)
     {
         std::get<MessageType>(*message) = SUB_REQ;
-        msgQueue.put(message);
+        msgQueue->put(message);
     }
 }
 
 void Resource::publish(DataFiller fillData, const uint8_t* extData)
 {
-    MessageTuple* message = msgStorage.alloc();
+    MessageTuple* message = msgStorage->alloc();
     if(message)
     {
         std::get<MessageType>(*message) = PUB_REQ;
         char* content = std::get<Message>(*message).data();
 
-        size_t written = snprintf(content, MQTT_MSG_PAYLOAD_SIZE, PubHeader);
+        size_t written = std::snprintf(content, MQTT_MSG_PAYLOAD_SIZE, PubHeader);
         if(fillData)
         {
             written += fillData(content + written, MQTT_MSG_PAYLOAD_SIZE - written, extData);
         }
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubMiddle);
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
-        written += snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubTail);
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubMiddle);
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubTail);
         std::get<size_t>(*message) = written;
-        msgQueue.put(message);
+        msgQueue->put(message);
     }
 }
 
@@ -171,13 +178,13 @@ void Resource::subscribeCallback(const uint8_t* data, size_t len)
 {
     if(len <= MQTT_MSG_PAYLOAD_SIZE)
     {
-        MessageTuple* message = msgStorage.alloc();
+        MessageTuple* message = msgStorage->alloc();
         if(message)
         {
             std::get<MessageType>(*message) = SUB_INCOMING;
             std::get<size_t>(*message) = len;
             std::memcpy(std::get<Message>(*message).data(), data, len);
-            msgQueue.put(message);
+            msgQueue->put(message);
         }
     }
 }

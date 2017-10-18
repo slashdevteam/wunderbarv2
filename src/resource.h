@@ -30,6 +30,8 @@ using MessageTuple = std::tuple<MessageType, Message, size_t>;
 using MessageTupleStorage = rtos::MemoryPool<MessageTuple, 4>;
 using MessageTupleQueue = rtos::Queue<MessageTuple, 4>;
 using DataFiller = mbed::Callback<size_t(char*, size_t, const uint8_t*)>;
+using MessageTupleStorageHandle = std::unique_ptr<MessageTupleStorage>;
+using MessageTupleQueueHandle = std::unique_ptr<MessageTupleQueue>;
 
 public:
     Resource(Resources* resources,
@@ -66,8 +68,8 @@ private:
 
     IPubSub* proto;
 
-    MessageTupleStorage msgStorage;
-    MessageTupleQueue msgQueue;
+    MessageTupleStorageHandle msgStorage;
+    MessageTupleQueueHandle msgQueue;
     const std::string subtopic;
     const std::string pubtopic;
     ThreadHandle pubSub;

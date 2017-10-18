@@ -28,7 +28,7 @@ extern "C" WEAK void getCpuId(uint32_t* part0,
 
 // capabilities JSON can be humongous so creating
 // static buffer
-char capabilities[8192] = {0};
+char capabilities[13312] = {0};
 uint8_t buffer[2048] = {0};
 
 bool validateOnboardChoice(char c)
@@ -222,7 +222,7 @@ bool setDeviceDescription(IStdInOut& log,
     char serialNo[40] = {0};
     uint32_t part0, part1, part2, part3;
     getCpuId(&part0, &part1, &part2, &part3);
-    snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
+    std::snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
 
     generateCapabilities(capabilities,
                          sizeof(capabilities),

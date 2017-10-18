@@ -18,8 +18,5 @@ protected:
     virtual void handleCommand(const char* id, const char* data) override;
 
 private:
-    void event(BleEvent _event, const uint8_t* data, size_t len);
-
-private:
     sensor_ir_data_t dataDown;
 };

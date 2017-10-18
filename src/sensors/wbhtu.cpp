@@ -3,11 +3,13 @@
 #include "randompasskey.h"
 #include "jsondecode.h"
 
+using namespace wunderbar::characteristics::sensor;
+using AM = AccessMode;
+
 WbHtu::WbHtu(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log)
     : WunderbarSensor(_gateway,
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_HTU)),
                       randomPassKey(),
-                      mbed::callback(this, &WbHtu::event),
                       _resources,
                       _log)
 {
@@ -30,6 +32,7 @@ void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
             publish(mbed::callback(this, &WbHtu::configToJson), data);
             break;
         default:
+            WunderbarSensor::event(_event, data, len);
             break;
     }
 }
@@ -37,110 +40,65 @@ void WbHtu::event(BleEvent _event, const uint8_t* data, size_t len)
 void WbHtu::handleCommand(const char* id, const char* data)
 {
     retCode = 400;
-    // first do a pass on common commands
-    WunderbarSensor::handleCommand(id, data);
 
-    // if common returned 400 check htu specific
-    if(400 == retCode)
+    std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
+    JsonDecode message(data, 16);
+
+    if(message)
     {
-        std::strncpy(commandId, id, MAX_COMMAND_ID_LEN);
-        JsonDecode message(data, 16);
-
-        if(message)
+        if(message.isField("getFrequency"))
         {
-            if(message.isField("getFrequency"))
+            if(readFromServer(wunderbar::characteristics::sensor::FREQUENCY))
             {
-                if(readFromServer(wunderbar::characteristics::sensor::FREQUENCY))
-                {
-                    retCode = 200;
-                    acknowledge(id, retCode);
-                }
-            }
-            else if(message.isField("setFrequency"))
-            {
-                char frequencyBuffer[12]; // enough for 4294967295 + '\0'
-                if(message.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
-                {
-                    // frequency is 32 bit unsigned so need to use std::stol
-                    uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
-                    if(sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
-                                    reinterpret_cast<uint8_t*>(&frequency),
-                                    sizeof(frequency)))
-                    {
-                        retCode = 200;
-                    }
-                }
-            }
-            else if(message.isField("getThreshold"))
-            {
-                if(readFromServer(wunderbar::characteristics::sensor::THRESHOLD))
-                {
-                    retCode = 200;
-                    acknowledge(id, retCode);
-                }
-            }
-            else if(message.isField("setThreshold")
-                    && message.isField("tempSbl")
-                    && message.isField("tempLow")
-                    && message.isField("tempHigh")
-                    && message.isField("humSbl")
-                    && message.isField("humLow")
-                    && message.isField("humHigh"))
-            {
-                    char thresholdBuffer[12]; // enough for -2147483648 + '\0'
-                    threshold_t thresholds;
-                    // need to conserve stack, so char buffer is reused
-                    message.copyTo("tempSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.temp.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("tempLow", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.temp.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("tempHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.temp.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("humSbl", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.hum.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("humLow", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.hum.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                    message.copyTo("humHigh", thresholdBuffer, sizeof(thresholdBuffer));
-                    thresholds.hum.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
-
-                    if(sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
-                                reinterpret_cast<uint8_t*>(&thresholds),
-                                sizeof(thresholds)))
-                    {
-                        retCode = 200;
-                    }
-            }
-            else if(message.isField("getConfig"))
-            {
-                if(readFromServer(wunderbar::characteristics::sensor::CONFIG))
-                {
-                    retCode = 200;
-                    acknowledge(id, retCode);
-                }
-            }
-            else if(message.isField("setConfig"))
-            {
-                char configBuffer[1];
-                if(message.copyTo("htuTemp", configBuffer, 1))
-                {
-                    int config = std::atoi(configBuffer);
-                    if(isConfigAllowed(config))
-                    {
-                        if(sendToServer(wunderbar::characteristics::sensor::CONFIG,
-                                        reinterpret_cast<uint8_t*>(&config),
-                                        sizeof(config)))
-                        {
-                            retCode = 200;
-                        }
-                    }
-                }
+                retCode = 200;
+                acknowledge(id, retCode);
             }
         }
+        else if(message.isField("setFrequency"))
+        {
+            if(setFrequency(message.get("setFrequency")))
+            {
+                retCode = 200;
+            }
+        }
+        else if(message.isField("getThreshold"))
+        {
+            if(readFromServer(wunderbar::characteristics::sensor::THRESHOLD))
+            {
+                retCode = 200;
+                acknowledge(id, retCode);
+            }
+        }
+        else if(message.isField("setThreshold"))
+        {
+            if(setThreshold(message.get("setThreshold")))
+            {
+                retCode = 200;
+            }
+        }
+        else if(message.isField("getConfig"))
+        {
+            if(readFromServer(wunderbar::characteristics::sensor::CONFIG))
+            {
+                retCode = 200;
+                acknowledge(id, retCode);
+            }
+        }
+        else if(message.isField("setConfig"))
+        {
+            if(sendConfig(message.get("setConfig")))
+            {
+                retCode = 200;
+            }
+        }
+        else
+        {
+            WunderbarSensor::handleCommand(id, data);
+        }
+    }
+    else
+    {
+        acknowledge(id, 400);
     }
 }
 
@@ -172,6 +130,146 @@ size_t WbHtu::frequencyToJson(char* outputString, size_t maxLen, const uint8_t* 
                          maxLen,
                          "\"frequency\":%d",
                          static_cast<int>(data[0]));
+}
+
+CharState WbHtu::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
+{
+    static const std::list<CharcteristicDescriptor> htuCharacteristics = {{CONFIG, AM::RW},
+                                                                          {FREQUENCY, AM::RW},
+                                                                          {THRESHOLD, AM::RW}};
+    CharState uuidState = searchCharacteristics(uuid, requestedMode, htuCharacteristics);
+
+    if(CharState::NOT_FOUND == uuidState)
+    {
+        uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
+    }
+
+    return uuidState;
+}
+
+bool WbHtu::handleWriteUuidRequest(uint16_t uuid, const char* data)
+{
+    bool writeOk = false;
+    JsonDecode writeRequest(data, 8);
+
+    if(writeRequest)
+    {
+        char writeValue[20];
+        size_t lenght = 0;
+        if(writeRequest.copyTo("value", writeValue, sizeof(writeValue)))
+        {
+            switch(uuid)
+            {
+                case CONFIG:
+                    writeOk = sendConfig(writeValue);
+                    break;
+                case FREQUENCY:
+                    writeOk = setFrequency(writeValue);
+                    break;
+                case THRESHOLD:
+                    writeOk = setThreshold(writeValue);
+                    break;
+                default:
+                    writeOk = WunderbarSensor::handleWriteUuidRequest(uuid, data);
+                    break;
+            }
+
+            if(writeOk)
+            {
+                writeOk = sendToServer(uuid,
+                          reinterpret_cast<uint8_t*>(writeValue),
+                          lenght);
+            }
+        }
+    }
+
+    return writeOk;
+}
+
+bool WbHtu::sendConfig(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode config(data, 8);
+
+    if(config)
+    {
+        char configBuffer[1];
+        if(config.copyTo("htuTemp", configBuffer, 1))
+        {
+            int htuConf = std::atoi(configBuffer);
+            if(isConfigAllowed(htuConf))
+            {
+                sendOk = sendToServer(wunderbar::characteristics::sensor::CONFIG,
+                                    reinterpret_cast<uint8_t*>(&htuConf),
+                                    sizeof(htuConf));
+
+            }
+        }
+    }
+    return sendOk;
+}
+
+bool WbHtu::setFrequency(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode frequency(data, 8);
+
+    if(frequency)
+    {
+        char frequencyBuffer[12]; // enough for 4294967295 + '\0'
+        if(frequency.copyTo("ticks", frequencyBuffer, sizeof(frequencyBuffer)))
+        {
+            // frequency is 32 bit unsigned so need to use std::atol
+            uint32_t frequency = static_cast<uint32_t>(std::atol(frequencyBuffer));
+            sendOk = sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
+                                  reinterpret_cast<uint8_t*>(&frequency),
+                                  sizeof(frequency));
+        }
+    }
+    return sendOk;
+}
+
+bool WbHtu::setThreshold(const char* data)
+{
+    bool sendOk = false;
+    JsonDecode threshold(data, 16);
+
+    if(threshold)
+    {
+        if(threshold.isField("tempSbl")
+           && threshold.isField("tempLow")
+           && threshold.isField("tempHigh")
+           && threshold.isField("humSbl")
+           && threshold.isField("humLow")
+           && threshold.isField("humHigh"))
+        {
+            char thresholdBuffer[12]; // enough for -2147483648 + '\0'
+            threshold_t thresholds;
+            // need to conserve stack, so char buffer is reused
+            threshold.copyTo("tempSbl", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.temp.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("tempLow", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.temp.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("tempHigh", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.temp.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("humSbl", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.hum.sbl = static_cast<uint16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("humLow", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.hum.low = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            threshold.copyTo("humHigh", thresholdBuffer, sizeof(thresholdBuffer));
+            thresholds.hum.high = static_cast<int16_t>(std::atoi(thresholdBuffer));
+
+            sendOk = sendToServer(wunderbar::characteristics::sensor::THRESHOLD,
+                                  reinterpret_cast<uint8_t*>(&thresholds),
+                                  sizeof(thresholds));
+        }
+    }
+    return sendOk;
 }
 
 bool WbHtu::isConfigAllowed(int config)
@@ -245,17 +343,17 @@ size_t WbHtu::getSenseSpec(char* dst, size_t maxLen)
         "]"
     "}";
 
-    size_t sizeWritten = snprintf(dst,
-                                  maxLen,
-                                  senseSpecFormatHead,
-                                  config.name.c_str(),
-                                  config.name.c_str());
+    size_t sizeWritten = std::snprintf(dst,
+                                       maxLen,
+                                       senseSpecFormatHead,
+                                       config.name.c_str(),
+                                       config.name.c_str());
 
     sizeWritten += WunderbarSensor::getSenseSpec(dst + sizeWritten, maxLen - sizeWritten);
 
-    sizeWritten += snprintf(dst + sizeWritten,
-                            maxLen - sizeWritten,
-                            senseSpecFormatTail);
+    sizeWritten += std::snprintf(dst + sizeWritten,
+                                 maxLen - sizeWritten,
+                                 senseSpecFormatTail);
 
     return sizeWritten;
 }
@@ -342,17 +440,17 @@ size_t WbHtu::getActuateSpec(char* dst, size_t maxLen)
         "]"
     "}";
 
-    size_t sizeWritten = snprintf(dst,
-                                  maxLen,
-                                  actuateSpecFormatHead,
-                                  config.name.c_str(),
-                                  config.name.c_str());
+    size_t sizeWritten = std::snprintf(dst,
+                                       maxLen,
+                                       actuateSpecFormatHead,
+                                       config.name.c_str(),
+                                       config.name.c_str());
 
     sizeWritten += WunderbarSensor::getActuateSpec(dst + sizeWritten, maxLen - sizeWritten);
 
-    sizeWritten += snprintf(dst + sizeWritten,
-                            maxLen - sizeWritten,
-                            actuateSpecFormatTail);
+    sizeWritten += std::snprintf(dst + sizeWritten,
+                                 maxLen - sizeWritten,
+                                 actuateSpecFormatTail);
 
     return sizeWritten;
 }

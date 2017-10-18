@@ -8,13 +8,22 @@
 
 const size_t MAX_COMMAND_ID_LEN = 20;
 
+using CharacteristicsList = std::list<CharcteristicDescriptor>;
+
+enum class CharState : uint8_t
+{
+    FOUND_ACCESS_OK = 0,
+    FOUND_WRONG_ACCESS = 1,
+    NOT_FOUND = 2,
+    WRONG_ACCESS = 3
+};
+
 class WunderbarSensor : public BleServer, public Resource
 {
 public:
     WunderbarSensor(IBleGateway& _gateway,
                     ServerName&& _name,
                     PassKey&& _passKey,
-                    BleServerCallback _callback,
                     Resources* _resources,
                     IStdInOut& _log);
     virtual ~WunderbarSensor() {};
@@ -24,8 +33,15 @@ public:
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
 
 protected:
+    // BLE server event handling
+    virtual void event(BleEvent _event, const uint8_t* data, size_t len) override;
+    // resource command handling
     virtual void handleCommand(const char* id, const char* data) override;
-    void event(BleEvent _event, const uint8_t* data, size_t len);
+    // WB command handling
+    virtual CharState sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode);
+    virtual bool handleWriteUuidRequest(uint16_t uuid, const char* data);
+    virtual CharState findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
+    CharState searchCharacteristics(uint16_t uuid, AccessMode requestedMode, const CharacteristicsList& sensorsChars);
 
 private:
     size_t batteryToJson(char* outputString, size_t maxLen, const uint8_t* data);
@@ -36,15 +52,7 @@ private:
     size_t beaconFreqToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t stringLength(const uint8_t* data);
 
-    // commands
-    bool findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
-    bool handleReadUuidRequest(const char* data);
-    bool handleWriteUuidRequest(const char* data);
-
 protected:
     int retCode;
     char commandId[MAX_COMMAND_ID_LEN];
-
-private:
-    BleServerCallback userCallback;
 };

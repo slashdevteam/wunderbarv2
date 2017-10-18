@@ -8,6 +8,8 @@
 
 const size_t MAX_COMMAND_ID_LEN = 20;
 
+using CharacteristicsList = std::list<CharcteristicDescriptor>;
+
 enum class CharState : uint8_t
 {
     FOUND_ACCESS_OK = 0,
@@ -38,7 +40,7 @@ protected:
     virtual CharState sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode);
     virtual bool handleWriteUuidRequest(uint16_t uuid, const char* data);
     virtual CharState findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode);
-
+    CharState searchCharacteristics(uint16_t uuid, AccessMode requestedMode, const CharacteristicsList& sensorsChars);
 
 private:
     void event(BleEvent _event, const uint8_t* data, size_t len);
@@ -49,7 +51,6 @@ private:
     size_t sensorIdToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t beaconFreqToJson(char* outputString, size_t maxLen, const uint8_t* data);
     size_t stringLength(const uint8_t* data);
-
 
 
 

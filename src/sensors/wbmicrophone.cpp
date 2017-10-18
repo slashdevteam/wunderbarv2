@@ -105,28 +105,13 @@ size_t WbMicrophone::frequencyToJson(char* outputString, size_t maxLen, const ui
 
 CharState WbMicrophone::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
 {
-    CharState uuidState = CharState::WRONG_ACCESS;
-    static const std::list<CharcteristicDescriptor> bridgeCharacteristics = {{FREQUENCY, AM::RW},
+    static const std::list<CharcteristicDescriptor> micCharacteristics = {{FREQUENCY, AM::RW},
                                                                              {THRESHOLD, AM::RW}};
-    if(AM::NONE != requestedMode)
+    CharState uuidState = searchCharacteristics(uuid, requestedMode, micCharacteristics);
+
+    if(CharState::NOT_FOUND == uuidState)
     {
-        uuidState = CharState::NOT_FOUND;
-        for(auto& characteristic : bridgeCharacteristics)
-        {
-            if(characteristic.uuid == uuid)
-            {
-                uuidState = CharState::FOUND_WRONG_ACCESS;
-                if((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW))
-                {
-                    uuidState = CharState::FOUND_ACCESS_OK;
-                    break;
-                }
-            }
-        }
-        if(CharState::NOT_FOUND == uuidState)
-        {
-            uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
-        }
+        uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
     }
 
     return uuidState;

@@ -136,28 +136,13 @@ bool WbBridge::isBaudrateAllowed(int baudRate)
 
 CharState WbBridge::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
 {
-    CharState uuidState = CharState::WRONG_ACCESS;
     static const std::list<CharcteristicDescriptor> bridgeCharacteristics = {{CONFIG, AM::RW},
                                                                              {DATA_W, AM::WRITE}};
-    if(AM::NONE != requestedMode)
+    CharState uuidState = searchCharacteristics(uuid, requestedMode, bridgeCharacteristics);
+
+    if(CharState::NOT_FOUND == uuidState)
     {
-        uuidState = CharState::NOT_FOUND;
-        for(auto& characteristic : bridgeCharacteristics)
-        {
-            if(characteristic.uuid == uuid)
-            {
-                uuidState = CharState::FOUND_WRONG_ACCESS;
-                if((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW))
-                {
-                    uuidState = CharState::FOUND_ACCESS_OK;
-                    break;
-                }
-            }
-        }
-        if(CharState::NOT_FOUND == uuidState)
-        {
-            uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
-        }
+        uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
     }
 
     return uuidState;

@@ -213,20 +213,13 @@ void WunderbarSensor::handleCommand(const char* id, const char* data)
     }
 }
 
-CharState WunderbarSensor::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
+CharState WunderbarSensor::searchCharacteristics(uint16_t uuid, AccessMode requestedMode, const CharacteristicsList& sensorsChars)
 {
     CharState uuidState = CharState::WRONG_ACCESS;
-    static const std::list<CharcteristicDescriptor> commonSensorChars = {{ID, AM::READ},
-                                                                         {BEACON_FREQ, AM::RW},
-                                                                         {LED_STATE, AM::WRITE},
-                                                                         {BATTERY_LEVEL, AM::READ},
-                                                                         {MANUFACTURER_NAME, AM::READ},
-                                                                         {HARDWARE_REVISION, AM::READ},
-                                                                         {FIRMWARE_REVISION, AM::READ}};
     if(AM::NONE != requestedMode)
     {
         uuidState = CharState::NOT_FOUND;
-        for(auto& characteristic : commonSensorChars)
+        for(auto& characteristic : sensorsChars)
         {
             if(characteristic.uuid == uuid)
             {
@@ -239,8 +232,19 @@ CharState WunderbarSensor::sensorHasCharacteristic(uint16_t uuid, AccessMode req
             }
         }
     }
-
     return uuidState;
+}
+
+CharState WunderbarSensor::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
+{
+    static const std::list<CharcteristicDescriptor> commonSensorChars = {{ID, AM::READ},
+                                                                         {BEACON_FREQ, AM::RW},
+                                                                         {LED_STATE, AM::WRITE},
+                                                                         {BATTERY_LEVEL, AM::READ},
+                                                                         {MANUFACTURER_NAME, AM::READ},
+                                                                         {HARDWARE_REVISION, AM::READ},
+                                                                         {FIRMWARE_REVISION, AM::READ}};
+    return searchCharacteristics(uuid, requestedMode, commonSensorChars);
 }
 
 CharState WunderbarSensor::findUuid(const char* data, uint16_t& uuid, AccessMode requestedMode)

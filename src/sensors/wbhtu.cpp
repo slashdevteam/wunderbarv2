@@ -134,29 +134,14 @@ size_t WbHtu::frequencyToJson(char* outputString, size_t maxLen, const uint8_t* 
 
 CharState WbHtu::sensorHasCharacteristic(uint16_t uuid, AccessMode requestedMode)
 {
-    CharState uuidState = CharState::WRONG_ACCESS;
-    static const std::list<CharcteristicDescriptor> bridgeCharacteristics = {{CONFIG, AM::RW},
-                                                                             {FREQUENCY, AM::RW},
-                                                                             {THRESHOLD, AM::RW}};
-    if(AM::NONE != requestedMode)
+    static const std::list<CharcteristicDescriptor> htuCharacteristics = {{CONFIG, AM::RW},
+                                                                          {FREQUENCY, AM::RW},
+                                                                          {THRESHOLD, AM::RW}};
+    CharState uuidState = searchCharacteristics(uuid, requestedMode, htuCharacteristics);
+
+    if(CharState::NOT_FOUND == uuidState)
     {
-        uuidState = CharState::NOT_FOUND;
-        for(auto& characteristic : bridgeCharacteristics)
-        {
-            if(characteristic.uuid == uuid)
-            {
-                uuidState = CharState::FOUND_WRONG_ACCESS;
-                if((requestedMode == characteristic.mode) || (characteristic.mode == AM::RW))
-                {
-                    uuidState = CharState::FOUND_ACCESS_OK;
-                    break;
-                }
-            }
-        }
-        if(CharState::NOT_FOUND == uuidState)
-        {
-            uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
-        }
+        uuidState = WunderbarSensor::sensorHasCharacteristic(uuid, requestedMode);
     }
 
     return uuidState;

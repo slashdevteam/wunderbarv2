@@ -92,7 +92,6 @@ private:
     // MQTT specific
     void handleSubscriptions();
     void resetKeepAlive();
-    void handleSubscriptionAck();
     void ping();
     void handleMessageQueue();
     bool sendPublish(const MQTTString& topic, MessageTuple& message);
@@ -108,7 +107,8 @@ private:
     IStdInOut* log;
     PlatformMutex mutex;
     rtos::Thread dispatcher;
-    int32_t error;
+    volatile int32_t error;
+    volatile bool pingSent;
     int keepAliveHeartbeat;
     mbed::Timer keepAliveTimer;
 

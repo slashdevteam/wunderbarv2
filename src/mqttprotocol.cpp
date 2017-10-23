@@ -40,6 +40,7 @@ MqttProtocol::MqttProtocol(ITransportLayer* _transport, const MqttConfig& _confi
       log(_log),
       dispatcher(osPriorityNormal, 4096, nullptr, "MQTT-DISPATCH"),
       error(MQTT_STATUS::NOT_CONNECTED),
+      pingSent(false),
       keepAliveHeartbeat(10000),
       packetId(0)
 {
@@ -210,6 +211,10 @@ void MqttProtocol::dispatch()
                     break;
                 case SUBACK: // processed synchronously in handleMessageQueue
                     break;
+                case PINGRESP:
+                    pingSent = false;
+                    log->printf("Ping OK\r\n");
+                    break;
                 default:
                     log->printf("%s Unknown message type = %d\r\n", __PRETTY_FUNCTION__, msg);
                     break;
@@ -274,28 +279,27 @@ void MqttProtocol::resetKeepAlive()
     keepAliveTimer.start();
 }
 
-void MqttProtocol::handleSubscriptionAck()
-{
-
-}
-
 void MqttProtocol::ping()
 {
-    transport->setTimeout(1000);
-    size_t len = MQTTSerialize_pingreq(sendbuf, MAX_MQTT_PACKET_SIZE);
-
-    if((len > 0) && sendPacket(len))
+    if(!pingSent)
     {
-        msgTypes msg = static_cast<msgTypes>(DISCONNECT + 1); // DISCONNECT is last in msgTypes enum
-        if(receivePacket(msg) && PINGRESP == msg)
+        pingSent = true;
+        size_t len = MQTTSerialize_pingreq(sendbuf, MAX_MQTT_PACKET_SIZE);
+
+        if((len > 0) && sendPacket(len))
         {
+            log->printf("Ping sent\r\n");
             resetKeepAlive();
-            log->printf("Ping OK\r\n");
+        }
+        else
+        {
+            log->printf("Ping sending FAILED!\r\n");
+            handleError();
         }
     }
     else
     {
-        log->printf("Ping FAILED!\r\n");
+        log->printf("Ping response not received!\r\n");
         handleError();
     }
 }

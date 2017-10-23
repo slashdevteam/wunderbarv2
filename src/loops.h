@@ -6,6 +6,7 @@
 #include "WiFiInterface.h"
 #include "NetworkStack.h"
 #include "resources.h"
+#include "info.h"
 
 void onboardLoop(Flash& flash,
                  IStdInOut& log,
@@ -19,6 +20,7 @@ void onboardLoop(Flash& flash,
 void runLoop(const wunderbar::Configuration& config,
              IStdInOut& log,
              IBleGateway& ble,
+             Info& info,
              WiFiInterface& wifi,
              NetworkStack& net,
              const Resources& resources,

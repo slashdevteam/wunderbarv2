@@ -15,6 +15,7 @@
 #include "wbbridge.h"
 #include "button.h"
 #include "led.h"
+#include "info.h"
 
 // prevent mbed from using UART
 #include "nouartfix.h"
@@ -57,6 +58,7 @@ WbInfraRed   ir(ble, &resources, cdc);
 WbBridge     bridge(ble, &resources, cdc);
 Button       sw2(flash, &resources, "button1", SW2, cdc);
 Led          led(&resources, "LED", LED1, cdc);
+Info         info(&resources, cdc);
 
 int main(int argc, char **argv)
 {
@@ -85,6 +87,7 @@ int main(int argc, char **argv)
             runLoop(flash.getConfig(),
                     cdc,
                     ble,
+                    info,
                     wifiConnection,
                     wifiConnection,
                     resources,

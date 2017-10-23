@@ -8,6 +8,8 @@ using PingChangeCallback = mbed::Callback<void(int)>;
 
 class Info : public Resource
 {
+const int MS_IN_S = 1000;
+
 public:
     Info(Resources* _resources, IStdInOut& _log);
     virtual ~Info() = default;
@@ -15,7 +17,7 @@ public:
     virtual void advertise(IPubSub* _proto) override;
     virtual size_t getSenseSpec(char* dst, size_t maxLen) override;
     virtual size_t getActuateSpec(char* dst, size_t maxLen) override;
-    int getPingInterval() const;
+    int getPingIntervalMs() const;
     void setPingChangeCallback(PingChangeCallback callback);
 
 protected:

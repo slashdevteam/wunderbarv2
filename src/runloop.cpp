@@ -71,7 +71,7 @@ private:
             if(mqttConnected)
             {
                 log.printf("%s connected to %s:%d.\r\n", mqtt.name, config.proto.server, config.proto.port);
-                mqtt.setPingPeriod(info.getPingInterval() * 1000);
+                mqtt.setPingPeriod(info.getPingIntervalMs());
                 info.setPingChangeCallback(mbed::callback(&mqtt, &MqttProtocol::setPingPeriod));
                 ble.configure(config.ble);
                 // add resources to MQTT

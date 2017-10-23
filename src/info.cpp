@@ -23,9 +23,9 @@ void Info::advertise(IPubSub* _proto)
     Resource::subscribe();
 }
 
-int Info::getPingInterval() const
+int Info::getPingIntervalMs() const
 {
-    return pingInterval;
+    return pingInterval * MS_IN_S;
 }
 
 void Info::setPingChangeCallback(PingChangeCallback callback)
@@ -64,7 +64,7 @@ bool Info::parseCommand(const char* data)
                 pingInterval = value;
                 if(pingCallback)
                 {
-                    pingCallback(pingInterval * 1000);
+                    pingCallback(getPingIntervalMs());
                 }
                 commandOk = true;
             }

@@ -17,6 +17,7 @@ public:
     MainLooper(const wunderbar::Configuration& _config,
                IStdInOut& _log,
                IBleGateway& _ble,
+               Info& _info,
                WiFiInterface& _wifi,
                NetworkStack& _net,
                const Resources& _resources,
@@ -25,6 +26,7 @@ public:
         : config(_config),
           log(_log),
           ble(_ble),
+          info(_info),
           wifi(_wifi),
           net(_net),
           resources(_resources),
@@ -69,8 +71,8 @@ private:
             if(mqttConnected)
             {
                 log.printf("%s connected to %s:%d.\r\n", mqtt.name, config.proto.server, config.proto.port);
-                mqtt.setPingPeriod(30000);
-
+                mqtt.setPingPeriod(info.getPingIntervalMs());
+                info.setPingChangeCallback(mbed::callback(&mqtt, &MqttProtocol::setPingPeriod));
                 ble.configure(config.ble);
                 // add resources to MQTT
                 for(auto resource : resources.current)
@@ -151,6 +153,7 @@ private:
     const wunderbar::Configuration& config;
     IStdInOut& log;
     IBleGateway& ble;
+    Info& info;
     WiFiInterface& wifi;
     NetworkStack& net;
     const Resources& resources;
@@ -160,6 +163,7 @@ private:
 void runLoop(const wunderbar::Configuration& config,
              IStdInOut& log,
              IBleGateway& ble,
+             Info& info,
              WiFiInterface& wifi,
              NetworkStack& net,
              const Resources& resources,
@@ -172,6 +176,7 @@ void runLoop(const wunderbar::Configuration& config,
     MainLooper mainLooper(config,
                           log,
                           ble,
+                          info,
                           wifi,
                           net,
                           resources,

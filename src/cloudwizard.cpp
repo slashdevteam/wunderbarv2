@@ -161,12 +161,15 @@ bool registerToCloud(IStdInOut& log,
     request.setHeader("Accept-Language", "en-us");
 
     ProgressBar progressBar(log, led, false, 133);
-    bool sendStatus = request.send();
     progressBar.start();
+    bool sendStatus = request.send();
     progressBar.terminate();
     if(sendStatus)
     {
-        if(request.recv(buffer, sizeof(buffer)))
+        progressBar.start();
+        bool recvStatus = request.recv(buffer, sizeof(buffer));
+        progressBar.terminate();
+        if(recvStatus)
         {
             HttpParser response(reinterpret_cast<const char*>(buffer));
             if(response)

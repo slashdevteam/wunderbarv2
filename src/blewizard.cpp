@@ -5,7 +5,7 @@
 bool bleWizard(IBleGateway& bleGate, BleConfig& config, mbed::DigitalOut& led, IStdInOut& log)
 {
     bool bleDone = false;
-    uint32_t discoveryTimeout = 30;
+    uint32_t discoveryTimeout = 40;
     while(!bleDone)
     {
         log.printf("\r\nSending base configuration to Bluetooth master\r\n");

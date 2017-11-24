@@ -46,19 +46,13 @@ bool validateOnboardChoice(char c)
 size_t generateCapabilities(char* caps,
                             size_t maxSize,
                             const Resources& resources,
-                            const char* userId,
                             const char* serialNo,
-                            const char* name,
-                            const char* deviceId,
-                            const char* authToken)
+                            const char* name)
 {
     const char capsHeaderFormat[] =
     "{"
-    "\"id\":\"%s\","
     "\"serialNo\":\"%s\","
     "\"name\":\"%s\","
-    "\"userId\":\"%s\","
-    "\"authToken\":\"%s\","
     "\"type\":\"%s\","
     "\"productCode\":\"%s\","
     "\"version\":\"%s\","
@@ -69,11 +63,8 @@ size_t generateCapabilities(char* caps,
     size_t outLen = std::snprintf(caps,
                                 maxSize,
                                 capsHeaderFormat,
-                                deviceId,
                                 serialNo,
                                 name,
-                                userId,
-                                authToken,
                                 PRODUCT_TYPE,
                                 PRODUCT_CODE,
                                 PRODUCT_VERSION,
@@ -126,13 +117,15 @@ size_t generateCapabilities(char* caps,
     return outLen;
 }
 
-bool getCredentials(IStdInOut& log,
+bool registerToCloud(IStdInOut& log,
                     NetworkStack* net,
                     const char* userName,
+                    const char* deviceName,
                     const char* token,
                     MqttConfig& mqttConfig,
                     TlsConfig& tlsConfig,
                     RestConfig& restConfig,
+                    const Resources& resources,
                     mbed::DigitalOut& led)
 {
     bool credentialsOk = false;
@@ -143,22 +136,40 @@ bool getCredentials(IStdInOut& log,
     std::memcpy(&restConfig.token, VENDOR_TOKEN, sizeof(VENDOR_TOKEN));
     restConfig.port = REST_PORT;
     std::string registrationUrl(restConfig.path);
+
+    char serialNo[40] = {0};
+    uint32_t part0, part1, part2, part3;
+    getCpuId(&part0, &part1, &part2, &part3);
+    snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
+
+
+    generateCapabilities(capabilities,
+                         sizeof(capabilities),
+                         resources,
+                         serialNo,
+                         deviceName);
+    log.printf("%s\r\n", capabilities);
     registrationUrl.append("raspberry/email=").append(userName).append("/devices/getCredentials");
     log.printf("\r\nRequesting MQTT credentials.");
     log.printf("\r\nContacting %s\r\n", registrationUrl.c_str());
-    HttpsRequest request(tls, "GET", restConfig.server, restConfig.port, registrationUrl.c_str(), nullptr);
+    HttpsRequest request(tls, "POST", restConfig.server, restConfig.port, registrationUrl.c_str(), capabilities);
     request.setHeader("X-AUTH-TOKEN", restConfig.token);
     request.setHeader("shortToken", token);
+    request.setHeader("Content-Type", "application/json");
     request.setHeader("Accept", "*/*");
     request.setHeader("Accept-Encoding", "gzip, deflate");
     request.setHeader("Accept-Language", "en-us");
 
-
     ProgressBar progressBar(log, led, false, 133);
     progressBar.start();
-    if(request.send())
+    bool sendStatus = request.send();
+    progressBar.terminate();
+    if(sendStatus)
     {
-        if(request.recv(buffer, sizeof(buffer)))
+        progressBar.start();
+        bool recvStatus = request.recv(buffer, sizeof(buffer));
+        progressBar.terminate();
+        if(recvStatus)
         {
             HttpParser response(reinterpret_cast<const char*>(buffer));
             if(response)
@@ -206,76 +217,10 @@ bool getCredentials(IStdInOut& log,
     {
         log.printf("\r\nUnable to send data to %s.\r\n", REST_SERVER);
     }
-    progressBar.terminate();
 
     return credentialsOk;
 }
 
-bool setDeviceDescription(IStdInOut& log,
-                          NetworkStack* net,
-                          const char* deviceName,
-                          MqttConfig& mqttConfig,
-                          RestConfig& restConfig,
-                          mbed::DigitalOut& led,
-                          const Resources& resources)
-{
-    char serialNo[40] = {0};
-    uint32_t part0, part1, part2, part3;
-    getCpuId(&part0, &part1, &part2, &part3);
-    std::snprintf(serialNo, sizeof(serialNo), "%08lx%8lx%8lx%8lx", part0, part1, part2, part3);
-
-    generateCapabilities(capabilities,
-                         sizeof(capabilities),
-                         resources,
-                         mqttConfig.userId,
-                         serialNo,
-                         deviceName,
-                         mqttConfig.clientId,
-                         mqttConfig.password);
-    log.printf("\r\nUpdating device capabilities\r\n");
-
-    bool capabilitiesOk = false;
-    IStdInOut devNull;
-    TLS tls(net, restConfig.tls, &devNull);
-    std::memcpy(&restConfig.path, REST_API_PATH, sizeof(REST_API_PATH));
-    std::memcpy(&restConfig.server, REST_SERVER, sizeof(REST_SERVER));
-    std::memcpy(&restConfig.token, VENDOR_TOKEN, sizeof(VENDOR_TOKEN));
-    restConfig.port = REST_PORT;
-    std::string registrationUrl(restConfig.path);
-    registrationUrl.append("users/email=").append(mqttConfig.userId).append("/devices/");
-    log.printf("Contacting %s\r\n", registrationUrl.c_str());
-    HttpsRequest request(tls, "PUT", restConfig.server, restConfig.port, registrationUrl.c_str(), capabilities);
-    request.setHeader("X-AUTH-TOKEN", restConfig.token);
-
-    ProgressBar progressBar(log, led, false, 133);
-    progressBar.start();
-    if(request.send())
-    {
-        if(request.recv(buffer, sizeof(buffer)))
-        {
-            HttpParser response(reinterpret_cast<const char*>(buffer));
-            if(response)
-            {
-                capabilitiesOk = true;
-            }
-            else
-            {
-                log.printf("\r\nError response from %s - %d: %.15s.\r\n", REST_SERVER, response.status, response.statusString);
-            }
-        }
-        else
-        {
-            log.printf("\r\nNo reply from %s.\r\n", REST_SERVER);
-        }
-    }
-    else
-    {
-        log.printf("\r\nUnable to send data to %s.\r\n", REST_SERVER);
-    }
-    progressBar.terminate();
-
-    return capabilitiesOk;
-}
 
 bool deviceRegistration(IStdInOut& log,
                         NetworkStack* net,
@@ -292,7 +237,6 @@ bool deviceRegistration(IStdInOut& log,
     bool tokenOk = false;
     bool deviceNameOk = false;
     bool credentialsOk = false;
-    bool deviceDescriptionOk = false;
     char userName[30] = {0};
     char token[9] = {0};
     char deviceName[10] = {0};
@@ -327,27 +271,22 @@ bool deviceRegistration(IStdInOut& log,
 
         while(!credentialsOk)
         {
-            credentialsOk = getCredentials(log, net, userName, token, mqttConfig, tlsConfig, restConfig, led);
+            credentialsOk = registerToCloud(log,
+                                            net,
+                                            userName,
+                                            deviceName,
+                                            token,
+                                            mqttConfig,
+                                            tlsConfig,
+                                            restConfig,
+                                            resources,
+                                            led);
             if(!credentialsOk)
             {
                 log.printf("Try again? (Y/N)\r\n");
                 if(!agree(log, led))
                 {
                     return false;
-                }
-            }
-        }
-
-        while(!deviceDescriptionOk)
-        {
-            deviceDescriptionOk = setDeviceDescription(log, net, deviceName, mqttConfig, restConfig, led, resources);
-            // this will currently fail, as it requires an FB-USER-TOKEN unknown to Wunderbar
-            if(!deviceDescriptionOk)
-            {
-                log.printf("\r\nTry again? (Y/N)\r\n");
-                if(!agree(log, led))
-                {
-                    return credentialsOk;
                 }
             }
         }

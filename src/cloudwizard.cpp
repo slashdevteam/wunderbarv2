@@ -125,6 +125,7 @@ bool registerToCloud(IStdInOut& log,
                     MqttConfig& mqttConfig,
                     TlsConfig& tlsConfig,
                     RestConfig& restConfig,
+                    const Resources& resources,
                     mbed::DigitalOut& led)
 {
     bool credentialsOk = false;
@@ -144,6 +145,7 @@ bool registerToCloud(IStdInOut& log,
 
     generateCapabilities(capabilities,
                          sizeof(capabilities),
+                         resources,
                          serialNo,
                          deviceName);
     log.printf("%s\r\n", capabilities);
@@ -266,7 +268,16 @@ bool deviceRegistration(IStdInOut& log,
 
         while(!credentialsOk)
         {
-            credentialsOk = registerToCloud(log, net, userName, deviceName, token, mqttConfig, tlsConfig, restConfig, led);
+            credentialsOk = registerToCloud(log,
+                                            net,
+                                            userName,
+                                            deviceName,
+                                            token,
+                                            mqttConfig,
+                                            tlsConfig,
+                                            restConfig,
+                                            resources,
+                                            led);
             if(!credentialsOk)
             {
                 log.printf("Try again? (Y/N)\r\n");

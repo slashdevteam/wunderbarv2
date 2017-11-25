@@ -3,14 +3,16 @@
 
 void ProgressBar::start()
 {
-    executor.start(mbed::callback(this, &ProgressBar::show));
+    executor.reset(nullptr);
+    executor = std::make_unique<rtos::Thread>(osPriorityNormal, 0x500);
+    executor->start(mbed::callback(this, &ProgressBar::show));
 }
 
 void ProgressBar::terminate()
 {
     log.printf("\r\n");
     led = 0;
-    executor.signal_set(ProgressBar::KILL_SIG);
+    executor->signal_set(ProgressBar::KILL_SIG);
 }
 
 void ProgressBar::show()

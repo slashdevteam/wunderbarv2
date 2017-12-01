@@ -5,16 +5,20 @@
 #include "jsmn.h"
 #include "istdinout.h"
 #include "Thread.h"
+#include <memory>
 
 using CharacterValidator = mbed::Callback<bool(char c)>;
 
 class ProgressBar
 {
+
+using ThreadHandle = std::unique_ptr<rtos::Thread>;
+
 public:
     ProgressBar(IStdInOut& _log, mbed::DigitalOut& _led, bool _silent, uint32_t _period)
         : log(_log),
           led(_led),
-          executor(osPriorityNormal, 0x500),
+          executor(nullptr),
           silent(_silent),
           period(_period)
     {};
@@ -28,7 +32,7 @@ private:
 private:
     IStdInOut& log;
     mbed::DigitalOut& led;
-    rtos::Thread executor;
+    ThreadHandle executor;
     bool silent;
     uint32_t period;
     const int32_t KILL_SIG = 0x1;

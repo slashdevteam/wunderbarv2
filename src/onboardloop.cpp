@@ -80,6 +80,7 @@ private:
     {
         log.printf("Welcome to WunderBar V2 onboarding wizard!\r\n");
         log.printf("This app will guide you through the process of onboarding your device.\r\n");
+        log.printf("Running at %d MHz\n", SystemCoreClock/1000000);
         log.printf("Press ENTER to continue.\r\n");
         waitForEnter(log);
     }

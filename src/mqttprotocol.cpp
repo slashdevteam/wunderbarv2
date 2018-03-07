@@ -362,6 +362,7 @@ bool MqttProtocol::sendPublish(const MQTTString& topic, MessageTuple& message)
                                              topic,
                                              std::get<2>(message),
                                              std::get<3>(message));
+    log->printf("Message: %s\r\n", std::get<2>(message));
     if((packetLen <= 0) || (!sendPacket(packetLen)))
     {
         log->printf("Publish to topic: %s failed!\r\n", topic.cstring);

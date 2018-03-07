@@ -1,11 +1,30 @@
 #include "blewizard.h"
 #include "loopsutil.h"
 #include "wunderbarsensordatatypes.h"
+#include "mbed_wait_api.h"
+
+void resetSensor(PinName nreset)
+{
+    const uint32_t NRF_RESET_TIME_US = 200;
+    mbed::DigitalInOut resetPin(nreset, PinDirection::PIN_OUTPUT, PinMode::PullUp, 0);
+    wait_us(NRF_RESET_TIME_US * 2);
+    resetPin = 1;
+}
+
+void resetSensors()
+{
+    resetSensor(BT1_NRESET);
+    resetSensor(BT2_NRESET);
+    resetSensor(BT3_NRESET);
+    resetSensor(BT4_NRESET);
+    resetSensor(BT5_NRESET);
+    resetSensor(BT6_NRESET);
+}
 
 bool bleWizard(IBleGateway& bleGate, BleConfig& config, mbed::DigitalOut& led, IStdInOut& log)
 {
     bool bleDone = false;
-    uint32_t discoveryTimeout = 40;
+    uint32_t discoveryTimeout = 60;
     while(!bleDone)
     {
         log.printf("\r\nSending base configuration to Bluetooth master\r\n");
@@ -14,6 +33,7 @@ bool bleWizard(IBleGateway& bleGate, BleConfig& config, mbed::DigitalOut& led, I
         if(bleGate.storeConfig())
         {
             uint32_t accountedForSensors = 0;
+            resetSensors();
             log.printf("Now, please put all Bluetooth sensors you want to use in onboarding mode by\r\n");
             log.printf("pressing & releasing button on sensor. Leds should start blinking.\r\n");
             log.printf("Onboarding mode will be active for %d seconds.\r\n", discoveryTimeout);

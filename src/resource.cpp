@@ -126,7 +126,7 @@ void Resource::acknowledge(const char* commandId, int code)
         written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckMiddle);
         written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%d", code);
         written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTime);
-        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%lld", time(nullptr));
         written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, AckTail);
         std::get<size_t>(*message) = written;
         msgQueue->put(message);
@@ -158,7 +158,7 @@ void Resource::publish(DataFiller fillData, const uint8_t* extData)
             written += fillData(content + written, MQTT_MSG_PAYLOAD_SIZE - written, extData);
         }
         written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubMiddle);
-        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%ld", time(nullptr));
+        written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, "%lld", time(nullptr));
         written += std::snprintf(content + written, MQTT_MSG_PAYLOAD_SIZE - written, PubTail);
         std::get<size_t>(*message) = written;
         msgQueue->put(message);

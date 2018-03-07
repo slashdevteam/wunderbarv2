@@ -57,7 +57,7 @@ size_t generateCapabilities(char* caps,
     "\"productCode\":\"%s\","
     "\"version\":\"%s\","
     "\"deviceState\":\"Alright\","
-    "\"lastHeartbeatTime\":%ld,"
+    "\"lastHeartbeatTime\":%lld,"
     "\"sensors\":[";
 
     size_t outLen = std::snprintf(caps,

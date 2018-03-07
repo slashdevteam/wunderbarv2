@@ -40,7 +40,7 @@ Nrf51822Interface ble(MOSI, MISO, SCLK, SSEL, SPI_EXT_INT, &cdc);
 // defined in nouartfix.cpp, needed for global IO retarget
 extern IStdInOut* stdioRetarget;
 // allocate run/onboard loops stack in m_data RAM to avoid issues with new allocator
-uint8_t LOOP_STACK[0x7500] __attribute__((section (".hugestack")));
+uint8_t LOOP_STACK[0x9500] __attribute__((section (".hugestack")));
 
 // Dependency is reversed here - normally resources should not know/care
 // that they need to be on some kind of list, but due to spurious copy ctors
@@ -56,7 +56,7 @@ WbLightProx  light(ble, &resources, cdc);
 WbMicrophone mic(ble, &resources, cdc);
 WbInfraRed   ir(ble, &resources, cdc);
 WbBridge     bridge(ble, &resources, cdc);
-Button       sw2(flash, &resources, "button1", SW2, cdc);
+Button       button(flash, &resources, "BUTTON", SW2, cdc);
 Led          led(&resources, "LED", LED1, cdc);
 Info         info(&resources, cdc);
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     stdioRetarget = &cdc;
     mbedtls_platform_set_printf(&cdcPrintfRetarget);
 
-    cdc.printf("Welcome to WunderBar v2 mbed OS firmware\n");
+    cdc.printf("Welcome to WunderBar v2 V2.RC3.2_%s mbed OS firmware\n", __DATE__);
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
     while(true)

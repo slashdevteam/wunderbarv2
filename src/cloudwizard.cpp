@@ -46,13 +46,11 @@ bool validateOnboardChoice(char c)
 size_t generateCapabilities(char* caps,
                             size_t maxSize,
                             const Resources& resources,
-                            const char* serialNo,
-                            const char* name)
+                            const char* serialNo)
 {
     const char capsHeaderFormat[] =
     "{"
     "\"serialNo\":\"%s\","
-    "\"name\":\"%s\","
     "\"type\":\"%s\","
     "\"productCode\":\"%s\","
     "\"version\":\"%s\","
@@ -64,7 +62,6 @@ size_t generateCapabilities(char* caps,
                                 maxSize,
                                 capsHeaderFormat,
                                 serialNo,
-                                name,
                                 PRODUCT_TYPE,
                                 PRODUCT_CODE,
                                 PRODUCT_VERSION,
@@ -120,7 +117,6 @@ size_t generateCapabilities(char* caps,
 bool registerToCloud(IStdInOut& log,
                     NetworkStack* net,
                     const char* userName,
-                    const char* deviceName,
                     const char* token,
                     MqttConfig& mqttConfig,
                     TlsConfig& tlsConfig,
@@ -146,8 +142,7 @@ bool registerToCloud(IStdInOut& log,
     generateCapabilities(capabilities,
                          sizeof(capabilities),
                          resources,
-                         serialNo,
-                         deviceName);
+                         serialNo);
     log.printf("%s\r\n", capabilities);
     registrationUrl.append("raspberry/email=").append(userName).append("/devices/getCredentials");
     log.printf("\r\nRequesting MQTT credentials.");
@@ -235,11 +230,10 @@ bool deviceRegistration(IStdInOut& log,
 
     bool userNameOk = false;
     bool tokenOk = false;
-    bool deviceNameOk = false;
     bool credentialsOk = false;
     char userName[30] = {0};
     char token[9] = {0};
-    char deviceName[10] = {0};
+    char deviceName[] = "WUNDERBAR";
 
     log.printf("\r\nRegistering device using your user email and token.\r\n");
     while(!cloudOk)
@@ -256,12 +250,6 @@ bool deviceRegistration(IStdInOut& log,
             tokenOk = readField(log, token, 6, 8, token, &isCharPrintableAscii, true, led);
         }
 
-        while(!deviceNameOk)
-        {
-            log.printf("Please enter your device name:\r\n");
-            deviceNameOk = readField(log, deviceName, 1, 10, deviceName, &isCharPrintableAscii, true, led);
-        }
-
         // configure TLS for REST calls
         restConfig.tls.caCert = reinterpret_cast<const uint8_t*>(REST_CA_CHAIN);
         restConfig.tls.deviceCert = nullptr;
@@ -274,7 +262,6 @@ bool deviceRegistration(IStdInOut& log,
             credentialsOk = registerToCloud(log,
                                             net,
                                             userName,
-                                            deviceName,
                                             token,
                                             mqttConfig,
                                             tlsConfig,

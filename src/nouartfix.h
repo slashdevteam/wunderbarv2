@@ -7,5 +7,5 @@
 // if serial is explicitly not connected!
 extern "C" void error(const char* format, ...);
 
-// mbed tls also attempt to use UART serial
-int cdcPrintfRetarget(const char *format, ...);
+// mbed tls also attempts to use UART serial
+int cdcPrintfRetarget(const char* format, ...);

@@ -129,7 +129,7 @@ private:
                 HttpParser response(reinterpret_cast<const char*>(httpsBuffer));
                 if(response)
                 {
-                    sscanf(response.body, "%lld", &currentTime);
+                    sscanf(response.body, "%ld", &currentTime);
                 }
                 else
                 {

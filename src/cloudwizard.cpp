@@ -8,6 +8,7 @@
 #include "mbed_wait_api.h"
 #include "resources.h"
 #include "jsondecode.h"
+#include "mbedtls/entropy_poll.h"
 
 extern Resources resources;
 using mbed::DigitalOut;
@@ -24,6 +25,17 @@ extern "C" WEAK void getCpuId(uint32_t* part0,
     *part1 = 0xC0FFEE42;
     *part2 = 0x42C0FFEE;
     *part3 = 0xC0FFEE42;
+}
+
+void generateTlsSeed(uint8_t* seed, size_t length)
+{
+    for(size_t i = 0; i < length; ++i)
+    {
+        uint32_t result = 0;
+        size_t len;
+        mbedtls_hardware_poll(nullptr, (uint8_t*)&result, sizeof(result), &len);
+        seed[i] = result & 0xFF;
+    }
 }
 
 // capabilities JSON can be humongous so creating
@@ -55,7 +67,7 @@ size_t generateCapabilities(char* caps,
     "\"productCode\":\"%s\","
     "\"version\":\"%s\","
     "\"deviceState\":\"Alright\","
-    "\"lastHeartbeatTime\":%lld,"
+    "\"lastHeartbeatTime\":%ld,"
     "\"sensors\":[";
 
     size_t outLen = std::snprintf(caps,
@@ -173,6 +185,7 @@ bool registerToCloud(IStdInOut& log,
                 char deviceId[30] = {0};
                 char authToken[256] = {0};
                 JsonDecode message(response.body, 16);
+                log.printf("response.body: %s\n", response.body);
                 if(message)
                 {
                     message.copyTo("userId", userId, sizeof(userId));
@@ -226,14 +239,14 @@ bool deviceRegistration(IStdInOut& log,
                         const Resources& resources)
 {
     bool cloudOk = false;
-    // collect username & token & device name
-
+    // collect username & token
     bool userNameOk = false;
     bool tokenOk = false;
     bool credentialsOk = false;
-    char userName[30] = {0};
-    char token[9] = {0};
-    char deviceName[] = "WUNDERBAR";
+    char userName[30] = "";
+    char token[9] = "";
+    uint8_t deviceName[sizeof(TlsConfig::deviceId)] = "";
+    generateTlsSeed(deviceName, sizeof(deviceName));
 
     log.printf("\r\nRegistering device using your user email and token.\r\n");
     while(!cloudOk)

@@ -37,6 +37,7 @@ bool bleWizard(IBleGateway& bleGate, BleConfig& config, mbed::DigitalOut& led, I
             log.printf("Now, please put all Bluetooth sensors you want to use in onboarding mode by\r\n");
             log.printf("pressing & releasing button on sensor. Leds should start blinking.\r\n");
             log.printf("Onboarding mode will be active for %d seconds.\r\n", discoveryTimeout);
+            log.printf("Master BLE revision: %s\r\n", bleGate.getRevision());
             log.printf("Press ENTER to continue.\r\n");
             waitForEnter(log);
             log.printf("Onboarding started, please wait...\r\n");

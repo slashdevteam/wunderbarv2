@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     stdioRetarget = &cdc;
     mbedtls_platform_set_printf(&cdcPrintfRetarget);
 
-    cdc.printf("Welcome to WunderBar v2.RC4 Date:%s mbed OS firmware\n", __DATE__);
+    cdc.printf("Welcome to WunderBar v2.PROD_RC4 Date:%s mbed OS firmware\n", __DATE__);
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
     while(true)

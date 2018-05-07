@@ -3,7 +3,7 @@
 	url = https://github.com/slashdevteam/mbed-os.git
 [submodule "gs1500m-driver"]
 	path = drivers/gs1500m-driver
-       url = https://github.com/slashdevteam/gs1500m-driver.git
+    url = https://github.com/slashdevteam/gs1500m-driver.git
 [submodule "drivers/usb-cdc"]
 	path = drivers/usb-cdc
 	url = https://github.com/slashdevteam/usb-cdc.git
@@ -13,3 +13,6 @@
 [submodule "mqttlib"]
 	path = mqttlib
 	url = https://github.com/slashdevteam/paho.mqtt.embedded-c.git
+[submodule "drivers/nrf51822-driver"]
+	path = drivers/nrf51822-driver
+	url = https://github.com/slashdevteam/wunderbar-master-nrf.git

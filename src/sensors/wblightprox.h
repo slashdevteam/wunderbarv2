@@ -79,4 +79,8 @@ private:
                              reading.b,
                              reading.proximity);
     }
+
+private:
+    bool defaultRateApplied;
+    const uint32_t defaultRate = 10000;
 };

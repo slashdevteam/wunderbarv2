@@ -1,6 +1,6 @@
 ## WunderBar Firmware with mbed OS
 
-This repo uses submodules so execute this after cloning:
+This repo uses submodules, so execute this after cloning:
 ```git submodule update --init --recursive```
 
 # Wunderbar mbed OS app only
@@ -16,9 +16,9 @@ To flash:
 To build:
 1. ```mbed target WUNDERBAR_APP_BIN``` (only needed once)
 2. ```mbed toolchain GCC_ARM``` (only needed once, GCC_ARM is currently the only supported toolchain)
-3. ```mbed compile --profile tools/profiles/debug.json -l tools/wunderbar.ld```
+3. ```mbed compile --profile tools/debug.json -l tools/wunderbar.ld```
 
 To flash:
-1. Switch Wunderbar to DFU mode (while user button is pressed press & release reset button)
+1. Switch Wunderbar to DFU mode (press & release reset button while user button is pressed)
 2. ```dfu-util -R -d 15a2:1000 -a 0 -D BUILD/WUNDERBAR_APP_BIN/GCC_ARM/wunderbarv2_application.bin```
 3. Reset Wunderbar to APP mode (reset Wunderbar with reset button only)

@@ -61,11 +61,11 @@ __heap_size__ = 0x11800;
 #endif
 
 #if !defined(FLASH_STORAGE_SECTORS)
-  #define FLASH_STORAGE_SECTORS 3
+  #define FLASH_STORAGE_SECTORS 4
 #endif
 
 #if !defined(FLASH_CERT_STORAGE_SECTORS)
-  #define FLASH_CERT_STORAGE_SECTORS 2
+  #define FLASH_CERT_STORAGE_SECTORS 3
 #endif
 
 #if !defined(FLASH_SECTOR_SIZE)

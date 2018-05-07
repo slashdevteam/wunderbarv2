@@ -43,7 +43,7 @@ struct sensor_lightprox_data_t
     uint16_t proximity;
 } __attribute__((packed));
 
-const char* jsonFormat = "\"light\":%d,\"clr\":[%d,%d,%d],\"prox\":%d";
+const char* jsonFormat = "\"white\":%d,\"red\":%d,\"green\":%d,\"blue\":%d,\"proximity\":%d";
 
 public:
     WbLightProx(IBleGateway& _gateway, Resources* _resources, IStdInOut& _log);
@@ -79,4 +79,8 @@ private:
                              reading.b,
                              reading.proximity);
     }
+
+private:
+    bool defaultRateApplied;
+    const uint32_t defaultRate = 10000;
 };

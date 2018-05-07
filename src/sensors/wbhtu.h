@@ -53,5 +53,9 @@ private:
     {
         const sensor_htu_data_t& reading = *reinterpret_cast<const sensor_htu_data_t*>(data);
         return std::snprintf(outputString, maxLen, jsonFormat, reading.temperature/100, reading.humidity/100);
-    };
+    }
+
+private:
+    bool defaultRateApplied;
+    const uint32_t defaultRate = 30000;
 };

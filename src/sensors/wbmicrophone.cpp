@@ -11,7 +11,8 @@ WbMicrophone::WbMicrophone(IBleGateway& _gateway, Resources* _resources, IStdInO
                       ServerName(WunderbarSensorNames(wunderbar::sensors::DATA_ID_DEV_SOUND)),
                       randomPassKey(),
                       _resources,
-                      _log)
+                      _log),
+      defaultRateApplied(false)
 {
 }
 
@@ -21,6 +22,13 @@ void WbMicrophone::event(BleEvent _event, const uint8_t* data, size_t len)
     {
         case BleEvent::DATA_SENSOR_NEW_DATA:
             publish(mbed::callback(this, &WbMicrophone::dataToJson), data);
+            if(!defaultRateApplied)
+            {
+                defaultRateApplied = true;
+                sendToServer(wunderbar::characteristics::sensor::FREQUENCY,
+                             reinterpret_cast<const uint8_t*>(&defaultRate),
+                             sizeof(defaultRate));
+            }
             break;
         case BleEvent::DATA_SENSOR_FREQUENCY:
             publish(mbed::callback(this, &WbMicrophone::frequencyToJson), data);

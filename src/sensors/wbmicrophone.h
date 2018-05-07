@@ -41,4 +41,8 @@ private:
         const sensor_microphone_data_t& reading = *reinterpret_cast<const sensor_microphone_data_t*>(data);
         return std::snprintf(outputString, maxLen, jsonFormat, reading.mic_level);
     }
+
+private:
+    bool defaultRateApplied;
+    const uint32_t defaultRate = 10000;
 };

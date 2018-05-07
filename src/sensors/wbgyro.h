@@ -87,4 +87,8 @@ private:
                              reading.gyro.x/100, reading.gyro.y/100, reading.gyro.z/100,
                              reading.acc.x/100, reading.acc.y/100, reading.acc.z/100);
     }
+
+private:
+    bool defaultRateApplied;
+    const uint32_t defaultRate = 10000;
 };

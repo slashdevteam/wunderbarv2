@@ -32,6 +32,6 @@ private:
 private:
     uint32_t pingInterval;
     uint32_t serialNo[4];
-    const char* fwVersion = "V2.RC2." __DATE__;
+    const char* fwVersion = "V2.0 GOLD RT " __DATE__;
     PingChangeCallback pingCallback;
 };

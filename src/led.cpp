@@ -48,7 +48,7 @@ void Led::advertise(IPubSub* _proto)
 {
     Resource::advertise(_proto);
     Resource::subscribe();
-    pubTick.attach(mbed::callback(this, &Led::pingPub), 10.0);
+    pubTick.attach(mbed::callback(this, &Led::pingPub), 30.0);
 }
 
 void Led::revoke()

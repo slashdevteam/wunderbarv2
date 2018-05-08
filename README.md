@@ -1,22 +1,25 @@
-## WunderBar Firmware with mbed OS
+# WunderBar Firmware with mbed OS
 
 This repo uses submodules, so execute this after cloning:
 ```git submodule update --init --recursive```
 
-# Wunderbar mbed OS app only
+## Requirements
+1. [mbed CLI](https://os.mbed.com/docs/v5.8/tools/arm-mbed-cli.html)
+2. [ARM GCC toolchain](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads)
+
+This app requires GCC toolchain - it is set by default, but can be reset with ```mbed toolchain GCC_ARM``` command.
+
+## Wunderbar mbed OS app only
 To build:
-1. ```mbed target WUNDERBAR``` (only needed once)
-2. ```mbed toolchain GCC_ARM``` (only needed once, GCC_ARM is currently the only supported toolchain)
-3. ```mbed compile --profile tools/debug.json -l tools/wunderbar.ld```
+1. ```mbed target WUNDERBAR``` (only needed once, default target is ```WUNDERBAR_APP_BIN```)
+2. ```mbed compile --profile tools/debug.json -l tools/wunderbar.ld``` (```--profile tools/release.json``` can be used to compile release/optimized binary)
 
 To flash:
 ```JLinkExe -commanderscript flashwb.jlink```
 
-# Wunderbar mbed OS app and Wunderbar DFU bootloader
+## Wunderbar mbed OS app and Wunderbar DFU bootloader
 To build:
-1. ```mbed target WUNDERBAR_APP_BIN``` (only needed once)
-2. ```mbed toolchain GCC_ARM``` (only needed once, GCC_ARM is currently the only supported toolchain)
-3. ```mbed compile --profile tools/debug.json -l tools/wunderbar.ld```
+1. ```mbed compile --profile tools/debug.json -l tools/wunderbar.ld```
 
 To flash:
 1. Switch Wunderbar to DFU mode (press & release reset button while user button is pressed)

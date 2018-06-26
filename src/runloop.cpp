@@ -1,7 +1,7 @@
 #include "loops.h"
 #include "flash.h"
 #include "cdc.h"
-#include "tls.h"
+#include "simpletransport.h"
 #include "mqttprotocol.h"
 #include "resources.h"
 #include "DigitalOut.h"
@@ -42,8 +42,10 @@ public:
 private:
     void loop()
     {
-        log.printf("Connecting to %s network\r\n", config.wifi.ssid);
         mbed::DigitalOut led(LED1);
+
+        log.printf("Connecting to %s network\r\n", config.wifi.ssid);
+
         ProgressBar progressBar(log, led, false, 450);
         progressBar.start();
         int status = wifi.connect(config.wifi.ssid,
@@ -55,13 +57,11 @@ private:
         if(status == NSAPI_ERROR_OK)
         {
             log.printf("Connected to %s network.\r\n", config.wifi.ssid);
-            time_t currentTime = getTime(led);
-            set_time(currentTime);
 
             // by default TLS is not logging, to enable pass &log to TLS constructor instead of &devnull
             IStdInOut devNull;
-            TLS              tls(&net, config.tls, &devNull);
-            MqttProtocol     mqtt(&tls, config.proto, &log);
+            SimpleTransport  notls(&net, config.tls, &devNull);
+            MqttProtocol     mqtt(&notls, config.proto, &log);
 
             log.printf("Creating connection over %s to %s:%d.\r\n", mqtt.name, config.proto.server, config.proto.port);
             ProgressBar progressBar(log, led, false, 133);

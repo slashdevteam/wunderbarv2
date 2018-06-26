@@ -9,22 +9,13 @@
 #include "mbedtls/ssl.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
+#include "tlsconfig.h"
 
 #include <memory>
 using SocketHandle = std::unique_ptr<TCPSocket>;
 
 class NetworkStack;
 class IStdInOut;
-
-struct TlsConfig
-{
-    uint8_t deviceId[30]; // used for SSL seed
-    int authMode;
-    const uint8_t* caCert;
-    uint8_t* deviceCert;
-    uint8_t* key;
-
-} __attribute__ ((__packed__));
 
 class TLS : public ITransportLayer
 {

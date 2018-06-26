@@ -60,6 +60,15 @@ Button       button(flash, &resources, "BUTTON", SW2, cdc);
 Led          led(&resources, "LED", LED1, cdc);
 Info         info(&resources, cdc);
 
+const char WIFI_SSID[] = "WIFI";
+const char WIFI_PASS[] = "PASS";
+const char MQTT_SERVER[] = "MQTT_SERVER";
+const uint32_t MQTT_PORT = 1883;
+const char MQTT_CLIENT[] = "Wunderbar";
+
+
+wunderbar::Configuration config;
+
 int main(int argc, char **argv)
 {
     stdioRetarget = &cdc;
@@ -68,33 +77,33 @@ int main(int argc, char **argv)
     cdc.printf("Welcome to WunderBar v2.PROD_RC4 Date:%s mbed OS firmware\n", __DATE__);
     cdc.printf("Running at %d MHz\n", SystemCoreClock/1000000);
 
-    while(true)
-    {
-        if(!flash.isOnboarded())
-        {
-            // blocking call
-            onboardLoop(flash,
-                        cdc,
-                        ble,
-                        wifiConnection,
-                        wifiConnection,
-                        resources,
-                        LOOP_STACK,
-                        sizeof(LOOP_STACK));
-        }
-        else
-        {
-            runLoop(flash.getConfig(),
-                    cdc,
-                    ble,
-                    info,
-                    wifiConnection,
-                    wifiConnection,
-                    resources,
-                    LOOP_STACK,
-                    sizeof(LOOP_STACK));
-        }
-        wait(2);
-    }
+    std::memset(&config, 0, sizeof(config));
+
+    // WiFi settings
+    config.wifi.security = NSAPI_SECURITY_WPA2;
+    std::memcpy(&config.wifi.ssid, WIFI_SSID, sizeof(WIFI_SSID));
+    std::memcpy(&config.wifi.pass, WIFI_PASS, sizeof(WIFI_PASS));
+
+    std::memcpy(&config.proto.server, MQTT_SERVER, sizeof(MQTT_SERVER));
+    std::memcpy(&config.proto.clientId, MQTT_CLIENT, sizeof(MQTT_CLIENT));
+    config.proto.port = MQTT_PORT;
+
+    // enable all BLE sensors
+    config.ble.sensorAvailability[0] = SensorAvailability::AVAILABLE;
+    config.ble.sensorAvailability[1] = SensorAvailability::AVAILABLE;
+    config.ble.sensorAvailability[2] = SensorAvailability::AVAILABLE;
+    config.ble.sensorAvailability[3] = SensorAvailability::AVAILABLE;
+    config.ble.sensorAvailability[4] = SensorAvailability::AVAILABLE;
+    config.ble.sensorAvailability[5] = SensorAvailability::AVAILABLE;
+
+    runLoop(config,
+            cdc,
+            ble,
+            info,
+            wifiConnection,
+            wifiConnection,
+            resources,
+            LOOP_STACK,
+            sizeof(LOOP_STACK));
 
 }

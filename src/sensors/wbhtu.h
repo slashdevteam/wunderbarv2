@@ -57,5 +57,5 @@ private:
 
 private:
     bool defaultRateApplied;
-    const uint32_t defaultRate = 30000;
+    const uint32_t defaultRate = 1000;
 };
